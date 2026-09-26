@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="panel.css">
+    <title>WICK-AG-Lens Panel</title>
+</head>
+<body>
+    <header class="extension-header">
+        <h1>WICK-AG-Lens v2.0.0</h1>
+        <button id="btn-open-docs" class="header-icon-btn" aria-label="Open Documentation">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        </button>
+    </header>
+
+    <main>
+        <div class="tabs-nav" role="tablist" aria-label="Inspector Views">
+            <button class="tab-btn active" id="btn-tab-violations" role="tab" aria-selected="true" aria-controls="tab-violations">Violations & Warnings</button>
+            <button class="tab-btn" id="btn-tab-informative" role="tab" aria-selected="false" aria-controls="tab-informative">Informative & Structure</button>
+        </div>
+
+        <div class="main-container">
+            <!-- TAB 1: VIOLATIONS -->
+            <div class="tab-content active" id="tab-violations" role="tabpanel" aria-labelledby="btn-tab-violations">
+                <p class="tab-description">This tab strictly isolates actionable failures, critical accessibility errors, and severe anti-patterns.</p>
+                
+                <div class="tab-global-actions">
+                    <div class="master-toggle-container">
+                        <label class="toggle-switch" for="master-toggle-violations">
+                            <input type="checkbox" id="master-toggle-violations">
+                            <span class="slider"></span>
+                        </label>
+                        <label class="master-toggle-label" for="master-toggle-violations">Toggle All Violations</label>
+                        <span class="master-count-info" id="master-count-violations"></span>
+                    </div>
+                    <button class="action-icon-btn copy-report-btn" id="copy-report-violations" title="Copy Tab Report to Clipboard">📋</button>
+                    <button class="action-icon-btn" id="toggle-collapse-violations" title="Toggle Expand/Collapse All">▼</button>
+                </div>
+
+                <div id="violations-container" class="features-container"></div>
+            </div>
+
+            <!-- TAB 2: INFORMATIVE -->
+            <div class="tab-content" id="tab-informative" role="tabpanel" aria-labelledby="btn-tab-informative">
+                <p class="tab-description">This tab provides an exploratory audit of valid page architecture, semantic landmarks, structural maps, and proper accessibility patterns.</p>
+                
+                <div class="tab-global-actions">
+                    <div class="master-toggle-container">
+                        <label class="toggle-switch" for="master-toggle-informative">
+                            <input type="checkbox" id="master-toggle-informative">
+                            <span class="slider"></span>
+                        </label>
+                        <label class="master-toggle-label" for="master-toggle-informative">Toggle All Informative Audits</label>
+                        <span class="master-count-info" id="master-count-informative"></span>
+                    </div>
+                    <button class="action-icon-btn copy-report-btn" id="copy-report-informative" title="Copy Tab Report to Clipboard">📋</button>
+                    <button class="action-icon-btn" id="toggle-collapse-informative" title="Toggle Expand/Collapse All">▼</button>
+                </div>
+
+                <div id="informative-container" class="features-container"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer collapsed" id="footer-restrictions">
+        <div class="footer-header" id="footer-header">
+            <button class="footer-expand-btn" id="footer-expand-btn" aria-expanded="false" aria-controls="footer-content">
+                <h2>Inspector Restrictions & Bounds</h2>
+                <span class="footer-chevron">▼</span>
+            </button>
+        </div>
+        <div class="footer-content" id="footer-content">
+            <ul>
+                <li><strong>Visibility Filtering:</strong> Elements hidden via <code>display: none</code>, <code>visibility: hidden</code>, <code>hidden</code>, or <code>inert</code> are strictly excluded from all analysis to match native accessibility tree behavior.</li>
+                <li><strong>Visual Occlusion:</strong> Visibility calculations rely on CSS properties. The tool does not calculate 3D geometric occlusion (e.g., an element technically "visible" in CSS but visually covered by a high <code>z-index</code> modal).</li>
+                <li><strong>Focus Order:</strong> Mirrors standard browser Tab execution, prioritizing <code>tabindex > 0</code>, respecting native Radio Group bundling, and ignoring disabled/hidden nodes.</li>
+                <li><strong>Shadow DOMs:</strong> Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.</li>
+                <li><strong>Iframes & Cross-Origin Policies:</strong> Due to strict browser security (Same-Origin Policy), the inspector cannot pierce or audit the internal DOM of cross-origin iframes (e.g., embedded videos or third-party widgets).</li>
+                <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Complex backgrounds (images, gradients) or mixed element opacities may reduce accuracy compared to pixel-level visual analysis.</li>
+            </ul>
+            <div class="footer-disclaimer">
+                <p><strong>Disclaimer:</strong> WICK-AG-Lens is an automated heuristic tool implemented to the best knowledge of its author. It does not cover all possible accessibility barriers that may exist on a page, and existing audits may occasionally yield false positives or false negatives. Passing these checks does not guarantee full WCAG compliance. Automated testing should always be combined with manual testing and assistive technology validation.</p>
+                <p>Copyright &copy; <span id="copyright-year"></span> Sebastian Clavijo Suero.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../config/a11y-config.js"></script>
+    <script src="docs-content.js"></script>
+    <script src="panel.js"></script>
+</body>
+</html>
