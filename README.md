@@ -4,7 +4,7 @@ WICK-AG-Lens is a professional visual accessibility inspector for Web Developers
 
 You can install WICK-AG-Lens from the Chrome Web Store: [Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
 
-![WICK-AG-Lens: Accessibility Inspector overview features](images\overview.png)
+![WICK-AG-Lens: Accessibility Inspector overview features](images/overview.png)
 
 
 ## Table of Contents
