@@ -1,11 +1,12 @@
 # WICK-AG-Lens: Accessibility Inspector
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a Chrome browser extension that generates visual overlays on elements to indicate accessibility violations and structural information directly within your page layout.
+WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations and structural information directly within your page layout.
 
-You can install WICK-AG-Lens from the Chrome Web Store: [Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
+You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
 
+&nbsp;
 ![WICK-AG-Lens: Accessibility Inspector overview features](images/overview.png)
-
+&nbsp;
 
 ## Table of Contents
 1. [Features Overview](#features-overview)
