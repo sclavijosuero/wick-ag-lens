@@ -4,6 +4,8 @@ WICK-AG-Lens is a professional visual accessibility inspector for Web Developers
 
 You can install WICK-AG-Lens from the Chrome Web Store: [Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
 
+![WICK-AG-Lens: Accessibility Inspector overview features](images\overview.png)
+
 
 ## Table of Contents
 1. [Features Overview](#features-overview)
@@ -39,25 +41,15 @@ Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Sto
 
 2. Click the **Add to Chrome** button located in the top right corner of the page.
 
-![Chrome Web Store page highlighting the 'Add to Chrome' button|300](images\install-step1.png)
-
 3. A confirmation browser dialog will appear. Click **Add extension** to grant the necessary permissions for the tool to inspect pages.
 
-![Chrome permission dialog highlighting the 'Add extension' button|300](images\install-step2.png)
-
 4. You will receive a message saying WICK-AG-Lens has been added to Chrome.
-
-![Chrome permission dialog highlighting the 'Add extension' button|300](images\install-step3.png)
 
 5. Once installed, open your Chrome Developer Tools (`F12` or `Ctrl+Shift+I` on Windows/Linux, `Cmd+Option+I` on Mac).
 
 6. Locate the **WICK-AG-Lens** tab in the top navigation bar of the DevTools panel. Note: You may need to click the `>>` icon if your DevTools window is narrow.
 
-![Chrome DevTools panel highlighting the 'WICK-AG-Lens' tab|300](images\install-step4.png)
-
 7. And that's it!
-
-![WICK-AG-Lens extension in Chrome Dev Tools|300](images\install-step5.png)
 
 
 ## Audit Library & Ruleset
@@ -254,9 +246,23 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 ## License
 WICK-AG-Lens is available under the MIT License. Reference the [LICENSE.md](./LICENSE.md) file for standard permissions and limitations.
 
-## Contributing
-We welcome contributions. Review the [CONTRIBUTING.md](./CONTRIBUTING.md) file for details on providing feature requests, filing bug reports, or opening pull requests.
+## CONTRIBUTING
+
+First off, thanks for taking the time to contribute!
+
+To contribute, please follow the process described in **[CONTRIBUTING.md](CONTRIBUTING.md "CONTRIBUTING.md")**
+
+And if you like the project but just don't have the time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
+- Star the project
+- Promote it on social media
+- Refer this project in your project's readme
+- Mention the project at local meetups and tell your friends/colleagues
+- Buying me a coffee or contributing to a training session, so I can keep learning and sharing cool stuff with all of you.
+
+<a href="https://www.buymeacoffee.com/sclavijosuero" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 150px !important;" ></a>
+
+Thank you for your support!
 
 ## Changelog
 *   **v2.0.0:** Major release. Replaced icons and incorporated WCAG 2.2 AAA compliant styling changes. Added new heuristic auditing capabilities (Disabled Focus Outlines). Removed standard duplicate ID auditing in favor of expanded keyboard navigation tools. Rebranded to WICK-AG-Lens.
-*   **v1.0.0:** Initial release. Introduced targeted visual overlays, precision element locator, one-click clipboard reporting, and WCAG reference modals. Included base suite of audits for headings, images, forms, keyboard/interactive elements, links, and ARIA DOM integrity. Full support for evaluating DOM elements across nested frames and same-origin iframes.
+*   **v1.0.0:** Initial release (Chrome extension previously called**a11y-inspector**). Introduced targeted visual overlays, precision element locator, one-click clipboard reporting, and WCAG reference modals. Included base suite of audits for headings, images, forms, keyboard/interactive elements, links, and ARIA DOM integrity. Full support for evaluating DOM elements across nested frames and same-origin iframes.
