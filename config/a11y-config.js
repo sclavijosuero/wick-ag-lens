@@ -56,8 +56,7 @@ window.A11Y_CONFIG = {
                                 drawHighlight(el, "#fbbc04", `accesskey="${el.getAttribute("accesskey")}"`, "warn"); return true;
                             }
                         },
-                        // NEW AUDIT: Disabled Focus Outlines
-{
+                        {
                             id: "v-disabled-focus",
                             label: "Disabled Focus Outlines",
                             desc: "Interactive elements hiding focus rings without fallbacks",
@@ -101,7 +100,6 @@ window.A11Y_CONFIG = {
                                 for (let sel of state.parsedSelectors) {
                                     try {
                                         if (el.matches(sel)) {
-                                            // Updated badge label to explicitly indicate heuristic nature
                                             drawHighlight(el, "#d93025", "Disabled Focus Ring (Heuristic)", "bad");
                                             return true;
                                         }
@@ -325,15 +323,47 @@ window.A11Y_CONFIG = {
                             label: "Focusable in Aria-Hidden",
                             desc: "Active controls trapped in hidden trees",
                             severity: "Critical",
-                            selector: "[aria-hidden='true']",
+                            selector: "a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])",
                             legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
                             info: {
-                                what: "Flags focusable controls inside aria-hidden='true' subtrees.",
-                                why: "Keyboard users can reach them, but screen readers cannot, creating a severe mismatch. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
+                                what: "Flags elements that receive keyboard focus but are hidden from Assistive Technologies via <code>aria-hidden='true'</code> on the element or an ancestor.",
+                                why: "Keyboard users can reach them, but screen readers cannot, creating a severe mismatch (a focus trap or dead silence). <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
                             },
                             customHighlight: (el, drawHighlight) => {
-                                const focusables = el.querySelectorAll('a[href], button, input, select, textarea, [tabindex="0"]');
-                                if (focusables.length > 0) { drawHighlight(el, "#d93025", `aria-hidden (${focusables.length} focusables)`, "bad"); return true; }
+                                if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
+                                
+                                let isHiddenFromAT = false;
+                                let currentElement = el;
+                                
+                                while (currentElement && currentElement !== document) {
+                                    if (currentElement.nodeType === Node.ELEMENT_NODE) {
+                                        if (currentElement.getAttribute("aria-hidden") === "true") {
+                                            isHiddenFromAT = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (currentElement.assignedSlot) {
+                                        currentElement = currentElement.assignedSlot;
+                                    } else if (currentElement.parentNode instanceof ShadowRoot) {
+                                        currentElement = currentElement.parentNode.host;
+                                    } else if (currentElement.parentNode === currentElement.ownerDocument) {
+                                        const win = currentElement.ownerDocument.defaultView;
+                                        if (win) {
+                                            try { currentElement = win.frameElement ? win.frameElement : null; } 
+                                            catch(e) { currentElement = null; }
+                                        } else {
+                                            currentElement = null;
+                                        }
+                                    } else {
+                                        currentElement = currentElement.parentNode;
+                                    }
+                                }
+
+                                if (isHiddenFromAT) { 
+                                    drawHighlight(el, "#d93025", "aria-hidden (Focusable)", "bad"); 
+                                    return true; 
+                                }
                                 return false;
                             }
                         },
@@ -413,26 +443,6 @@ window.A11Y_CONFIG = {
                                 return false;
                             }
                         }
-                        /* --- COMMENTED OUT FOR 30/30 EXPANSION MILESTONE ---
-                        ,{
-                            id: "v-duplicate-ids",
-                            label: "Duplicate ID Attributes",
-                            desc: "Non-unique DOM id attributes",
-                            severity: "Minor",
-                            selector: "[id]",
-                            legends: [{ label: "Violation", color: "#1a73e8", type: "bad" }],
-                            info: {
-                                what: "Flags non-unique DOM id attributes.",
-                                why: "Duplicate IDs break ARIA references (like aria-labelledby) and label-to-input targeting. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/parsing.html' target='_blank'>WCAG 4.1.1: Parsing</a>"
-                            },
-                            customHighlight: (el, drawHighlight, state) => {
-                                const id = el.id;
-                                state.seen = state.seen || {};
-                                if (state.seen[id]) { drawHighlight(el, "#1a73e8", `Duplicate id="${id}"`, "bad"); return true; }
-                                state.seen[id] = true; return false;
-                            }
-                        }
-                        ---------------------------------------------------- */
                     ]
                 },
                 {
@@ -542,16 +552,60 @@ window.A11Y_CONFIG = {
                             label: "Display Focus Order",
                             desc: "Sequential trace of naturally focusable elements",
                             selector: "a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])",
-                            legends: [{ label: "Focus Path", color: "#9c27b0", type: "path" }],
+                            legends: [
+                                { label: "Valid Focus", color: "#9c27b0", type: "path" },
+                                { label: "Hidden from AT (aria-hidden)", color: "#d93025", type: "hidden-at" }
+                            ],
                             info: {
-                                what: "Traces and numbers the natural sequential path of focusable elements.",
-                                why: "Simulates the TAB key route to ensure logical flow. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>"
+                                what: "Traces the sequential path of focusable elements. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies (AT) via <code>aria-hidden='true'</code> on the element or an ancestor.",
+                                why: "Simulates the TAB key route to ensure logical flow. If a focused element is removed from the accessibility tree, screen reader users will experience a focus trap or dead silence, unable to perceive the element they just landed on. This is a critical WCAG violation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
                             },
                             customHighlight: (el, drawHighlight, state) => {
                                 if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
+                                
+                                // Traverse up to check for inherited aria-hidden="true"
+                                let isHiddenFromAT = false;
+                                let currentElement = el;
+                                
+                                while (currentElement && currentElement !== document) {
+                                    if (currentElement.nodeType === Node.ELEMENT_NODE) {
+                                        if (currentElement.getAttribute("aria-hidden") === "true") {
+                                            isHiddenFromAT = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // Context crossing logic up through Shadow DOMs and Iframes
+                                    if (currentElement.assignedSlot) {
+                                        currentElement = currentElement.assignedSlot;
+                                    } else if (currentElement.parentNode instanceof ShadowRoot) {
+                                        currentElement = currentElement.parentNode.host;
+                                    } else if (currentElement.parentNode === currentElement.ownerDocument) {
+                                        const win = currentElement.ownerDocument.defaultView;
+                                        if (win) {
+                                            try { currentElement = win.frameElement ? win.frameElement : null; } 
+                                            catch(e) { currentElement = null; }
+                                        } else {
+                                            currentElement = null;
+                                        }
+                                    } else {
+                                        currentElement = currentElement.parentNode;
+                                    }
+                                }
+
                                 state.counter = state.counter || 1;
-                                drawHighlight(el, "#9c27b0", `#${state.counter}: <${el.tagName.toLowerCase()}>`, "path");
-                                state.counter++; return true;
+                                const tagName = el.tagName.toLowerCase();
+                                
+                                if (isHiddenFromAT) {
+                                    // Draw a red critical violation badge for ghost focus elements
+                                    drawHighlight(el, "#d93025", `#${state.counter}: <${tagName}> (Hidden from AT)`, "hidden-at");
+                                } else {
+                                    // Draw standard purple sequential path badge
+                                    drawHighlight(el, "#9c27b0", `#${state.counter}: <${tagName}>`, "path");
+                                }
+                                
+                                state.counter++; 
+                                return true;
                             },
                             preprocessElements: (elements) => {
                                 let focusable = elements.filter(el => {

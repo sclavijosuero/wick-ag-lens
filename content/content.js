@@ -74,7 +74,7 @@ pulsateStyle.textContent = `
         white-space: nowrap;
         line-height: 1;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        opacity: 0.9; 
+        opacity: 0.75; 
         pointer-events: auto;
         transform-origin: bottom left;
         transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
@@ -310,15 +310,53 @@ function querySelectorAllDeep(selector, root = document) {
     return results;
 }
 
-function isElementVisible(el) {
-    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+function isElementVisible(element) {
+    if (!element || element.nodeType !== 1) return false;
+    let currentElement = element;
     
-    // --- Prevent auditing our own injected extension UI ---
-    if (el.closest('#a11y-inspector-overlay, #a11y-info-toast')) return false;
-    
-    if (el.closest('[inert]') || el.hasAttribute('hidden')) return false;
-    const style = window.getComputedStyle(el);
-    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    // Manual traversal loop up through Shadow DOMs, Assigned Slots, and Same-Origin Iframes
+    while (currentElement && currentElement !== document) {
+        if (currentElement.nodeType === Node.ELEMENT_NODE) {
+            // Explicit checks for inert and hidden attributes
+            if (currentElement.hasAttribute('inert') || currentElement.hasAttribute('hidden')) {
+                return false;
+            }
+
+            // Explicit check for native closed <dialog> elements
+            if (currentElement.tagName && currentElement.tagName.toLowerCase() === 'dialog' && !currentElement.hasAttribute('open')) {
+                return false;
+            }
+
+            // Computed style checks at every level (ensuring correct window context for iframes)
+            const win = currentElement.ownerDocument.defaultView || window;
+            const style = win.getComputedStyle(currentElement);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                return false;
+            }
+        }
+        
+        // Context crossing logic (Shadow DOM -> Same-Origin Iframes -> Standard DOM)
+        if (currentElement.assignedSlot) {
+            currentElement = currentElement.assignedSlot; // Cross slot boundaries
+        } else if (currentElement.parentNode instanceof ShadowRoot) {
+            currentElement = currentElement.parentNode.host; // Cross shadow root boundaries
+        } else if (currentElement.parentNode === currentElement.ownerDocument) {
+            // We reached the root of a sub-document. Check if embedded in an iframe.
+            const win = currentElement.ownerDocument.defaultView;
+            if (win) {
+                try {
+                    currentElement = win.frameElement ? win.frameElement : null; 
+                } catch(e) {
+                    currentElement = null; // Cross-origin security block; halt traversal
+                }
+            } else {
+                currentElement = null;
+            }
+        } else {
+            currentElement = currentElement.parentNode; // Standard DOM traversal
+        }
+    }
+
     return true;
 }
 
