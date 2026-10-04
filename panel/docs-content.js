@@ -1,19 +1,19 @@
 window.A11Y_DOCS_HTML = `
 <div class="a11y-docs-container">
-    <p>WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA[cite: 4]. It operates as a Chrome browser extension that generates visual overlays on elements to indicate accessibility violations and structural information directly within your page layout[cite: 4].</p>
+    <p>WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a Chrome browser extension that generates visual overlays on elements to indicate accessibility violations and structural information directly within your page layout.</p>
 
     <h3 id="features-overview">Features Overview</h3>
-    <p>WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns directly on the page[cite: 4].</p>
+    <p>WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns directly on the page.</p>
     <ul>
-        <li><strong>40 Independent Audits:</strong> Divided into actionable violations and structural information checks[cite: 4].</li>
-        <li><strong>WCAG Criteria Filtering:</strong> Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA)[cite: 4].</li>
-        <li><strong>Visual Highlighting:</strong> Draws bounding boxes and badges over target elements to clearly identify where issues occur[cite: 4].</li>
-        <li><strong>Interactive Info Panels:</strong> Clicking any on-page badge opens a detailed panel explaining what the issue is, why it matters, and providing the exact CSS selector[cite: 4].</li>
-        <li><strong>Precision Element Locator:</strong> Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring[cite: 4].</li>
-        <li><strong>Accessible Interface:</strong> The extension's DevTools panel is designed to be keyboard-friendly and incorporates WCAG 2.2 AA best practices where possible[cite: 4].</li>
-        <li><strong>One-Click Reporting:</strong> Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking[cite: 4].</li>
-        <li><strong>Shadow DOM &amp; Iframe Support:</strong> Pierces open web components to evaluate encapsulated markup and fully traverses same-origin iframes[cite: 4].</li>
-        <li><strong>WCAG Alignment:</strong> References current W3C standards for all checks[cite: 4].</li>
+        <li><strong>40 Independent Audits:</strong> Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.</li>
+        <li><strong>WCAG Criteria Filtering:</strong> Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).</li>
+        <li><strong>Visual Highlighting:</strong> Draws bounding boxes and badges over target elements to clearly identify where issues occur.</li>
+        <li><strong>Interactive Info Panels:</strong> Clicking any on-page badge opens a detailed panel explaining what the issue is, why it matters, and providing the exact CSS selector.</li>
+        <li><strong>Precision Element Locator:</strong> Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.</li>
+        <li><strong>Accessible Interface:</strong> The extension's DevTools panel is designed to be keyboard-friendly and incorporates WCAG 2.2 AA best practices where possible.</li>
+        <li><strong>One-Click Reporting:</strong> Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking.</li>
+        <li><strong>Shadow DOM &amp; Iframe Support:</strong> Pierces open web components to evaluate encapsulated markup and fully traverses same-origin iframes.</li>
+        <li><strong>WCAG Alignment:</strong> References current W3C standards for all checks.</li>
     </ul>
 
     <h3 id="audit-library">Audit Library &amp; Ruleset</h3>
