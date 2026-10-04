@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         toast.textContent = message;
         toast.classList.add('show');
-        
+
         // Remove toast after 4 seconds
         setTimeout(() => toast.classList.remove('show'), 4000);
     }
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 b.setAttribute("aria-selected", "false");
             });
             tabContents.forEach(c => c.classList.remove("active"));
-            
+
             btn.classList.add("active");
             btn.setAttribute("aria-selected", "true");
             document.getElementById(btn.getAttribute("aria-controls")).classList.add("active");
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             } else {
                 // FIXED: Clearing inline display style allows CSS collapse rules to function naturally
-                row.style.display = ''; 
+                row.style.display = '';
                 if (feature.legends) {
                     feature.legends.forEach(leg => {
                         const legendItem = row.querySelector(`.legend-item[data-legend-type="${leg.type}"]`);
@@ -122,13 +122,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     });
                 }
-                
+
                 // If it's active, dispatch change to trigger redraw with updated activeLegends
                 if (toggle && toggle.checked) {
-                    chrome.tabs.sendMessage(tabId, { 
-                        action: 'highlight', 
-                        featureId: featureId, 
-                        activeLegends: activeLegends 
+                    chrome.tabs.sendMessage(tabId, {
+                        action: 'highlight',
+                        featureId: featureId,
+                        activeLegends: activeLegends
                     });
                 }
             }
@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const toggle = document.querySelector(`.feature-toggle[data-feature="${featureId}"]`);
         const isActive = toggle ? toggle.checked : false;
         const feature = getFeatureConfigById(featureId);
-        
+
         if (feature && feature.legends) {
             feature.legends.forEach(leg => {
                 const badge = document.getElementById(`count-${featureId}-${leg.type}`);
@@ -188,7 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 viewBtn.title = "View Elements (None)";
             }
         }
-        
+
         updateAggregateCounts();
     }
 
@@ -211,8 +211,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const setupGlobalCollapseToggle = (tabIdName, toggleBtnId) => {
         const btn = document.getElementById(toggleBtnId);
-        if (!btn) return () => {};
-        
+        if (!btn) return () => { };
+
         const evaluateState = () => {
             const groups = document.querySelectorAll(`#${tabIdName} .category-group`);
             if (groups.length === 0) return;
@@ -229,15 +229,15 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener("click", () => {
             const isCurrentlyCollapsed = btn.classList.contains('collapsed');
             const groups = document.querySelectorAll(`#${tabIdName} .category-group`);
-            
+
             groups.forEach(g => {
                 if (isCurrentlyCollapsed) g.classList.remove('collapsed');
                 else g.classList.add('collapsed');
-                
+
                 const expandBtn = g.querySelector('.category-expand-btn');
                 if (expandBtn) expandBtn.setAttribute("aria-expanded", isCurrentlyCollapsed);
             });
-            
+
             saveCollapsedState();
             evaluateState();
         });
@@ -263,7 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const catToggle = group.querySelector(".category-toggle");
             // Only count currently visible toggles within this group based on WCAG filters
             const featureToggles = Array.from(group.querySelectorAll(".feature-toggle")).filter(ft => ft.closest('.feature-row').style.display !== 'none');
-            
+
             let catTotal = featureToggles.length;
             let catChecked = 0;
 
@@ -284,11 +284,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     catToggle.indeterminate = true;
                 }
             }
-            
+
             // Hide the group completely if all features inside it are filtered out
             // FIXED: Clearing inline display style allows CSS collapse rules to function naturally
             if (catTotal === 0) group.style.display = 'none';
-            else group.style.display = ''; 
+            else group.style.display = '';
         });
 
         if (masterToggle) {
@@ -303,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 masterToggle.indeterminate = true;
             }
         }
-        
+
         updateAggregateCounts();
     }
 
@@ -325,7 +325,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const catToggle = group.querySelector(".category-toggle");
                 if (!catToggle) return;
                 const catId = catToggle.getAttribute("data-cat");
-                
+
                 let catCheckedFeatures = 0;
                 let catTotalFound = 0;
 
@@ -394,7 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function copyTabReport(tabName, btnEl) {
         const activeToggles = Array.from(document.querySelectorAll(`#${tabName} .feature-toggle:checked`))
             .filter(t => t.closest('.feature-row').style.display !== 'none');
-            
+
         if (activeToggles.length === 0) return;
 
         const activeFeatureIds = activeToggles.map(t => t.getAttribute('data-feature'));
@@ -433,12 +433,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         activeCatFeatures.forEach(feature => {
                             const elements = response.data[feature.id] || [];
                             const elemCountLabel = `${elements.length} ${elements.length === 1 ? 'element' : 'elements'}`;
-                            
+
                             let auditText = `------------------------------------------------------------\n`;
                             const severityMarker = feature.severity ? ` [SEVERITY: ${feature.severity.toUpperCase()}]` : '';
-                            
+
                             const activeLegends = getActiveLegends(feature);
-                            const activeElements = elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel)); 
+                            const activeElements = elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
 
                             auditText += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${activeElements.length} displayed elements)\n`;
                             auditText += `Description: ${feature.desc}\n`;
@@ -492,7 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const headerDiv = document.createElement("div");
             headerDiv.className = "category-header";
-            
+
             headerDiv.innerHTML = `
                 <label class="toggle-switch category-toggle-wrapper">
                     <input type="checkbox" class="category-toggle" data-cat="${cat.id}" data-tab="${tab.id}" aria-label="Toggle all ${cat.label}">
@@ -511,7 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const isCollapsed = groupDiv.classList.toggle('collapsed');
                 expandBtn.setAttribute("aria-expanded", !isCollapsed);
                 saveCollapsedState();
-                
+
                 if (tab.id === 'tab-violations') evalViolationsCollapseState();
                 else evalInformativeCollapseState();
             });
@@ -591,7 +591,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 viewBtn.addEventListener("click", () => {
                     chrome.tabs.sendMessage(tabId, { action: 'getRuleDetails', ruleId: feature.id }, (response) => {
                         if (chrome.runtime.lastError || !response || !response.elements) return;
-                        
+
                         const activeLegends = getActiveLegends(feature);
                         const filteredElements = response.elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
 
@@ -619,7 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const featureId = e.target.getAttribute("data-feature");
             const tabName = e.target.getAttribute("data-tab");
             const action = e.target.checked ? "highlight" : "clear";
-            
+
             const feature = getFeatureConfigById(featureId);
             const activeLegends = getActiveLegends(feature);
 
@@ -641,7 +641,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Only toggle features currently visible in this group
                 const childToggles = Array.from(categoryGroup.querySelectorAll(".feature-toggle"))
                     .filter(ft => ft.closest('.feature-row').style.display !== 'none');
-                
+
                 childToggles.forEach(ft => {
                     if (ft.checked !== isChecked) {
                         ft.checked = isChecked;
@@ -660,7 +660,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const isChecked = e.target.checked;
             const toggles = Array.from(document.querySelectorAll(`#${containerId} .feature-toggle`))
                 .filter(ft => ft.closest('.feature-row').style.display !== 'none');
-                
+
             // Guard clause to warn user if no audits map to their selected WCAG filters
             if (toggles.length === 0 && isChecked) {
                 e.target.checked = false; // Force visual revert
@@ -691,26 +691,26 @@ document.addEventListener("DOMContentLoaded", () => {
         if (sender.tab && sender.tab.id === tabId) {
             if (request.action === "contentScriptReady") {
                 connectToContentScript();
-                
+
                 for (let fid in frameCounts) {
                     delete frameCounts[fid];
                     updateFeatureBadges(fid);
                 }
-                
+
                 // Ensure UI reflects filters before re-evaluating DOM
-                applyWcagFilters(); 
+                applyWcagFilters();
                 updateAllHierarchyStates();
-                
+
                 const activeFeatures = Array.from(document.querySelectorAll('.feature-toggle:checked'))
                     .filter(ft => ft.closest('.feature-row').style.display !== 'none')
                     .map(cb => cb.getAttribute('data-feature'));
-                    
+
                 activeFeatures.forEach(featureId => {
                     const feature = getFeatureConfigById(featureId);
                     chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
                 });
             }
-            
+
             if (request.action === "updateCounts") {
                 if (!frameCounts[request.featureId]) frameCounts[request.featureId] = {};
                 frameCounts[request.featureId][sender.frameId ? sender.frameId : 0] = request.totals;
@@ -732,7 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chrome.storage.local.get([STORAGE_KEY_FEATURES, STORAGE_KEY_GROUPS], (result) => {
         // Ensure filters dictate initial state
         applyWcagFilters();
-        
+
         const active = result[STORAGE_KEY_FEATURES] || [];
         document.querySelectorAll('.feature-toggle').forEach(toggle => {
             // Only restore if the row is visible based on WCAG filters
@@ -753,7 +753,13 @@ document.addEventListener("DOMContentLoaded", () => {
             chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
         });
 
-        const collapsedGroups = result[STORAGE_KEY_GROUPS] || [];
+        let collapsedGroups = result[STORAGE_KEY_GROUPS];
+
+        // If it's the very first time opening the extension, default all groups to collapsed
+        if (typeof collapsedGroups === 'undefined') {
+            collapsedGroups = Array.from(document.querySelectorAll('.category-group')).map(g => g.id);
+        }
+
         collapsedGroups.forEach(groupId => {
             const groupEl = document.getElementById(groupId);
             if (groupEl) {
@@ -762,7 +768,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (expandBtn) expandBtn.setAttribute("aria-expanded", "false");
             }
         });
-        
         evalViolationsCollapseState();
         evalInformativeCollapseState();
     });
@@ -786,7 +791,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const countText = elements.length > 0 ? `(${elements.length} Total)` : '';
         const severityHtml = rule.severity ? `<span class="severity-badge severity-${rule.severity.toLowerCase()}">${rule.severity}</span>` : '';
-        
+
         const modal = document.createElement('div');
         modal.id = 'a11y-details-modal';
         modal.className = 'a11y-modal-overlay';
@@ -811,14 +816,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="a11y-modal-list">
                     ${elements.map(el => {
-                        const pillBg = el.color ? el.color : '#e67e22';
-                        const pillTxt = getTextColor(pillBg);
-                        const pillShadow = pillTxt === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.4)' : 'none';
-                        
-                        const rawLabel = formatLabel(el.legendLabel, el.label);
-                        const safeLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        
-                        return `
+            const pillBg = el.color ? el.color : '#e67e22';
+            const pillTxt = getTextColor(pillBg);
+            const pillShadow = pillTxt === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.4)' : 'none';
+
+            const rawLabel = formatLabel(el.legendLabel, el.label);
+            const safeLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            return `
                             <div class="a11y-modal-list-item" data-target-id="${el.id}">
                                 <div class="a11y-modal-item-info">
                                     <span class="a11y-pill-label" style="background-color: ${pillBg}; color:${pillTxt}; text-shadow: ${pillShadow};">${safeLabel}</span>
@@ -832,7 +837,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 </button>
                             </div>
                         `;
-                    }).join('')}
+        }).join('')}
                 </div>
             </div>
         `;
@@ -855,12 +860,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (e.key === 'Escape') {
                 closeModal();
             } else if (e.key === 'Tab') {
-                if (e.shiftKey) { 
+                if (e.shiftKey) {
                     if (document.activeElement === firstElement) {
                         e.preventDefault();
                         lastElement.focus();
                     }
-                } else { 
+                } else {
                     if (document.activeElement === lastElement) {
                         e.preventDefault();
                         firstElement.focus();
@@ -875,7 +880,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modal-copy-btn').addEventListener('click', () => {
             const elemCountLabel = `${elements.length} ${elements.length === 1 ? 'element' : 'elements'}`;
             const severityMarker = rule.severity ? ` [SEVERITY: ${rule.severity.toUpperCase()}]` : '';
-            
+
             let copyText = `------------------------------------------------------------\n`;
             copyText += `AUDIT: ${rule.name.toUpperCase()}${severityMarker} (${elemCountLabel})\n`;
             copyText += `Description: ${rule.description}\n`;
@@ -891,7 +896,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             navigator.clipboard.writeText(copyText.trim());
-            
+
             const copyBtn = document.getElementById('modal-copy-btn');
             copyBtn.textContent = '✔ Copied!';
             setTimeout(() => copyBtn.textContent = '📋 Copy All', 2000);
@@ -952,12 +957,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const trapDocsFocus = (e) => {
                 if (e.key === 'Escape') closeModal();
                 else if (e.key === 'Tab') {
-                    if (e.shiftKey) { 
+                    if (e.shiftKey) {
                         if (document.activeElement === firstElement) {
                             e.preventDefault();
                             lastElement.focus();
                         }
-                    } else { 
+                    } else {
                         if (document.activeElement === lastElement) {
                             e.preventDefault();
                             firstElement.focus();

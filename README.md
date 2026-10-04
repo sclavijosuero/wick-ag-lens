@@ -130,52 +130,53 @@ Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Sto
 
 | Category | Analysis Meaning & WCAG Link | Classification | Logic Reference | Badge Output |
 | :--- | :--- | :--- | :--- | :--- |
-| Keyboard Navigation | Unfocusable Clickables. [WCAG 2.1.1](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) | Critical | [View Logic](#v-1) | `"Unfocusable Clickable"` |
-| Keyboard Navigation | Disabled Focus Outlines. [WCAG 2.4.7](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html) | Critical | [View Logic](#v-2) | `"Disabled Focus Ring (Heuristic)"` |
-| Keyboard Navigation | Tabindex Violations. [WCAG 2.4.3](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | Serious | [View Logic](#v-3) | `tabindex="{val}"` |
-| Keyboard Navigation | Accesskey Attributes. [WCAG 2.1.4](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html) | Moderate | [View Logic](#v-4) | `accesskey="{val}"` |
-| Images & Media | Missing Alt Text. [WCAG 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | Critical | [View Logic](#v-5) | `"Missing alt"` |
-| Images & Media | Uncaptioned Video. [WCAG 1.2.2](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | Critical | [View Logic](#v-6) | `"<video> (No Captions)"` |
-| Images & Media | Redundant Alt Text. [WCAG 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | Minor | [View Logic](#v-7) | `Redundant alt: "{truncated text}"` |
-| Forms & Controls | Unlabeled Form Inputs. [WCAG 3.3.2](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) | Critical | [View Logic](#v-8) | `"Unlabeled Input"` |
-| Forms & Controls | Empty Buttons. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Critical | [View Logic](#v-9) | `"Empty Button"` |
-| Forms & Controls | Placeholder as Label. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Serious | [View Logic](#v-10) | `"Placeholder as Label"` |
-| Links & Navigation | Empty Links. [WCAG 2.4.4](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | Critical | [View Logic](#v-11) | `"Empty Link"` |
-| Links & Navigation | Suspicious Link Targets. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html), [WCAG 2.1.1](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) | Critical / Serious | [View Logic](#v-12) | `"Fake Button (JS)"` or `"Fake Button (#)"` |
-| Links & Navigation | Generic Link Text. [WCAG 2.4.4](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | Moderate | [View Logic](#v-13) | `Generic link: "{text}"` |
-| Links & Navigation | Unwarned New Window Links. [WCAG 3.2.5](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | Moderate | [View Logic](#v-14) | `'target="_blank" (No Warning)'` |
-| ARIA & Semantics | Focusable in Aria-Hidden. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Critical | [View Logic](#v-15) | `"aria-hidden (Focusable)"` |
-| ARIA & Semantics | Invalid ARIA State. [WCAG 3.3.1](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | Serious | [View Logic](#v-16) | `'aria-invalid="true"'` |
-| ARIA & Semantics | Prohibited Author Names. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Serious | [View Logic](#v-17) | `Prohibited name on role="{role}"` |
-| Structure & Document | Auto-playing Media. [WCAG 1.4.2](https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html) | Serious | [View Logic](#v-18) | `"Autoplay Media"` |
-| Structure & Document | Heading Hierarchy Errors. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | Moderate | [View Logic](#v-19) | `"{TAG} (Skipped)"` or `"Fake Heading"` |
-| Visual & Contrast | Text Color Contrast. [WCAG 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [WCAG 1.4.6](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html) | Critical | [View Logic](#v-20) | `AA Fail`, `AAA Fail`, `Manual Check` |
+| Keyboard Navigation | Unfocusable Clickables. [WCAG 2.1.1](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) (2.0 A) | Critical | [View Logic](#v-1) | `"Unfocusable Clickable"` |
+| Keyboard Navigation | Disabled Focus Outlines. [WCAG 2.4.7](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html) (2.0 AA) | Critical | [View Logic](#v-2) | `"Disabled Focus Ring (Heuristic)"` |
+| Keyboard Navigation | Tabindex Violations. [WCAG 2.4.3](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) (2.0 A) | Serious | [View Logic](#v-3) | `tabindex="{val}"` |
+| Keyboard Navigation | Accesskey Attributes. [WCAG 2.1.4](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html) (2.1 A) | Moderate | [View Logic](#v-4) | `accesskey="{val}"` |
+| Images & Media | Missing Alt Text. [WCAG 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) (2.0 A) | Critical | [View Logic](#v-5) | `"Missing alt"` |
+| Images & Media | Uncaptioned Video. [WCAG 1.2.2](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) (2.0 A) | Critical | [View Logic](#v-6) | `"<video> (No Captions)"` |
+| Images & Media | Redundant Alt Text. [WCAG 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) (2.0 A) | Minor | [View Logic](#v-7) | `Redundant alt: "{truncated text}"` |
+| Forms & Controls | Unlabeled Form Inputs. [WCAG 3.3.2](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) (2.0 A) | Critical | [View Logic](#v-8) | `"Unlabeled Input"` |
+| Forms & Controls | Empty Buttons. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Critical | [View Logic](#v-9) | `"Empty Button"` |
+| Forms & Controls | Placeholder as Label. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Serious | [View Logic](#v-10) | `"Placeholder as Label"` |
+| Links & Navigation | Empty Links. [WCAG 2.4.4](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) (2.0 A) | Critical | [View Logic](#v-11) | `"Empty Link"` |
+| Links & Navigation | Suspicious Link Targets. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html), [WCAG 2.1.1](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) (2.0 A) | Critical / Serious | [View Logic](#v-12) | `"Fake Button (JS)"` or `"Fake Button (#)"` |
+| Links & Navigation | Generic Link Text. [WCAG 2.4.4](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) (2.0 A) | Moderate | [View Logic](#v-13) | `Generic link: "{text}"` |
+| Links & Navigation | Unwarned New Window Links. [WCAG 3.2.5](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) (2.0 AAA) | Moderate | [View Logic](#v-14) | `'target="_blank" (No Warning)'` |
+| ARIA & Semantics | Focusable in Aria-Hidden. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Critical | [View Logic](#v-15) | `"aria-hidden (Focusable)"` |
+| ARIA & Semantics | Invalid ARIA State. [WCAG 3.3.1](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) (2.0 A) | Serious | [View Logic](#v-16) | `'aria-invalid="true"'` |
+| ARIA & Semantics | Prohibited Author Names. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Serious | [View Logic](#v-17) | `Prohibited name on role="{role}"` |
+| Structure & Document | Auto-playing Media. [WCAG 1.4.2](https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html) (2.0 A) | Serious | [View Logic](#v-18) | `"Autoplay Media"` |
+| Structure & Document | Heading Hierarchy Errors. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) (2.0 A) | Moderate | [View Logic](#v-19) | `"{TAG} (Skipped)"` or `"Fake Heading"` |
+| Visual & Contrast | Text Color Contrast. [WCAG 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [WCAG 1.4.6](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html) (2.0 AA, 2.0 AAA) | Critical | [View Logic](#v-20) | `AA Fail`, `AAA Fail`, `Manual Check` |
 
 
 ## Implementation Details: Informative & Structure
 
 | Category | Analysis Meaning & WCAG Link | Classification | Logic Reference | Badge Output |
 | :--- | :--- | :--- | :--- | :--- |
-| Keyboard Navigation | Tabindex (Comparison). [WCAG 2.4.3](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | Informative | [View Logic](#i-1) | `tabindex="{val}"` |
-| Keyboard Navigation | Display Focus Order. [WCAG 2.4.3](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | Informative | [View Logic](#i-2) | `#{counter}: <{tag}>` or `#{counter}: <{tag}> (Hidden from AT)` |
-| Images & Media | Display Image Alternatives. [WCAG 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | Informative | [View Logic](#i-3) | `alt="{val}"`, `alt=""`, or `"Missing alt"` |
-| Images & Media | Captioned Video. [WCAG 1.2.2](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | Informative | [View Logic](#i-4) | `"<video> (Captioned)"` |
-| Images & Media | Iframe Context & Titles. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Informative | [View Logic](#i-5) | `title="{title}"`, `"Hidden Iframe"`, or `"Missing Title"` |
-| Forms & Controls | Form Field Descriptions. [WCAG 3.3.2](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) | Informative | [View Logic](#i-6) | `"aria-describedby"` or `"title"` |
-| Forms & Controls | Fieldsets & Captions. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | Informative | [View Logic](#i-7) | `<{tag}>` |
-| Forms & Controls | Touch Target Sizes. [WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | Informative | [View Logic](#i-8) | `{width}x{height}px` |
-| Links & Navigation | Warned New Window Links. [WCAG 3.2.5](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | Informative | [View Logic](#i-9) | `'target="_blank" (Warned)'` |
-| ARIA & Semantics | ARIA Roles & Attributes. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Informative | [View Logic](#i-10) | `role="{val}"` |
-| ARIA & Semantics | ARIA Live Regions. [WCAG 4.1.3](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html) | Informative | [View Logic](#i-11) | `aria-live="{val}"` |
-| ARIA & Semantics | Required Fields. [WCAG 3.3.1](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | Informative | [View Logic](#i-12) | `"required"` or `'aria-required="true"'` |
-| ARIA & Semantics | Aria-Expanded State. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Informative | [View Logic](#i-13) | `aria-expanded="{val}"` |
-| ARIA & Semantics | Aria-Controls. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Informative | [View Logic](#i-14) | `"aria-controls"` |
-| ARIA & Semantics | Aria-Owns. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | Informative | [View Logic](#i-15) | `"aria-owns"` |
-| Structure & Document | Valid Heading Order. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | Informative | [View Logic](#i-16) | `<{tag}>` |
-| Structure & Document | Landmark Regions. [WCAG 2.4.1](https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html) | Informative | [View Logic](#i-17) | `<{role or tag}>` |
-| Structure & Document | Table & Grid Structure. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | Informative | [View Logic](#i-18) | `<{tag}>` or `role="{role}"` |
-| Structure & Document | Lists and List Items. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | Informative | [View Logic](#i-19) | `<{tag}>` |
-| Structure & Document | Language Definitions. [WCAG 3.1.1](https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html), [WCAG 3.1.2](https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html) | Informative | [View Logic](#i-20) | `"Missing Root Lang"`, `Root lang="{val}"`, or `lang="{val}"` |
+| Keyboard Navigation | Tabindex (Comparison). [WCAG 2.4.3](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) (2.0 A) | Informative | [View Logic](#i-1) | `tabindex="{val}"` |
+| Keyboard Navigation | Display Focus Order. [WCAG 2.4.3](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) (2.0 A) | Informative | [View Logic](#i-2) | `#{counter}: <{tag}>` or `#{counter}: <{tag}> (Hidden from AT)` |
+| Images & Media | Display Image Alternatives. [WCAG 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) (2.0 A) | Informative | [View Logic](#i-3) | `alt="{val}"`, `alt=""`, or `"Missing alt"` |
+| Images & Media | Captioned Video. [WCAG 1.2.2](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) (2.0 A) | Informative | [View Logic](#i-4) | `"<video> (Captioned)"` |
+| Images & Media | Iframe Context & Titles. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Informative | [View Logic](#i-5) | `title="{title}"`, `"Hidden Iframe"`, or `"Missing Title"` |
+| Forms & Controls | Form Field Descriptions. [WCAG 3.3.2](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) (2.0 A) | Informative | [View Logic](#i-6) | `"aria-describedby"` or `"title"` |
+| Forms & Controls | Fieldsets & Captions. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) (2.0 A) | Informative | [View Logic](#i-7) | `<{tag}>` |
+| Forms & Controls | Touch Target Sizes. [WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) (2.2 AA, 2.1 AAA) | Informative | [View Logic](#i-8) | `{width}x{height}px` |
+| Links & Navigation | Warned New Window Links. [WCAG 3.2.5](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) (2.0 AAA) | Informative | [View Logic](#i-9) | `'target="_blank" (Warned)'` |
+| ARIA & Semantics | ARIA Roles & Attributes. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Informative | [View Logic](#i-10) | `role="{val}"` |
+| ARIA & Semantics | ARIA Live Regions. [WCAG 4.1.3](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html) (2.1 AA) | Informative | [View Logic](#i-11) | `aria-live="{val}"` |
+| ARIA & Semantics | Required Fields. [WCAG 3.3.1](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) (2.0 A) | Informative | [View Logic](#i-12) | `"required"` or `'aria-required="true"'` |
+| ARIA & Semantics | Aria-Expanded State. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Informative | [View Logic](#i-13) | `aria-expanded="{val}"` |
+| ARIA & Semantics | Aria-Controls. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Informative | [View Logic](#i-14) | `"aria-controls"` |
+| ARIA & Semantics | Aria-Owns. [WCAG 4.1.2](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) (2.0 A) | Informative | [View Logic](#i-15) | `"aria-owns"` |
+| Structure & Document | Valid Heading Order. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) (2.0 A) | Informative | [View Logic](#i-16) | `<{tag}>` |
+| Structure & Document | Landmark Regions. [WCAG 2.4.1](https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html) (2.0 A) | Informative | [View Logic](#i-17) | `<{role or tag}>` |
+| Structure & Document | Table & Grid Structure. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) (2.0 A) | Informative | [View Logic](#i-18) | `<{tag}>` or `role="{role}"` |
+| Structure & Document | Lists and List Items. [WCAG 1.3.1](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) (2.0 A) | Informative | [View Logic](#i-19) | `<{tag}>` |
+| Structure & Document | Language Definitions. [WCAG 3.1.1](https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html), [WCAG 3.1.2](https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html) (2.0 A, 2.0 AA) | Informative | [View Logic](#i-20) | `"Missing Root Lang"`, `Root lang="{val}"`, or `lang="{val}"` |
+
 
 ## Search Predicates and Logic Definitions
 
