@@ -1,6 +1,5 @@
 const HIGHLIGHT_PADDING = 4;
 
-// Inject keyframes, box styles, Flexbox badge container, and the Smart Toast UI styles
 const pulsateStyle = document.createElement('style');
 pulsateStyle.textContent = `
     @keyframes a11y-pulsate-yellow {
@@ -199,7 +198,6 @@ pulsateStyle.textContent = `
 `;
 document.head.appendChild(pulsateStyle);
 
-// DevTools Lifecycle - Cleanup strictly when DevTools port disconnects
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === 'a11y-panel') {
         port.onDisconnect.addListener(() => {
@@ -314,20 +312,16 @@ function isElementVisible(element) {
     if (!element || element.nodeType !== 1) return false;
     let currentElement = element;
     
-    // Manual traversal loop up through Shadow DOMs, Assigned Slots, and Same-Origin Iframes
     while (currentElement && currentElement !== document) {
         if (currentElement.nodeType === Node.ELEMENT_NODE) {
-            // Explicit checks for inert and hidden attributes
             if (currentElement.hasAttribute('inert') || currentElement.hasAttribute('hidden')) {
                 return false;
             }
 
-            // Explicit check for native closed <dialog> elements
             if (currentElement.tagName && currentElement.tagName.toLowerCase() === 'dialog' && !currentElement.hasAttribute('open')) {
                 return false;
             }
 
-            // Computed style checks at every level (ensuring correct window context for iframes)
             const win = currentElement.ownerDocument.defaultView || window;
             const style = win.getComputedStyle(currentElement);
             if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
@@ -335,25 +329,23 @@ function isElementVisible(element) {
             }
         }
         
-        // Context crossing logic (Shadow DOM -> Same-Origin Iframes -> Standard DOM)
         if (currentElement.assignedSlot) {
-            currentElement = currentElement.assignedSlot; // Cross slot boundaries
+            currentElement = currentElement.assignedSlot;
         } else if (currentElement.parentNode instanceof ShadowRoot) {
-            currentElement = currentElement.parentNode.host; // Cross shadow root boundaries
+            currentElement = currentElement.parentNode.host;
         } else if (currentElement.parentNode === currentElement.ownerDocument) {
-            // We reached the root of a sub-document. Check if embedded in an iframe.
             const win = currentElement.ownerDocument.defaultView;
             if (win) {
                 try {
                     currentElement = win.frameElement ? win.frameElement : null; 
                 } catch(e) {
-                    currentElement = null; // Cross-origin security block; halt traversal
+                    currentElement = null; 
                 }
             } else {
                 currentElement = null;
             }
         } else {
-            currentElement = currentElement.parentNode; // Standard DOM traversal
+            currentElement = currentElement.parentNode; 
         }
     }
 
@@ -518,6 +510,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     }
     
     let legendLabel = legendType;
+    let legendTypeAttr = legendType;
     const configData = getFeatureConfig(featureId);
     if (configData && configData.feature.legends) {
         const leg = configData.feature.legends.find(l => l.type === legendType);
@@ -533,7 +526,8 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     box.dataset.ruleId = featureId;
     box.dataset.selector = getCssSelector(el);
     box.dataset.label = text; 
-    box.dataset.legendLabel = legendLabel; 
+    box.dataset.legendLabel = legendLabel;
+    box.dataset.legendType = legendTypeAttr; 
     box.dataset.color = color;
 
     box.style.display = "block";
@@ -658,7 +652,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     targetResizeObserver.observe(el);
 }
 
-function runCheck(featureId) {
+function runCheck(featureId, activeLegends) {
     clearHighlights(featureId);
     const configData = getFeatureConfig(featureId);
     if (!configData) return;
@@ -681,10 +675,16 @@ function runCheck(featureId) {
     elements.forEach(el => {
         if (feature.customHighlight) {
             feature.customHighlight(el, (target, color, text, legendType, borderStyle) => {
+                // Intercept and halt drawing if the specific legend does not match the active WCAG filters
+                if (activeLegends && activeLegends.length > 0 && !activeLegends.includes(legendType) && activeLegends[0] !== "default") return;
+                
                 drawHighlight(target, color, text, featureId, legendType, borderStyle);
                 counts[legendType] = (counts[legendType] || 0) + 1;
             }, state);
         } else {
+            // "default" is passed if the whole audit matches without specific legend overrides
+            if (activeLegends && activeLegends.length > 0 && !activeLegends.includes("bad") && activeLegends[0] !== "default") return;
+
             drawHighlight(el, "#b00020", "Violation", featureId, "bad", "solid");
             counts["bad"] = (counts["bad"] || 0) + 1;
         }
@@ -697,7 +697,7 @@ function runCheck(featureId) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'highlight') {
-        runCheck(request.featureId);
+        runCheck(request.featureId, request.activeLegends);
     } else if (request.action === 'clear') {
         clearHighlights(request.featureId);
     } else if (request.action === 'getRuleDetails') {
@@ -706,6 +706,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             id: box.dataset.a11yTargetId,
             label: box.dataset.label || 'INFO',
             legendLabel: box.dataset.legendLabel || 'INFO',
+            legendType: box.dataset.legendType || 'default',
             selector: box.dataset.selector || 'Unknown Element',
             color: box.dataset.color || '#e67e22'
         }));
@@ -720,6 +721,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     id: box.dataset.a11yTargetId,
                     label: box.dataset.label || 'INFO',
                     legendLabel: box.dataset.legendLabel || 'INFO',
+                    legendType: box.dataset.legendType || 'default',
                     selector: box.dataset.selector || 'Unknown Element',
                     color: box.dataset.color || '#e67e22'
                 }));
@@ -746,33 +748,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// --- State Synchronization Logic for Back/Forward Navigation & SPAs ---
 let syncTimeout = null;
-
 function requestStateSync() {
     cleanupAllHighlights();
-    
     if (syncTimeout) clearTimeout(syncTimeout);
     syncTimeout = setTimeout(() => {
-        try {
-            chrome.runtime.sendMessage({ action: "contentScriptReady" });
-        } catch (e) {
-            // Extension context was invalidated
-        }
+        try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
     }, 250); 
 }
 
-window.addEventListener('pageshow', (event) => {
-    if (event.persisted) {
-        requestStateSync();
-    }
-});
-
+window.addEventListener('pageshow', (event) => { if (event.persisted) requestStateSync(); });
 window.addEventListener('popstate', requestStateSync);
 window.addEventListener('hashchange', requestStateSync);
 
 setTimeout(() => {
-    try {
-        chrome.runtime.sendMessage({ action: "contentScriptReady" });
-    } catch (e) {}
+    try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
 }, 50);

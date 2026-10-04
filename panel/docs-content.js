@@ -5,14 +5,15 @@ window.A11Y_DOCS_HTML = `
     <h3 id="features-overview">Features Overview</h3>
     <p>WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns directly on the page.</p>
     <ul>
-        <li><strong>40 Independent Audits:</strong> Divided into 20 actionable violations and 20 structural information checks.</li>
+        <li><strong>40 Independent Audits:</strong> Divided into actionable violations and structural information checks.</li>
+        <li><strong>WCAG Criteria Filtering:</strong> Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).</li>
         <li><strong>Visual Highlighting:</strong> Draws bounding boxes and badges over target elements to clearly identify where issues occur.</li>
         <li><strong>Interactive Info Panels:</strong> Clicking any on-page badge opens a detailed panel explaining what the issue is, why it matters, and providing the exact CSS selector.</li>
         <li><strong>Precision Element Locator:</strong> Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.</li>
         <li><strong>Accessible Interface:</strong> The extension's DevTools panel is designed to be keyboard-friendly and incorporates WCAG 2.2 AA best practices where possible.</li>
         <li><strong>One-Click Reporting:</strong> Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking.</li>
         <li><strong>Shadow DOM &amp; Iframe Support:</strong> Pierces open web components to evaluate encapsulated markup and fully traverses same-origin iframes.</li>
-        <li><strong>WCAG 2.2 Alignment:</strong> References current W3C standards for all checks.</li>
+        <li><strong>WCAG Alignment:</strong> References current W3C standards for all checks.</li>
     </ul>
 
     <h3 id="audit-library">Audit Library &amp; Ruleset</h3>
@@ -191,7 +192,6 @@ window.A11Y_DOCS_HTML = `
         <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html" target="_blank">WCAG 3.1.1</a>, <a href="https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html" target="_blank">WCAG 3.1.2</a></li>
     </ul>
 
-
     <h3 id="limitations">Limitations &amp; Technical Bounds</h3>
     <ul>
         <li><strong>Visibility Filtering:</strong> Elements hidden via <code>display: none</code>, <code>visibility: hidden</code>, <code>hidden</code>, or <code>inert</code> are strictly excluded from all analysis to match native accessibility tree behavior.</li>
@@ -200,6 +200,7 @@ window.A11Y_DOCS_HTML = `
         <li><strong>Shadow DOMs:</strong> Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.</li>
         <li><strong>Iframes &amp; Cross-Origin Policies:</strong> The inspector traverses and audits the internal DOM of same-origin iframes. Due to strict browser security (Same-Origin Policy), it cannot pierce cross-origin iframes.</li>
         <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Complex backgrounds (images, gradients) or mixed element opacities may reduce accuracy compared to pixel-level visual analysis.</li>
+        <li><strong>WCAG Criteria Filtering:</strong> The version (2.0, 2.1, 2.2) and conformance level (A, AA, AAA) filters are strictly isolated. Selecting version 2.2 does <em>not</em> automatically include 2.0 or 2.1 audits, and selecting AAA does <em>not</em> include A or AA checks. You must explicitly check all versions and levels you wish to evaluate in your current analysis.</li>
     </ul>
 
     <h3 id="compatibility">Compatibility &amp; License</h3>

@@ -23,6 +23,22 @@
             <button class="tab-btn" id="btn-tab-informative" role="tab" aria-selected="false" aria-controls="tab-informative">Informative & Structure</button>
         </div>
 
+        <div class="filter-bar" aria-label="WCAG Criteria Filters">
+            <div class="filter-group">
+                <span class="filter-label">Version:</span>
+                <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.0" checked> 2.0</label>
+                <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.1" checked> 2.1</label>
+                <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.2" checked> 2.2</label>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="filter-group">
+                <span class="filter-label">Level:</span>
+                <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="A" checked> A</label>
+                <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="AA" checked> AA</label>
+                <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="AAA" checked> AAA</label>
+            </div>
+        </div>
+
         <div class="main-container">
             <!-- TAB 1: VIOLATIONS -->
             <div class="tab-content active" id="tab-violations" role="tabpanel" aria-labelledby="btn-tab-violations">
@@ -81,6 +97,7 @@
                 <li><strong>Shadow DOMs:</strong> Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.</li>
                 <li><strong>Iframes & Cross-Origin Policies:</strong> Due to strict browser security (Same-Origin Policy), the inspector cannot pierce or audit the internal DOM of cross-origin iframes (e.g., embedded videos or third-party widgets).</li>
                 <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Complex backgrounds (images, gradients) or mixed element opacities may reduce accuracy compared to pixel-level visual analysis.</li>
+                <li><strong>WCAG Criteria Filtering:</strong> The version (2.0, 2.1, 2.2) and conformance level (A, AA, AAA) filters are strictly isolated. Selecting version 2.2 does <em>not</em> automatically include 2.0 or 2.1 audits, and selecting AAA does <em>not</em> include A or AA checks. You must explicitly check all versions and levels you wish to evaluate in your current analysis.</li>
             </ul>
             <div class="footer-disclaimer">
                 <p><strong>Disclaimer:</strong> WICK-AG-Lens is an automated heuristic tool implemented to the best knowledge of its author. It does not cover all possible accessibility barriers that may exist on a page, and existing audits may occasionally yield false positives or false negatives. Passing these checks does not guarantee full WCAG compliance. Automated testing should always be combined with manual testing and assistive technology validation.</p>

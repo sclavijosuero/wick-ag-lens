@@ -4,11 +4,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const STORAGE_KEY_FEATURES = `a11y_active_features_${tabId}`;
     const STORAGE_KEY_GROUPS = `a11y_collapsed_groups_${tabId}`;
 
-    // --- Dynamic Copyright Year ---
     const yearEl = document.getElementById("copyright-year");
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    // 2. Tab Switching Logic with ARIA states
+    // Custom UI Notification Utility
+    function showPanelToast(message) {
+        let toast = document.getElementById('panel-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'panel-toast';
+            toast.className = 'panel-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+        
+        // Remove toast after 3 seconds
+        setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // 2. Tab Switching Logic
     const tabBtns = document.querySelectorAll(".tab-btn");
     const tabContents = document.querySelectorAll(".tab-content");
 
@@ -51,6 +66,79 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
     }
 
+    // --- WCAG Filtering Logic ---
+    function isWcagMatch(wcagArray, checkedVersions, checkedLevels) {
+        if (!wcagArray || wcagArray.length === 0) return true;
+        return wcagArray.some(w => checkedVersions.includes(w.version) && checkedLevels.includes(w.level));
+    }
+
+    function getActiveLegends(feature) {
+        const checkedVersions = Array.from(document.querySelectorAll('.wcag-version-filter:checked')).map(cb => cb.value);
+        const checkedLevels = Array.from(document.querySelectorAll('.wcag-level-filter:checked')).map(cb => cb.value);
+
+        if (!feature.legends) return isWcagMatch(feature.wcag, checkedVersions, checkedLevels) ? ["default"] : [];
+
+        return feature.legends
+            .filter(leg => isWcagMatch(leg.wcag || feature.wcag, checkedVersions, checkedLevels))
+            .map(leg => leg.type);
+    }
+
+    function formatWcagLabel(wcagArray) {
+        if (!wcagArray || wcagArray.length === 0) return "";
+        const formatted = wcagArray.map(w => `${w.version} ${w.level}`).join(", ");
+        return `<span class="wcag-tag" title="WCAG Success Criterion Mapping">${formatted}</span>`;
+    }
+
+    function applyWcagFilters() {
+        const checkedVersions = Array.from(document.querySelectorAll('.wcag-version-filter:checked')).map(cb => cb.value);
+        const checkedLevels = Array.from(document.querySelectorAll('.wcag-level-filter:checked')).map(cb => cb.value);
+
+        document.querySelectorAll('.feature-row').forEach(row => {
+            const featureId = row.id.replace('row-', '');
+            const feature = getFeatureConfigById(featureId);
+            if (!feature) return;
+
+            const activeLegends = getActiveLegends(feature);
+            const toggle = row.querySelector('.feature-toggle');
+
+            if (activeLegends.length === 0) {
+                row.style.display = 'none';
+                if (toggle && toggle.checked) {
+                    toggle.checked = false;
+                    toggle.dispatchEvent(new Event('change'));
+                }
+            } else {
+                row.style.display = 'block';
+                if (feature.legends) {
+                    feature.legends.forEach(leg => {
+                        const legendItem = row.querySelector(`.legend-item[data-legend-type="${leg.type}"]`);
+                        if (legendItem) {
+                            if (activeLegends.includes(leg.type)) {
+                                legendItem.style.display = 'flex';
+                            } else {
+                                legendItem.style.display = 'none';
+                            }
+                        }
+                    });
+                }
+                
+                // If it's active, dispatch change to trigger redraw with updated activeLegends
+                if (toggle && toggle.checked) {
+                    chrome.tabs.sendMessage(tabId, { 
+                        action: 'highlight', 
+                        featureId: featureId, 
+                        activeLegends: activeLegends 
+                    });
+                }
+            }
+        });
+        updateAllHierarchyStates();
+    }
+
+    document.querySelectorAll('.wcag-version-filter, .wcag-level-filter').forEach(cb => {
+        cb.addEventListener('change', applyWcagFilters);
+    });
+
     const frameCounts = {};
 
     function updateFeatureBadges(featureId) {
@@ -68,8 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const toggle = document.querySelector(`.feature-toggle[data-feature="${featureId}"]`);
         const isActive = toggle ? toggle.checked : false;
-
         const feature = getFeatureConfigById(featureId);
+        
         if (feature && feature.legends) {
             feature.legends.forEach(leg => {
                 const badge = document.getElementById(`count-${featureId}-${leg.type}`);
@@ -142,16 +230,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const groups = document.querySelectorAll(`#${tabIdName} .category-group`);
             
             groups.forEach(g => {
-                if (isCurrentlyCollapsed) {
-                    g.classList.remove('collapsed');
-                } else {
-                    g.classList.add('collapsed');
-                }
+                if (isCurrentlyCollapsed) g.classList.remove('collapsed');
+                else g.classList.add('collapsed');
                 
                 const expandBtn = g.querySelector('.category-expand-btn');
-                if (expandBtn) {
-                    expandBtn.setAttribute("aria-expanded", isCurrentlyCollapsed);
-                }
+                if (expandBtn) expandBtn.setAttribute("aria-expanded", isCurrentlyCollapsed);
             });
             
             saveCollapsedState();
@@ -177,14 +260,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const categoryGroups = container.querySelectorAll(".category-group");
         categoryGroups.forEach(group => {
             const catToggle = group.querySelector(".category-toggle");
-            const featureToggles = group.querySelectorAll(".feature-toggle");
+            // Only count currently visible toggles within this group based on WCAG filters
+            const featureToggles = Array.from(group.querySelectorAll(".feature-toggle")).filter(ft => ft.closest('.feature-row').style.display !== 'none');
             
             let catTotal = featureToggles.length;
             let catChecked = 0;
 
-            featureToggles.forEach(ft => {
-                if (ft.checked) catChecked++;
-            });
+            featureToggles.forEach(ft => { if (ft.checked) catChecked++; });
 
             totalTabFeatures += catTotal;
             checkedTabFeatures += catChecked;
@@ -201,6 +283,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     catToggle.indeterminate = true;
                 }
             }
+            
+            // Hide the group completely if all features inside it are filtered out
+            if (catTotal === 0) group.style.display = 'none';
+            else group.style.display = 'block';
         });
 
         if (masterToggle) {
@@ -241,20 +327,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 let catCheckedFeatures = 0;
                 let catTotalFound = 0;
 
-                const featureToggles = group.querySelectorAll(".feature-toggle");
+                const featureToggles = Array.from(group.querySelectorAll(".feature-toggle")).filter(ft => ft.closest('.feature-row').style.display !== 'none');
                 const catTotalFeatures = featureToggles.length;
 
                 featureToggles.forEach(ft => {
                     if (ft.checked) {
                         catCheckedFeatures++;
                         const featureId = ft.getAttribute("data-feature");
-                        
                         let featureTotal = 0;
                         if (frameCounts[featureId]) {
                             Object.values(frameCounts[featureId]).forEach(totals => {
-                                Object.values(totals).forEach(count => {
-                                    featureTotal += count;
-                                });
+                                Object.values(totals).forEach(count => { featureTotal += count; });
                             });
                         }
                         catTotalFound += featureTotal;
@@ -281,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (masterCountEl) {
                 if (tabCheckedFeatures > 0) {
-                    const totalPossibleTabFeatures = container.querySelectorAll('.feature-toggle').length;
+                    const totalPossibleTabFeatures = Array.from(container.querySelectorAll('.feature-toggle')).filter(ft => ft.closest('.feature-row').style.display !== 'none').length;
                     masterCountEl.textContent = `${tabCheckedFeatures} active audits of ${totalPossibleTabFeatures} • ${tabTotalFound} elements`;
                     masterCountEl.classList.add("visible");
                 } else {
@@ -290,11 +373,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (copyReportBtn) {
-                if (tabCheckedFeatures > 0) {
-                    copyReportBtn.classList.add("visible");
-                } else {
-                    copyReportBtn.classList.remove("visible");
-                }
+                if (tabCheckedFeatures > 0) copyReportBtn.classList.add("visible");
+                else copyReportBtn.classList.remove("visible");
             }
         });
     }
@@ -310,7 +390,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function copyTabReport(tabName, btnEl) {
-        const activeToggles = Array.from(document.querySelectorAll(`#${tabName} .feature-toggle:checked`));
+        const activeToggles = Array.from(document.querySelectorAll(`#${tabName} .feature-toggle:checked`))
+            .filter(t => t.closest('.feature-row').style.display !== 'none');
+            
         if (activeToggles.length === 0) return;
 
         const activeFeatureIds = activeToggles.map(t => t.getAttribute('data-feature'));
@@ -321,10 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const tabTitle = tabName === 'tab-violations' ? 'VIOLATIONS & WARNINGS' : 'INFORMATIVE & STRUCTURE';
             const now = new Date();
             const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const dateStr = now.toLocaleString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
-            });
+            const dateStr = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 
             let totalElements = 0;
             Object.values(response.data || {}).forEach(arr => totalElements += arr.length);
@@ -341,7 +420,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const tabConfig = config.tabs.find(t => t.id === tabName);
             if (tabConfig) {
                 const groupBlocks = [];
-
                 tabConfig.categories.forEach(cat => {
                     const activeCatFeatures = cat.features.filter(f => activeFeatureIds.includes(f.id));
                     if (activeCatFeatures.length > 0) {
@@ -356,17 +434,21 @@ document.addEventListener("DOMContentLoaded", () => {
                             
                             let auditText = `------------------------------------------------------------\n`;
                             const severityMarker = feature.severity ? ` [SEVERITY: ${feature.severity.toUpperCase()}]` : '';
-                            auditText += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${elemCountLabel})\n`;
+                            
+                            const activeLegends = getActiveLegends(feature);
+                            const activeElements = elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel)); 
+
+                            auditText += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${activeElements.length} displayed elements)\n`;
                             auditText += `Description: ${feature.desc}\n`;
                             auditText += `------------------------------------------------------------\n`;
 
-                            if (elements.length > 0) {
-                                elements.forEach(el => {
+                            if (activeElements.length > 0) {
+                                activeElements.forEach(el => {
                                     const displayLabel = formatLabel(el.legendLabel, el.label);
                                     auditText += `[${displayLabel}] ${el.selector}\n`;
                                 });
                             } else {
-                                auditText += `(No matching elements found)\n`;
+                                auditText += `(No matching elements found for current WCAG filters)\n`;
                             }
                             auditBlocks.push(auditText);
                         });
@@ -438,14 +520,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 rowDiv.id = `row-${feature.id}`;
 
                 const severityHtml = feature.severity ? `<span class="severity-badge severity-${feature.severity.toLowerCase()}">${feature.severity}</span>` : '';
+                const wcagLabelHtml = formatWcagLabel(feature.wcag);
 
                 let legendHtml = '';
                 if (feature.legends) {
                     feature.legends.forEach(leg => {
+                        const legWcagHtml = (leg.wcag && leg.wcag !== feature.wcag) ? formatWcagLabel(leg.wcag) : '';
                         legendHtml += `
-                            <div class="legend-item">
+                            <div class="legend-item" data-legend-type="${leg.type}">
                                 <div class="legend-color" style="background-color:${leg.color}; ${leg.type === 'dashed' ? 'border:2px dashed #000;background:transparent' : ''}"></div>
-                                <span>${leg.label} <span class="count-badge" id="count-${feature.id}-${leg.type}">0</span></span>
+                                <span>${leg.label} ${legWcagHtml} <span class="count-badge" id="count-${feature.id}-${leg.type}">0</span></span>
                             </div>
                         `;
                     });
@@ -461,6 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="feature-title">
                                 ${feature.label}
                                 ${severityHtml}
+                                ${wcagLabelHtml}
                                 <span class="count-badge" id="total-${feature.id}">0 elements</span>
                             </div>
                             <div class="feature-desc">${feature.desc}</div>
@@ -504,8 +589,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 viewBtn.addEventListener("click", () => {
                     chrome.tabs.sendMessage(tabId, { action: 'getRuleDetails', ruleId: feature.id }, (response) => {
                         if (chrome.runtime.lastError || !response || !response.elements) return;
+                        
+                        const activeLegends = getActiveLegends(feature);
+                        const filteredElements = response.elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
+
                         const ruleMapping = { name: feature.label, description: feature.desc, severity: feature.severity };
-                        openDetailsModal(ruleMapping, response.elements);
+                        openDetailsModal(ruleMapping, filteredElements);
                     });
                 });
             });
@@ -529,7 +618,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const tabName = e.target.getAttribute("data-tab");
             const action = e.target.checked ? "highlight" : "clear";
             
-            chrome.tabs.sendMessage(tabId, { action, featureId });
+            const feature = getFeatureConfigById(featureId);
+            const activeLegends = getActiveLegends(feature);
+
+            chrome.tabs.sendMessage(tabId, { action, featureId, activeLegends });
 
             if (!e.target.checked) resetBadges(featureId);
             updateTabHierarchyStates(tabName);
@@ -544,7 +636,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const tabName = e.target.getAttribute("data-tab");
 
             if (categoryGroup) {
-                const childToggles = categoryGroup.querySelectorAll(".feature-toggle");
+                // Only toggle features currently visible in this group
+                const childToggles = Array.from(categoryGroup.querySelectorAll(".feature-toggle"))
+                    .filter(ft => ft.closest('.feature-row').style.display !== 'none');
+                
                 childToggles.forEach(ft => {
                     if (ft.checked !== isChecked) {
                         ft.checked = isChecked;
@@ -561,7 +656,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!master) return;
         master.addEventListener("change", (e) => {
             const isChecked = e.target.checked;
-            const toggles = document.querySelectorAll(`#${containerId} .feature-toggle`);
+            const toggles = Array.from(document.querySelectorAll(`#${containerId} .feature-toggle`))
+                .filter(ft => ft.closest('.feature-row').style.display !== 'none');
+                
+            // Guard clause to warn user if no audits map to their selected WCAG filters
+            if (toggles.length === 0 && isChecked) {
+                e.target.checked = false; // Force visual revert
+                showPanelToast("No audits available. Please select at least one applicable WCAG Version and Conformance Level.");
+                return;
+            }
+
             toggles.forEach(t => {
                 if (t.checked !== isChecked) {
                     t.checked = isChecked;
@@ -590,11 +694,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     delete frameCounts[fid];
                     updateFeatureBadges(fid);
                 }
+                
+                // Ensure UI reflects filters before re-evaluating DOM
+                applyWcagFilters(); 
                 updateAllHierarchyStates();
                 
-                const activeFeatures = Array.from(document.querySelectorAll('.feature-toggle:checked')).map(cb => cb.getAttribute('data-feature'));
+                const activeFeatures = Array.from(document.querySelectorAll('.feature-toggle:checked'))
+                    .filter(ft => ft.closest('.feature-row').style.display !== 'none')
+                    .map(cb => cb.getAttribute('data-feature'));
+                    
                 activeFeatures.forEach(featureId => {
-                    chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId });
+                    const feature = getFeatureConfigById(featureId);
+                    chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
                 });
             }
             
@@ -617,19 +728,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 6. Final Initialization via Scoped Storage
     chrome.storage.local.get([STORAGE_KEY_FEATURES, STORAGE_KEY_GROUPS], (result) => {
+        // Ensure filters dictate initial state
+        applyWcagFilters();
+        
         const active = result[STORAGE_KEY_FEATURES] || [];
         document.querySelectorAll('.feature-toggle').forEach(toggle => {
-            const fid = toggle.getAttribute('data-feature');
-            const shouldBeChecked = active.includes(fid);
-            if (toggle.checked !== shouldBeChecked) {
-                toggle.checked = shouldBeChecked;
+            // Only restore if the row is visible based on WCAG filters
+            if (toggle.closest('.feature-row').style.display !== 'none') {
+                const fid = toggle.getAttribute('data-feature');
+                const shouldBeChecked = active.includes(fid);
+                if (toggle.checked !== shouldBeChecked) {
+                    toggle.checked = shouldBeChecked;
+                }
             }
         });
         updateAllHierarchyStates();
 
         connectToContentScript();
-        active.forEach(featureId => {
-            chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId });
+        Array.from(document.querySelectorAll('.feature-toggle:checked')).forEach(toggle => {
+            const featureId = toggle.getAttribute('data-feature');
+            const feature = getFeatureConfigById(featureId);
+            chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
         });
 
         const collapsedGroups = result[STORAGE_KEY_GROUPS] || [];
@@ -749,7 +868,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         document.addEventListener('keydown', trapFocus);
-        
         document.getElementById('modal-close-btn').focus();
 
         document.getElementById('modal-copy-btn').addEventListener('click', () => {
@@ -786,9 +904,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ==========================================================================
-    // Documentation Modal Logic (Using Variable, No Fetch)
-    // ==========================================================================
     const openDocsBtn = document.getElementById("btn-open-docs");
     if (openDocsBtn) {
         openDocsBtn.addEventListener("click", () => {
@@ -828,15 +943,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             document.getElementById('docs-close-btn').addEventListener('click', closeModal);
 
-            // Focus Trap Logic
             const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
             const firstElement = focusableElements[0];
             const lastElement = focusableElements[focusableElements.length - 1];
 
             const trapDocsFocus = (e) => {
-                if (e.key === 'Escape') {
-                    closeModal();
-                } else if (e.key === 'Tab') {
+                if (e.key === 'Escape') closeModal();
+                else if (e.key === 'Tab') {
                     if (e.shiftKey) { 
                         if (document.activeElement === firstElement) {
                             e.preventDefault();
