@@ -284,13 +284,13 @@ window.A11Y_CONFIG = {
                             selector: "a[href]",
                             legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
                             info: {
-                                what: "Flags ambiguous link text (e.g., Click Here, Read More).",
+                                what: "Flags ambiguous link text (e.g., Click Here, Read More) using exact word boundaries to avoid false positives on valid phrases.",
                                 why: "Users navigating via a Links List will lack context for the destination. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html' target='_blank'>WCAG 2.4.4: Link Purpose</a>"
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const text = (el.innerText || el.textContent).trim();
-                                if (/^(click here|read more|learn more|more|link|here)$/i.test(text)) {
-                                    drawHighlight(el, "#fbbc04", `Generic link: "${text}"`, "bad"); return true;
+                                if (/\b(click here|read more|learn more|more|link|here)\b/i.test(text)) {
+                                    drawHighlight(el, "#fbbc04", `Generic link: "${text.substring(0,15)}..."`, "bad"); return true;
                                 } return false;
                             }
                         },
@@ -445,26 +445,44 @@ window.A11Y_CONFIG = {
                             wcag: [{ version: "2.0", level: "AA" }, { version: "2.0", level: "AAA" }],
                             selector: "h1, h2, h3, h4, h5, h6, p, span, a, button, label, li, td, th, caption, legend, dt, dd, blockquote",
                             legends: [
-                                { label: "Fail (< 3.0:1)", color: "#d93025", type: "critical", wcag: [{ version: "2.0", level: "AA" }] },
-                                { label: "AA Large (3.0-4.49)", color: "#f29900", type: "serious", wcag: [{ version: "2.0", level: "AA" }] },
-                                { label: "AA Normal (4.5-6.99)", color: "#fbbc04", type: "moderate", wcag: [{ version: "2.0", level: "AAA" }] }
+                                { label: "AA Fail", color: "#d93025", type: "aa-fail", wcag: [{ version: "2.0", level: "AA" }] },
+                                { label: "AAA Fail", color: "#f29900", type: "aaa-fail", wcag: [{ version: "2.0", level: "AAA" }] },
+                                { label: "Manual Check", color: "#5f6368", type: "manual", wcag: [{ version: "2.0", level: "AA" }] }
                             ],
                             info: {
-                                what: "Traverses the DOM to calculate the effective contrast ratio between visible text and its backing container.",
-                                why: "Low contrast prevents users with visual impairments from reading content. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html' target='_blank'>WCAG 1.4.3: Contrast (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html' target='_blank'>WCAG 1.4.6: Contrast (Enhanced)</a>"
+                                what: "Traverses the DOM to calculate the effective contrast ratio between visible text and its backing container. Dynamically evaluates <code>font-size</code> and <code>font-weight</code> against WCAG large-text thresholds, and flags elements over complex background images or gradients for manual review.",
+                                why: "Low contrast prevents users with visual impairments from reading content. The required passing ratio depends strictly on text size and weight. Background images require human verification. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html' target='_blank'>WCAG 1.4.3: Contrast (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html' target='_blank'>WCAG 1.4.6: Contrast (Enhanced)</a>"
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const text = Array.from(el.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.nodeValue).join('').trim();
                                 if (!text) return false;
                                 const style = window.getComputedStyle(el);
                                 if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+
+                                let fontSizePx = parseFloat(style.fontSize);
+                                let fontWeight = style.fontWeight;
+                                let isBold = fontWeight === 'bold' || parseInt(fontWeight, 10) >= 700;
+                                let isLargeText = fontSizePx >= 24 || (isBold && fontSizePx >= 18.66);
+
                                 let fg = style.color, bg = style.backgroundColor;
                                 let current = el;
+                                let manualCheck = false;
+
                                 while(current && current.nodeType === 1) {
-                                    let computedBg = window.getComputedStyle(current).backgroundColor;
+                                    let computedStyle = window.getComputedStyle(current);
+                                    if (computedStyle.backgroundImage && computedStyle.backgroundImage !== 'none' && computedStyle.backgroundImage !== 'initial') {
+                                        manualCheck = true;
+                                        break;
+                                    }
+                                    let computedBg = computedStyle.backgroundColor;
                                     if (computedBg !== 'rgba(0, 0, 0, 0)' && computedBg !== 'transparent') { bg = computedBg; break; }
                                     current = current.parentElement;
                                 }
+
+                                if (manualCheck) {
+                                    drawHighlight(el, "#5f6368", "Manual Check (Bg)", "manual"); return true;
+                                }
+
                                 if (bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') bg = 'rgb(255, 255, 255)';
                                 const parseRGB = (str) => { let m = str.match(/\d+/g); return m ? [parseInt(m[0]), parseInt(m[1]), parseInt(m[2])] : [255,255,255]; };
                                 const getLum = (r, g, b) => {
@@ -474,9 +492,14 @@ window.A11Y_CONFIG = {
                                 let l1 = getLum(...parseRGB(fg)), l2 = getLum(...parseRGB(bg));
                                 let ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
                                 
-                                if (ratio < 3.0) { drawHighlight(el, "#d93025", `${ratio.toFixed(2)}:1`, "critical"); return true; } 
-                                else if (ratio < 4.5) { drawHighlight(el, "#f29900", `${ratio.toFixed(2)}:1`, "serious"); return true; } 
-                                else if (ratio < 7.0) { drawHighlight(el, "#fbbc04", `${ratio.toFixed(2)}:1`, "moderate"); return true; }
+                                let aaReq = isLargeText ? 3.0 : 4.5;
+                                let aaaReq = isLargeText ? 4.5 : 7.0;
+
+                                if (ratio < aaReq) { 
+                                    drawHighlight(el, "#d93025", `AA Fail (${ratio.toFixed(2)}:1)`, "aa-fail"); return true; 
+                                } else if (ratio < aaaReq) { 
+                                    drawHighlight(el, "#f29900", `AAA Fail (${ratio.toFixed(2)}:1)`, "aaa-fail"); return true; 
+                                }
                                 return false; 
                             }
                         }

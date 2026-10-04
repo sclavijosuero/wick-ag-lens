@@ -96,7 +96,7 @@
                 <li><strong>Focus Order:</strong> Mirrors standard browser Tab execution, prioritizing <code>tabindex > 0</code>, respecting native Radio Group bundling, and ignoring disabled/hidden nodes.</li>
                 <li><strong>Shadow DOMs:</strong> Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.</li>
                 <li><strong>Iframes & Cross-Origin Policies:</strong> Due to strict browser security (Same-Origin Policy), the inspector cannot pierce or audit the internal DOM of cross-origin iframes (e.g., embedded videos or third-party widgets).</li>
-                <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Complex backgrounds (images, gradients) or mixed element opacities may reduce accuracy compared to pixel-level visual analysis.</li>
+                <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Elements overlaying complex backgrounds (images, gradients) are explicitly flagged for Manual Review. The algorithm dynamically calculates required thresholds based on computed font-size and font-weight.</li>
                 <li><strong>WCAG Criteria Filtering:</strong> The version (2.0, 2.1, 2.2) and conformance level (A, AA, AAA) filters are strictly isolated. Selecting version 2.2 does <em>not</em> automatically include 2.0 or 2.1 audits, and selecting AAA does <em>not</em> include A or AA checks. You must explicitly check all versions and levels you wish to evaluate in your current analysis.</li>
             </ul>
             <div class="footer-disclaimer">
