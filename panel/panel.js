@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.textContent = message;
         toast.classList.add('show');
         
-        // Remove toast after 3 seconds
+        // Remove toast after 4 seconds
         setTimeout(() => toast.classList.remove('show'), 4000);
     }
 
@@ -108,7 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     toggle.dispatchEvent(new Event('change'));
                 }
             } else {
-                row.style.display = 'block';
+                // FIXED: Clearing inline display style allows CSS collapse rules to function naturally
+                row.style.display = ''; 
                 if (feature.legends) {
                     feature.legends.forEach(leg => {
                         const legendItem = row.querySelector(`.legend-item[data-legend-type="${leg.type}"]`);
@@ -285,8 +286,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             
             // Hide the group completely if all features inside it are filtered out
+            // FIXED: Clearing inline display style allows CSS collapse rules to function naturally
             if (catTotal === 0) group.style.display = 'none';
-            else group.style.display = 'block';
+            else group.style.display = ''; 
         });
 
         if (masterToggle) {
