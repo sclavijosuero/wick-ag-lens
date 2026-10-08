@@ -19,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.textContent = message;
         toast.classList.add('show');
 
-        // Remove toast after 4 seconds
         setTimeout(() => toast.classList.remove('show'), 4000);
     }
 
@@ -66,6 +65,31 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
     }
 
+    // --- Hierarchical Sorting Utility ---
+    function sortElementsHierarchically(elements) {
+        return elements.sort((a, b) => {
+            // Regex to find our specific focus order pattern (e.g., "#109.1:")
+            const regex = /#(\d+(?:\.\d+)*):/;
+            const matchA = a.label.match(regex);
+            const matchB = b.label.match(regex);
+            
+            if (matchA && matchB) {
+                const hA = matchA[1].split('.').map(Number);
+                const hB = matchB[1].split('.').map(Number);
+                
+                const len = Math.max(hA.length, hB.length);
+                for (let i = 0; i < len; i++) {
+                    const valA = hA[i] !== undefined ? hA[i] : -1; 
+                    const valB = hB[i] !== undefined ? hB[i] : -1;
+                    if (valA !== valB) {
+                        return valA - valB;
+                    }
+                }
+            }
+            return 0; // Maintain original array order for standard rules
+        });
+    }
+
     // --- WCAG Filtering Logic ---
     function isWcagMatch(wcagArray, checkedVersions, checkedLevels) {
         if (!wcagArray || wcagArray.length === 0) return true;
@@ -76,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const checkedVersions = Array.from(document.querySelectorAll('.wcag-version-filter:checked')).map(cb => cb.value);
         const checkedLevels = Array.from(document.querySelectorAll('.wcag-level-filter:checked')).map(cb => cb.value);
 
-        if (!feature.legends) return isWcagMatch(feature.wcag, checkedVersions, checkedLevels) ? ["default"] : [];
+        if (!feature.legends) return isWcagMatch(feature.wcag, checkedVersions, checkedLevels) ? ["bad", "default"] : [];
 
         return feature.legends
             .filter(leg => isWcagMatch(leg.wcag || feature.wcag, checkedVersions, checkedLevels))
@@ -108,7 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     toggle.dispatchEvent(new Event('change'));
                 }
             } else {
-                // FIXED: Clearing inline display style allows CSS collapse rules to function naturally
                 row.style.display = '';
                 if (feature.legends) {
                     feature.legends.forEach(leg => {
@@ -123,7 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
 
-                // If it's active, dispatch change to trigger redraw with updated activeLegends
                 if (toggle && toggle.checked) {
                     chrome.tabs.sendMessage(tabId, {
                         action: 'highlight',
@@ -261,7 +283,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const categoryGroups = container.querySelectorAll(".category-group");
         categoryGroups.forEach(group => {
             const catToggle = group.querySelector(".category-toggle");
-            // Only count currently visible toggles within this group based on WCAG filters
             const featureToggles = Array.from(group.querySelectorAll(".feature-toggle")).filter(ft => ft.closest('.feature-row').style.display !== 'none');
 
             let catTotal = featureToggles.length;
@@ -285,8 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
-            // Hide the group completely if all features inside it are filtered out
-            // FIXED: Clearing inline display style allows CSS collapse rules to function naturally
             if (catTotal === 0) group.style.display = 'none';
             else group.style.display = '';
         });
@@ -391,7 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return l1 || l2 || 'INFO';
     }
 
-    function copyTabReport(tabName, btnEl) {
+    async function copyTabReport(tabName, btnEl) {
         const activeToggles = Array.from(document.querySelectorAll(`#${tabName} .feature-toggle:checked`))
             .filter(t => t.closest('.feature-row').style.display !== 'none');
 
@@ -399,78 +418,113 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const activeFeatureIds = activeToggles.map(t => t.getAttribute('data-feature'));
 
-        chrome.tabs.sendMessage(tabId, { action: 'getTabReportData', featureIds: activeFeatureIds }, (response) => {
-            if (chrome.runtime.lastError || !response) return;
+        const frameIdsSet = new Set([0]); 
+        activeFeatureIds.forEach(fId => {
+            if (frameCounts[fId]) {
+                Object.keys(frameCounts[fId]).forEach(id => frameIdsSet.add(parseInt(id)));
+            }
+        });
 
-            const tabTitle = tabName === 'tab-violations' ? 'VIOLATIONS & WARNINGS' : 'INFORMATIVE & STRUCTURE';
-            const now = new Date();
-            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const dateStr = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        const allReportData = {};
+        let topUrl = 'Unknown';
+        let topTitle = 'Unknown';
 
-            let totalElements = 0;
-            Object.values(response.data || {}).forEach(arr => totalElements += arr.length);
-
-            let report = `************************************************************\n`;
-            report += `WICK-AG-LENS REPORT: ${tabTitle}\n`;
-            report += `************************************************************\n`;
-            report += `• Generated:  ${dateStr} (${timeZone})\n`;
-            report += `• Page URL:   ${response.url || 'Unknown'}\n`;
-            report += `• Page Title: ${response.title || 'Unknown'}\n`;
-            report += `• Summary:    ${activeFeatureIds.length} Active Audits | ${totalElements} Total Findings\n`;
-            report += `============================================================\n\n\n`;
-
-            const tabConfig = config.tabs.find(t => t.id === tabName);
-            if (tabConfig) {
-                const groupBlocks = [];
-                tabConfig.categories.forEach(cat => {
-                    const activeCatFeatures = cat.features.filter(f => activeFeatureIds.includes(f.id));
-                    if (activeCatFeatures.length > 0) {
-                        let groupText = `============================================================\n`;
-                        groupText += `GROUP: ${cat.label.toUpperCase()}\n`;
-                        groupText += `============================================================\n\n`;
-
-                        const auditBlocks = [];
-                        activeCatFeatures.forEach(feature => {
-                            const elements = response.data[feature.id] || [];
-                            const elemCountLabel = `${elements.length} ${elements.length === 1 ? 'element' : 'elements'}`;
-
-                            let auditText = `------------------------------------------------------------\n`;
-                            const severityMarker = feature.severity ? ` [SEVERITY: ${feature.severity.toUpperCase()}]` : '';
-
-                            const activeLegends = getActiveLegends(feature);
-                            const activeElements = elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
-
-                            auditText += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${activeElements.length} displayed elements)\n`;
-                            auditText += `Description: ${feature.desc}\n`;
-                            auditText += `------------------------------------------------------------\n`;
-
-                            if (activeElements.length > 0) {
-                                activeElements.forEach(el => {
-                                    const displayLabel = formatLabel(el.legendLabel, el.label);
-                                    auditText += `[${displayLabel}] ${el.selector}\n`;
-                                });
-                            } else {
-                                auditText += `(No matching elements found for current WCAG filters)\n`;
-                            }
-                            auditBlocks.push(auditText);
-                        });
-
-                        groupText += auditBlocks.join('\n\n');
-                        groupBlocks.push(groupText);
+        const promises = Array.from(frameIdsSet).map(fId => {
+            return new Promise(resolve => {
+                chrome.tabs.sendMessage(tabId, { action: 'getTabReportData', featureIds: activeFeatureIds }, { frameId: fId }, (response) => {
+                    if (!chrome.runtime.lastError && response) {
+                        if (fId === 0) {
+                            topUrl = response.url || topUrl;
+                            topTitle = response.title || topTitle;
+                        }
+                        resolve(response.data || {});
+                    } else {
+                        resolve({});
                     }
                 });
-                report += groupBlocks.join('\n\n\n');
-            }
-
-            navigator.clipboard.writeText(report.trim()).then(() => {
-                const originalText = btnEl.textContent;
-                btnEl.textContent = '✔';
-                btnEl.title = 'Report Copied!';
-                setTimeout(() => {
-                    btnEl.textContent = originalText;
-                    btnEl.title = 'Copy Tab Report to Clipboard';
-                }, 2000);
             });
+        });
+
+        const results = await Promise.all(promises);
+        
+        results.forEach(frameData => {
+            Object.keys(frameData).forEach(featureId => {
+                if (!allReportData[featureId]) allReportData[featureId] = [];
+                allReportData[featureId].push(...frameData[featureId]);
+            });
+        });
+
+        const tabTitle = tabName === 'tab-violations' ? 'VIOLATIONS & WARNINGS' : 'INFORMATIVE & STRUCTURE';
+        const now = new Date();
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const dateStr = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+
+        let totalElements = 0;
+        Object.values(allReportData).forEach(arr => totalElements += arr.length);
+
+        let report = `************************************************************\n`;
+        report += `WICK-AG-LENS REPORT: ${tabTitle}\n`;
+        report += `************************************************************\n`;
+        report += `• Generated:  ${dateStr} (${timeZone})\n`;
+        report += `• Page URL:   ${topUrl}\n`;
+        report += `• Page Title: ${topTitle}\n`;
+        report += `• Summary:    ${activeFeatureIds.length} Active Audits | ${totalElements} Total Findings\n`;
+        report += `============================================================\n\n\n`;
+
+        const tabConfig = config.tabs.find(t => t.id === tabName);
+        if (tabConfig) {
+            const groupBlocks = [];
+            tabConfig.categories.forEach(cat => {
+                const activeCatFeatures = cat.features.filter(f => activeFeatureIds.includes(f.id));
+                if (activeCatFeatures.length > 0) {
+                    let groupText = `============================================================\n`;
+                    groupText += `GROUP: ${cat.label.toUpperCase()}\n`;
+                    groupText += `============================================================\n\n`;
+
+                    const auditBlocks = [];
+                    activeCatFeatures.forEach(feature => {
+                        const elements = allReportData[feature.id] || [];
+                        const elemCountLabel = `${elements.length} ${elements.length === 1 ? 'element' : 'elements'}`;
+
+                        let auditText = `------------------------------------------------------------\n`;
+                        const severityMarker = feature.severity ? ` [SEVERITY: ${feature.severity.toUpperCase()}]` : '';
+
+                        const activeLegends = getActiveLegends(feature);
+                        
+                        // FIX: Hierarchically sort the payload before writing the report
+                        let activeElements = elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
+                        activeElements = sortElementsHierarchically(activeElements);
+
+                        auditText += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${activeElements.length} displayed elements)\n`;
+                        auditText += `Description: ${feature.desc}\n`;
+                        auditText += `------------------------------------------------------------\n`;
+
+                        if (activeElements.length > 0) {
+                            activeElements.forEach(el => {
+                                const displayLabel = formatLabel(el.legendLabel, el.label);
+                                auditText += `[${displayLabel}] ${el.selector}\n`;
+                            });
+                        } else {
+                            auditText += `(No matching elements found for current WCAG filters)\n`;
+                        }
+                        auditBlocks.push(auditText);
+                    });
+
+                    groupText += auditBlocks.join('\n\n');
+                    groupBlocks.push(groupText);
+                }
+            });
+            report += groupBlocks.join('\n\n\n');
+        }
+
+        navigator.clipboard.writeText(report.trim()).then(() => {
+            const originalText = btnEl.textContent;
+            btnEl.textContent = '✔';
+            btnEl.title = 'Report Copied!';
+            setTimeout(() => {
+                btnEl.textContent = originalText;
+                btnEl.title = 'Copy Tab Report to Clipboard';
+            }, 2000);
         });
     }
 
@@ -588,16 +642,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 groupDiv.appendChild(rowDiv);
 
                 const viewBtn = rowDiv.querySelector(`#view-${feature.id}`);
-                viewBtn.addEventListener("click", () => {
-                    chrome.tabs.sendMessage(tabId, { action: 'getRuleDetails', ruleId: feature.id }, (response) => {
-                        if (chrome.runtime.lastError || !response || !response.elements) return;
-
-                        const activeLegends = getActiveLegends(feature);
-                        const filteredElements = response.elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
-
-                        const ruleMapping = { name: feature.label, description: feature.desc, severity: feature.severity };
-                        openDetailsModal(ruleMapping, filteredElements);
+                viewBtn.addEventListener("click", async () => {
+                    const ruleMapping = { id: feature.id, name: feature.label, description: feature.desc, severity: feature.severity };
+                    const allElements = [];
+                    
+                    const activeFrames = frameCounts[feature.id] ? Object.keys(frameCounts[feature.id]) : [0];
+                    
+                    const promises = activeFrames.map(fId => {
+                        return new Promise(resolve => {
+                            chrome.tabs.sendMessage(tabId, { action: 'getRuleDetails', ruleId: feature.id }, { frameId: parseInt(fId) }, (response) => {
+                                if (chrome.runtime.lastError || !response || !response.elements) {
+                                    resolve({ frameId: parseInt(fId), elements: [] });
+                                } else {
+                                    resolve({ frameId: parseInt(fId), elements: response.elements });
+                                }
+                            });
+                        });
                     });
+
+                    const results = await Promise.all(promises);
+                    results.forEach(res => {
+                        res.elements.forEach(el => {
+                            el.frameId = res.frameId; 
+                            allElements.push(el);
+                        });
+                    });
+
+                    const activeLegends = getActiveLegends(feature);
+                    let filteredElements = allElements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
+                    
+                    // FIX: Hierarchically sort elements before pushing them to the modal
+                    filteredElements = sortElementsHierarchically(filteredElements);
+
+                    openDetailsModal(ruleMapping, filteredElements);
                 });
             });
 
@@ -638,7 +715,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const tabName = e.target.getAttribute("data-tab");
 
             if (categoryGroup) {
-                // Only toggle features currently visible in this group
                 const childToggles = Array.from(categoryGroup.querySelectorAll(".feature-toggle"))
                     .filter(ft => ft.closest('.feature-row').style.display !== 'none');
 
@@ -661,9 +737,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const toggles = Array.from(document.querySelectorAll(`#${containerId} .feature-toggle`))
                 .filter(ft => ft.closest('.feature-row').style.display !== 'none');
 
-            // Guard clause to warn user if no audits map to their selected WCAG filters
             if (toggles.length === 0 && isChecked) {
-                e.target.checked = false; // Force visual revert
+                e.target.checked = false;
                 showPanelToast("No audits available. Please select at least one applicable WCAG Version and Conformance Level.");
                 return;
             }
@@ -697,7 +772,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateFeatureBadges(fid);
                 }
 
-                // Ensure UI reflects filters before re-evaluating DOM
                 applyWcagFilters();
                 updateAllHierarchyStates();
 
@@ -730,12 +804,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 6. Final Initialization via Scoped Storage
     chrome.storage.local.get([STORAGE_KEY_FEATURES, STORAGE_KEY_GROUPS], (result) => {
-        // Ensure filters dictate initial state
         applyWcagFilters();
 
         const active = result[STORAGE_KEY_FEATURES] || [];
         document.querySelectorAll('.feature-toggle').forEach(toggle => {
-            // Only restore if the row is visible based on WCAG filters
             if (toggle.closest('.feature-row').style.display !== 'none') {
                 const fid = toggle.getAttribute('data-feature');
                 const shouldBeChecked = active.includes(fid);
@@ -755,7 +827,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let collapsedGroups = result[STORAGE_KEY_GROUPS];
 
-        // If it's the very first time opening the extension, default all groups to collapsed
         if (typeof collapsedGroups === 'undefined') {
             collapsedGroups = Array.from(document.querySelectorAll('.category-group')).map(g => g.id);
         }
@@ -906,7 +977,20 @@ document.addEventListener("DOMContentLoaded", () => {
             const scrollBtn = item.querySelector('.a11y-scroll-btn');
             scrollBtn.addEventListener('click', () => {
                 const targetId = item.dataset.targetId;
-                chrome.tabs.sendMessage(tabId, { action: 'highlightAndScroll', targetId: targetId });
+                const elementData = elements.find(e => e.id === targetId);
+                
+                const message = { 
+                    action: 'highlightAndScroll', 
+                    targetId: targetId,
+                    featureId: rule.id, 
+                    color: elementData ? elementData.color : null 
+                };
+                
+                if (elementData && elementData.frameId !== undefined) {
+                    chrome.tabs.sendMessage(tabId, message, { frameId: elementData.frameId });
+                } else {
+                    chrome.tabs.sendMessage(tabId, message);
+                }
             });
         });
     }

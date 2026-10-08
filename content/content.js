@@ -1,30 +1,35 @@
 const HIGHLIGHT_PADDING = 4;
 
+// In-Memory Registry for instant O(1) positioning lookups during scroll/resize
+const activeHighlightsMap = new Map();
+// NEW: Map to keep track of active rules so child iframes can auto-redraw upon prefix update
+const lastRunLegends = new Map();
+
+// Global Listener to catch iframe indexing from parent documents
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.action === 'WICK_AG_LENS_SET_PREFIX') {
+        if (window.A11Y_FOCUS_PREFIX !== event.data.prefix) {
+            window.A11Y_FOCUS_PREFIX = event.data.prefix;
+            window.A11Y_FRAME_DEPTH = event.data.depth;
+            
+            // If the i-focus-order check is actively running on the page, force it to redraw with the new prefix
+            if (lastRunLegends.has('i-focus-order')) {
+                requestAnimationFrame(() => {
+                    runCheck('i-focus-order', lastRunLegends.get('i-focus-order'));
+                });
+            }
+        }
+    }
+});
+
 const pulsateStyle = document.createElement('style');
 pulsateStyle.textContent = `
-    @keyframes a11y-pulsate-yellow {
-        0%, 100% { 
-            background-color: rgba(255, 235, 59, 0.05); 
-            border-color: #ffd700; 
-            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5); 
-        }
-        50% { 
-            background-color: rgba(255, 235, 59, 0.2); 
-            border-color: #ffffff; 
-            box-shadow: 0 0 0 8px rgba(255, 215, 0, 0.9), 0 0 18px rgba(255, 215, 0, 1); 
-        }
-    }
-    .a11y-pulsate-active {
-        animation: a11y-pulsate-yellow 1.25s ease-in-out 2 !important; 
-        z-index: 2147483647 !important;
-    }
-    
     .a11y-inspector-box {
         opacity: 0.75;
         transition: opacity 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     }
     .a11y-inspector-box:hover {
-        opacity: 1 !important;
+        opacity: 0.5;
         z-index: 2147483646 !important;
     }
     
@@ -77,6 +82,14 @@ pulsateStyle.textContent = `
         pointer-events: auto;
         transform-origin: bottom left;
         transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    
+    .informative-badge {
+        background-color: #202124 !important;
+        color: #ffffff !important;
+        border-left: 8px solid var(--badge-bg) !important;
+        border-radius: 2px 3px 3px 2px !important;
+        padding-left: 8px !important;
     }
     
     .a11y-inspector-badge:hover {
@@ -155,14 +168,26 @@ pulsateStyle.textContent = `
         border-radius: 6px; 
         border: 1px solid #5f6368;
     }
-    .a11y-info-toast strong { 
-        color: #e3e3e3; 
+    
+    /* NEW: Inline Code Styling for Toast */
+    .a11y-info-toast code {
+        font-family: 'ui-monospace', 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+        background: rgba(168, 199, 250, 0.15);
+        color: #a8c7fa;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        border: 1px solid rgba(168, 199, 250, 0.2);
+    }
+    
+    .a11y-info-toast-section-title { 
         display: block; 
         margin-bottom: 6px; 
-        font-size: 12px; 
         font-weight: 700;
         text-transform: uppercase; 
         letter-spacing: 0.5px;
+        font-size: 11px;
+        color: #9aa0a6;
     }
     .a11y-info-toast p { 
         margin: 0 0 16px 0; 
@@ -170,6 +195,7 @@ pulsateStyle.textContent = `
         color: #f1f3f4;
     }
     .a11y-info-toast p:last-child { margin-bottom: 0; }
+    .a11y-info-toast strong { color: #ffffff; font-weight: 700; }
     .a11y-info-toast a { 
         color: #a8c7fa; 
         text-decoration: underline; 
@@ -213,18 +239,19 @@ function cleanupAllHighlights() {
     const activeToast = document.getElementById('a11y-info-toast');
     if (activeToast) activeToast.remove();
 
-    const markedElements = querySelectorAllDeep('[data-a11y-target-id]');
-    markedElements.forEach(el => {
-        targetResizeObserver.unobserve(el);
+    activeHighlightsMap.forEach((entry) => {
+        targetResizeObserver.unobserve(entry.targetEl);
         const attrsToRemove = [];
-        for (let i = 0; i < el.attributes.length; i++) {
-            if (el.attributes[i].name.startsWith('data-a11y-target')) {
-                attrsToRemove.push(el.attributes[i].name);
+        for (let i = 0; i < entry.targetEl.attributes.length; i++) {
+            if (entry.targetEl.attributes[i].name.startsWith('data-a11y-target')) {
+                attrsToRemove.push(entry.targetEl.attributes[i].name);
             }
         }
-        attrsToRemove.forEach(attr => el.removeAttribute(attr));
-        delete el.dataset.a11yTargetId;
+        attrsToRemove.forEach(attr => entry.targetEl.removeAttribute(attr));
+        delete entry.targetEl.dataset.a11yTargetId;
     });
+    activeHighlightsMap.clear();
+    lastRunLegends.clear(); 
 }
 
 function getCssSelector(el) {
@@ -290,6 +317,11 @@ function querySelectorAllDeep(selector, root = document) {
     function traverse(node) {
         if (!node) return;
         if (node.nodeType === Node.ELEMENT_NODE) {
+            
+            if (node.id === 'a11y-inspector-overlay' || node.id === 'a11y-info-toast' || node.id === 'panel-toast') {
+                return; 
+            }
+
             if (node.matches && node.matches(selector)) {
                 results.push(node);
             }
@@ -352,6 +384,38 @@ function isElementVisible(element) {
     return true;
 }
 
+function getContainerClippingBounds(element) {
+    let current = element.parentElement;
+    let minTop = -Infinity;
+    let maxBottom = Infinity;
+    let minLeft = -Infinity;
+    let maxRight = Infinity;
+
+    while (current && current !== document.body && current !== document.documentElement) {
+        if (current.nodeType === Node.ELEMENT_NODE) {
+            const win = current.ownerDocument.defaultView || window;
+            const style = win.getComputedStyle(current);
+            const overflowY = style.overflowY;
+            const overflowX = style.overflowX;
+            // Includes overflow: hidden to properly detect carousel slide clipping
+            const isScrollable = (
+                overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' || 
+                overflowX === 'auto' || overflowX === 'scroll' || overflowX === 'hidden'
+            );
+
+            if (isScrollable) {
+                const rect = current.getBoundingClientRect();
+                minTop = Math.max(minTop, rect.top);
+                maxBottom = Math.min(maxBottom, rect.bottom);
+                minLeft = Math.max(minLeft, rect.left);
+                maxRight = Math.min(maxRight, rect.right);
+            }
+        }
+        current = current.parentElement;
+    }
+    return { minTop, maxBottom, minLeft, maxRight };
+}
+
 function ensureOverlay() {
     let overlay = document.getElementById("a11y-inspector-overlay");
     if (!overlay) {
@@ -381,44 +445,109 @@ function repositionHighlights() {
     
     requestAnimationFrame(() => {
         const overlay = document.getElementById("a11y-inspector-overlay");
-        if (!overlay) {
+        if (!overlay || activeHighlightsMap.size === 0) {
             isRepositioning = false;
             return;
         }
-        
-        const trackedElements = overlay.querySelectorAll(".a11y-inspector-box, .a11y-badge-container");
-        
-        trackedElements.forEach(el => {
-            const targetId = el.dataset.a11yTargetId;
-            if (!targetId) return;
-            
-            const targets = querySelectorAllDeep(`[data-a11y-target-id="${targetId}"]:not(.a11y-inspector-box, .a11y-badge-container)`);
-            
-            if (targets.length > 0) {
-                const targetEl = targets[0];
-                const rect = targetEl.getBoundingClientRect();
-                
-                if (rect.width === 0 && rect.height === 0) {
-                    el.style.display = 'none';
+
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+        const updates = [];
+
+        activeHighlightsMap.forEach((entry, uniqueId) => {
+            const targetEl = entry.targetEl;
+
+            if (!targetEl || !document.contains(targetEl)) {
+                updates.push({ entry, uniqueId, isDead: true });
+                return;
+            }
+
+            const rect = targetEl.getBoundingClientRect();
+
+            if (rect.width === 0 || rect.height === 0 || !isElementVisible(targetEl)) {
+                updates.push({ entry, uniqueId, isVisible: false });
+                return;
+            }
+
+            const clip = getContainerClippingBounds(targetEl);
+            const isClippedOut = (
+                rect.bottom <= clip.minTop || 
+                rect.top >= clip.maxBottom || 
+                rect.right <= clip.minLeft || 
+                rect.left >= clip.maxRight
+            );
+
+            // EXACT dimensions so we never expand the document boundary
+            let top = rect.top + scrollTop;
+            let left = rect.left + scrollLeft;
+            let width = rect.width;
+            let height = rect.height;
+
+            // Badges sit directly above the highlighted element border/outline
+            let badgeTop = top - HIGHLIGHT_PADDING;
+            let badgeLeft = left - HIGHLIGHT_PADDING;
+
+            updates.push({ entry, uniqueId, isVisible: true, isClippedOut, top, left, width, height, badgeTop, badgeLeft });
+        });
+
+        updates.forEach(u => {
+            if (u.isDead) {
+                u.entry.boxes.forEach(box => box.remove());
+                if (u.entry.badgeContainer) u.entry.badgeContainer.remove();
+                activeHighlightsMap.delete(u.uniqueId);
+                return;
+            }
+
+            if (!u.isVisible) {
+                u.entry.boxes.forEach(box => { box.style.visibility = 'hidden'; });
+                if (u.entry.badgeContainer) u.entry.badgeContainer.style.visibility = 'hidden';
+                return;
+            }
+
+            u.entry.boxes.forEach(box => {
+                box.style.visibility = 'visible';
+                box.style.top = `${u.top}px`;
+                box.style.left = `${u.left}px`;
+                box.style.width = `${u.width}px`;
+                box.style.height = `${u.height}px`;
+
+                // APPLY GHOSTED & X-RAY STATE FOR OFF-SCREEN ELEMENTS
+                if (u.isClippedOut) {
+                    box.style.opacity = '0.35';
+                    box.style.outlineStyle = 'dashed';
+                    const hatchColor = box.dataset.color || '#ffffff';
+                    box.style.backgroundImage = `repeating-linear-gradient(45deg, ${hatchColor} 0, ${hatchColor} 2px, transparent 2px, transparent 8px)`;
                 } else {
-                    const isContainer = el.classList.contains("a11y-badge-container");
-                    el.style.display = isContainer ? 'flex' : 'block';
-                    
-                    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-                    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-                    
-                    el.style.top = `${rect.top + scrollTop - HIGHLIGHT_PADDING}px`;
-                    el.style.left = `${rect.left + scrollLeft - HIGHLIGHT_PADDING}px`;
-                    
-                    if (!isContainer) {
-                        el.style.width = `${rect.width + (HIGHLIGHT_PADDING * 2)}px`;
-                        el.style.height = `${rect.height + (HIGHLIGHT_PADDING * 2)}px`;
-                    }
+                    box.style.opacity = ''; // Reverts to default CSS class (0.75)
+                    box.style.outlineStyle = box.dataset.originalBorderStyle || 'solid';
+                    box.style.backgroundImage = 'none';
                 }
-            } else {
-                el.style.display = 'none';
+            });
+
+            if (u.entry.badgeContainer) {
+                u.entry.badgeContainer.style.visibility = 'visible';
+                u.entry.badgeContainer.style.top = `${u.badgeTop}px`;
+                u.entry.badgeContainer.style.left = `${u.badgeLeft}px`;
+
+                // UPDATE BADGE TEXT AND OPACITY FOR OFF-SCREEN ELEMENTS
+                const badges = u.entry.badgeContainer.querySelectorAll('.a11y-inspector-badge');
+                badges.forEach(b => {
+                    const origText = b.dataset.originalText;
+                    if (u.isClippedOut) {
+                        b.style.opacity = '0.4';
+                        if (origText && !b.textContent.startsWith('[Hidden]')) {
+                            b.textContent = `[Hidden] ${origText}`;
+                        }
+                    } else {
+                        b.style.opacity = ''; // Reverts to default CSS class (0.75)
+                        if (origText && b.textContent !== origText) {
+                            b.textContent = origText;
+                        }
+                    }
+                });
             }
         });
+
         isRepositioning = false;
     });
 }
@@ -426,42 +555,56 @@ function repositionHighlights() {
 window.addEventListener("scroll", repositionHighlights, { passive: true, capture: true });
 window.addEventListener("resize", repositionHighlights, { passive: true });
 
-const domMutationObserver = new MutationObserver(() => {
-    repositionHighlights();
+let mutationDebounceTimer = null;
+const domMutationObserver = new MutationObserver((mutations) => {
+    let hasRelevantMutation = false;
+    for (let m of mutations) {
+        if (m.target && (m.target.id === 'a11y-inspector-overlay' || (m.target.closest && m.target.closest('#a11y-inspector-overlay')))) continue;
+        if (m.type === 'attributes' && m.attributeName && m.attributeName.startsWith('data-a11y')) continue;
+        hasRelevantMutation = true;
+        break;
+    }
+    if (!hasRelevantMutation) return;
+
+    if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
+    mutationDebounceTimer = setTimeout(() => {
+        repositionHighlights();
+    }, 50);
 });
+
 if (document.body) {
-    domMutationObserver.observe(document.body, { attributes: true, childList: true, subtree: true });
+    domMutationObserver.observe(document.body, { 
+        attributes: true, 
+        childList: true, 
+        subtree: true,
+        attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert']
+    });
 }
 
 function clearHighlights(featureId) {
-    const overlay = document.getElementById("a11y-inspector-overlay");
-    if (overlay) {
-        const badges = overlay.querySelectorAll(`.a11y-inspector-badge[data-feature="${featureId}"]`);
-        badges.forEach(badge => {
-            const container = badge.parentElement;
-            badge.remove();
-            if (container && container.children.length === 0) {
-                container.remove(); 
-            }
-        });
+    activeHighlightsMap.forEach((entry, uniqueId) => {
+        if (entry.boxes.has(featureId)) {
+            entry.boxes.get(featureId).remove();
+            entry.boxes.delete(featureId);
+        }
 
-        const boxes = overlay.querySelectorAll(`.a11y-inspector-box[data-feature="${featureId}"]`);
-        boxes.forEach(box => {
-            const targetId = box.dataset.a11yTargetId;
-            box.remove(); 
-            
-            if (targetId) {
-                const remainingBoxes = overlay.querySelectorAll(`.a11y-inspector-box[data-a11y-target-id="${targetId}"]`);
-                if (remainingBoxes.length === 0) {
-                    const targets = querySelectorAllDeep(`[data-a11y-target-id="${targetId}"]:not(.a11y-inspector-box, .a11y-badge-container)`);
-                    targets.forEach(t => {
-                        targetResizeObserver.unobserve(t);
-                        delete t.dataset.a11yTargetId;
-                    });
-                }
+        if (entry.badgeContainer) {
+            const badges = entry.badgeContainer.querySelectorAll(`.a11y-inspector-badge[data-feature="${featureId}"]`);
+            badges.forEach(b => b.remove());
+            if (entry.badgeContainer.children.length === 0) {
+                entry.badgeContainer.remove();
+                entry.badgeContainer = null;
             }
-        });
-    }
+        }
+
+        entry.targetEl.removeAttribute(`data-a11y-target-${featureId}`);
+
+        if (entry.boxes.size === 0) {
+            targetResizeObserver.unobserve(entry.targetEl);
+            delete entry.targetEl.dataset.a11yTargetId;
+            activeHighlightsMap.delete(uniqueId);
+        }
+    });
 
     const markedElements = querySelectorAllDeep(`[data-a11y-target-${featureId}]`);
     markedElements.forEach(el => {
@@ -508,13 +651,26 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         uniqueId = 'a11y-target-' + Math.random().toString(36).substr(2, 9);
         el.dataset.a11yTargetId = uniqueId;
     }
-    
+
+    if (!activeHighlightsMap.has(uniqueId)) {
+        activeHighlightsMap.set(uniqueId, {
+            targetEl: el,
+            boxes: new Map(),
+            badgeContainer: null
+        });
+    }
+    const entry = activeHighlightsMap.get(uniqueId);
+
     let legendLabel = legendType;
     let legendTypeAttr = legendType;
     const configData = getFeatureConfig(featureId);
     if (configData && configData.feature.legends) {
         const leg = configData.feature.legends.find(l => l.type === legendType);
         if (leg) legendLabel = leg.label;
+    }
+
+    if (entry.boxes.has(featureId)) {
+        entry.boxes.get(featureId).remove();
     }
 
     const box = document.createElement("div");
@@ -529,37 +685,55 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     box.dataset.legendLabel = legendLabel;
     box.dataset.legendType = legendTypeAttr; 
     box.dataset.color = color;
+    box.dataset.originalBorderStyle = borderStyle; 
 
     box.style.display = "block";
     box.style.margin = "0";
     box.style.padding = "0";
     box.style.position = "absolute";
-    box.style.top = `${rect.top + scrollTop - HIGHLIGHT_PADDING}px`;
-    box.style.left = `${rect.left + scrollLeft - HIGHLIGHT_PADDING}px`;
-    box.style.width = `${rect.width + (HIGHLIGHT_PADDING * 2)}px`;
-    box.style.height = `${rect.height + (HIGHLIGHT_PADDING * 2)}px`;
-    box.style.border = `3px ${borderStyle} ${color}`;
+    box.style.top = `${rect.top + scrollTop}px`;
+    box.style.left = `${rect.left + scrollLeft}px`;
+    box.style.width = `${rect.width}px`;
+    box.style.height = `${rect.height}px`;
+    
+    box.style.border = `none`;
+    box.style.outline = `3px ${borderStyle} ${color}`;
+    box.style.outlineOffset = `${HIGHLIGHT_PADDING}px`;
+    
     box.style.boxSizing = "border-box";
     box.style.backgroundColor = "transparent";
     box.style.borderRadius = "3px";
     box.style.pointerEvents = "none";
 
     overlay.appendChild(box);
+    entry.boxes.set(featureId, box);
 
-    let badgeContainer = overlay.querySelector(`.a11y-badge-container[data-a11y-target-id="${uniqueId}"]`);
-    if (!badgeContainer) {
-        badgeContainer = document.createElement("div");
-        badgeContainer.className = "a11y-badge-container";
-        badgeContainer.dataset.a11yTargetId = uniqueId;
-        badgeContainer.style.top = `${rect.top + scrollTop - HIGHLIGHT_PADDING}px`;
-        badgeContainer.style.left = `${rect.left + scrollLeft - HIGHLIGHT_PADDING}px`;
-        overlay.appendChild(badgeContainer);
+    if (!entry.badgeContainer || !document.contains(entry.badgeContainer)) {
+        let badgeContainer = overlay.querySelector(`.a11y-badge-container[data-a11y-target-id="${uniqueId}"]`);
+        if (!badgeContainer) {
+            badgeContainer = document.createElement("div");
+            badgeContainer.className = "a11y-badge-container";
+            badgeContainer.dataset.a11yTargetId = uniqueId;
+            badgeContainer.style.top = `${rect.top + scrollTop - HIGHLIGHT_PADDING}px`;
+            badgeContainer.style.left = `${rect.left + scrollLeft - HIGHLIGHT_PADDING}px`;
+            overlay.appendChild(badgeContainer);
+        }
+        entry.badgeContainer = badgeContainer;
     }
+
+    const existingBadge = entry.badgeContainer.querySelector(`.a11y-inspector-badge[data-feature="${featureId}"]`);
+    if (existingBadge) existingBadge.remove();
 
     const badge = document.createElement("div");
     badge.className = "a11y-inspector-badge";
+    
+    if (configData && configData.tab && configData.tab.id === 'tab-informative') {
+        badge.classList.add('informative-badge');
+    }
+
     badge.setAttribute("data-feature", featureId); 
     badge.dataset.legendLabel = legendLabel; 
+    badge.dataset.originalText = text; 
     badge.textContent = text; 
     
     badge.style.setProperty('--badge-bg', color); 
@@ -581,9 +755,9 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         if (!configData) return;
 
         badge.classList.add('a11y-badge-active');
-        badgeContainer.classList.add('a11y-container-active');
+        entry.badgeContainer.classList.add('a11y-container-active');
         
-        const relatedBox = document.querySelector(`.a11y-inspector-box[data-a11y-target-id="${uniqueId}"]`);
+        const relatedBox = entry.boxes.get(featureId) || overlay.querySelector(`.a11y-inspector-box[data-a11y-target-id="${uniqueId}"][data-feature="${featureId}"]`);
         if (relatedBox) {
             relatedBox.style.setProperty('--badge-bg', color);
             relatedBox.classList.add('a11y-box-active');
@@ -617,9 +791,9 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
                 ${statusHtml}
             </div>
             <div class="a11y-toast-selector" title="Element Selector">${getCssSelector(el)}</div>
-            <strong>What it highlights</strong>
+            <span class="a11y-info-toast-section-title">What it highlights</span>
             <p>${info.what}</p>
-            <strong>Why it's important</strong>
+            <span class="a11y-info-toast-section-title">Why it's important</span>
             <p>${info.why}</p>
         `;
         
@@ -639,7 +813,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         
         toast.querySelector('.a11y-toast-close').addEventListener('click', () => {
             badge.classList.remove('a11y-badge-active');
-            badgeContainer.classList.remove('a11y-container-active');
+            entry.badgeContainer.classList.remove('a11y-container-active');
             if (relatedBox) {
                 relatedBox.classList.remove('a11y-box-active');
                 relatedBox.style.backgroundColor = "transparent";
@@ -648,12 +822,14 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         });
     });
 
-    badgeContainer.appendChild(badge);
+    entry.badgeContainer.appendChild(badge);
     targetResizeObserver.observe(el);
 }
 
 function runCheck(featureId, activeLegends) {
+    lastRunLegends.set(featureId, activeLegends); 
     clearHighlights(featureId);
+    
     const configData = getFeatureConfig(featureId);
     if (!configData) return;
     
@@ -675,14 +851,12 @@ function runCheck(featureId, activeLegends) {
     elements.forEach(el => {
         if (feature.customHighlight) {
             feature.customHighlight(el, (target, color, text, legendType, borderStyle) => {
-                // Intercept and halt drawing if the specific legend does not match the active WCAG filters
                 if (activeLegends && activeLegends.length > 0 && !activeLegends.includes(legendType) && activeLegends[0] !== "default") return;
                 
                 drawHighlight(target, color, text, featureId, legendType, borderStyle);
                 counts[legendType] = (counts[legendType] || 0) + 1;
             }, state);
         } else {
-            // "default" is passed if the whole audit matches without specific legend overrides
             if (activeLegends && activeLegends.length > 0 && !activeLegends.includes("bad") && activeLegends[0] !== "default") return;
 
             drawHighlight(el, "#b00020", "Violation", featureId, "bad", "solid");
@@ -699,6 +873,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'highlight') {
         runCheck(request.featureId, request.activeLegends);
     } else if (request.action === 'clear') {
+        lastRunLegends.delete(request.featureId); 
         clearHighlights(request.featureId);
     } else if (request.action === 'getRuleDetails') {
         const overlays = document.querySelectorAll(`.a11y-inspector-box[data-rule-id="${request.ruleId}"]`);
@@ -734,14 +909,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return true;
     } else if (request.action === 'highlightAndScroll') {
-        const targetEl = querySelectorAllDeep(`[data-a11y-target-id="${request.targetId}"]:not(.a11y-inspector-box, .a11y-badge-container)`)[0];
-        const overlayEl = document.querySelector(`.a11y-inspector-box[data-a11y-target-id="${request.targetId}"]`);
+        const entry = activeHighlightsMap.get(request.targetId);
+        const targetEl = entry ? entry.targetEl : querySelectorAllDeep(`[data-a11y-target-id="${request.targetId}"]:not(.a11y-inspector-box, .a11y-badge-container)`)[0];
+        
+        let overlayEl = null;
+        if (entry && entry.boxes && request.featureId) {
+            overlayEl = entry.boxes.get(request.featureId);
+        }
+        if (!overlayEl) {
+            overlayEl = document.querySelector(`.a11y-inspector-box[data-a11y-target-id="${request.targetId}"]`);
+        }
 
         if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
         if (overlayEl) {
-            overlayEl.classList.add('a11y-pulsate-active');
-            setTimeout(() => overlayEl.classList.remove('a11y-pulsate-active'), 2500);
+            const color = request.color || overlayEl.dataset.color || '#e67e22';
+            
+            document.querySelectorAll('.a11y-box-active').forEach(b => {
+                b.classList.remove('a11y-box-active');
+                b.style.backgroundColor = "transparent";
+            });
+            
+            overlayEl.style.setProperty('--badge-bg', color);
+            overlayEl.classList.add('a11y-box-active');
+            
+            const tintedBgColor = color.length === 7 && color.startsWith('#') ? color + '33' : 'rgba(128, 128, 128, 0.2)';
+            overlayEl.style.backgroundColor = tintedBgColor;
+            
+            setTimeout(() => {
+                overlayEl.classList.remove('a11y-box-active');
+                overlayEl.style.backgroundColor = "transparent";
+            }, 2500);
         }
         sendResponse({ success: true });
         return true;
