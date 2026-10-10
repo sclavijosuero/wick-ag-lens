@@ -12,16 +12,18 @@ You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https:/
 1. [Features Overview](#features-overview)
 2. [Audit Library & Ruleset](#audit-library--ruleset)
 3. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
-4. [Limitations & Technical Bounds](#limitations--technical-bounds)
-5. [Compatibility](#compatibility)
-6. [License](#license)
-7. [Contributing](#contributing)
-8. [Changelog](#changelog)
+4. [Real-Time SPA & Dynamic DOM Sync](#real-time-spa--dynamic-dom-sync)
+5. [Limitations & Technical Bounds](#limitations--technical-bounds)
+6. [Compatibility](#compatibility)
+7. [License](#license)
+8. [Contributing](#contributing)
+9. [Changelog](#changelog)
 
 
 ## Features Overview
 WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns directly on the page.
 
+*   **Real-Time SPA & DOM Sync:** Automatically detects Single Page Application (SPA) client-side routing and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time without requiring a manual refresh.
 *   **41 Independent Audits:** Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.
 *   **WCAG Criteria Filtering:** Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).
 *   **Visual Highlighting:** Draws bounding boxes and badges over target elements to clearly identify where issues occur.
@@ -273,8 +275,14 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="i-20"></a>**Lists and List Items:** Uses the CSS selector `ul, ol, li, dl, dt, dd`. Elements matching the selector are highlighted.
 *   <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
 
+## Real-Time SPA & Dynamic DOM Sync
+WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly. 
+* **SPA Navigation (Hard Wipe):** Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.
+* **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., modals, dropdowns, lazy-loaded content). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts (like Focus Order numbers) without flashing the screen.
+
 ## Limitations & Technical Bounds
 
+*   **Dynamic Content & SPAs:** The inspector listens to DOM mutations to provide real-time updates. However, rapidly mutating animations or heavily throttled browser threads may occasionally delay the soft-update rescan (debounced to 750ms).
 *   **Visibility Filtering:** Elements hidden via `display: none`, `visibility: hidden`, `hidden`, or `inert` are strictly excluded from all analysis to match native accessibility tree behavior.
 *   **Clipping & X-Ray Vision:** Elements scrolled off-screen or hidden inside `overflow: hidden` containers (like carousels) are successfully detected and rendered with a ghosted X-Ray hatched pattern.
 *   **Z-Index Occlusion:** Visibility calculations rely on CSS properties. The tool does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high `z-index` modal).
@@ -309,6 +317,11 @@ And if you like the project but just don't have the time to contribute, that's f
 Thank you for your support!
 
 ## Changelog
+
+### v2.3.0: The Real-Time SPA Update
+* Engineered a Dual-Debounce MutationObserver to automatically handle Single Page Application (SPA) navigations.
+* Implemented "Soft Updates" for dynamic DOM mutations, silently re-auditing newly injected elements (modals, dropdowns) without flickering the UI.
+* Added "Hard Wipes" for URL changes to instantly clear stale overlays during client-side routing.
 
 ### v2.2.0: The Architecture & UX Update
 * Added *Accessible Name Resolution* audit to accurately simulate screen reader label fallbacks (`aria-labelledby` > `aria-label` > native text > `title`).

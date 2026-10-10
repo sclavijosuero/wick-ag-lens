@@ -7,7 +7,7 @@
 </head>
 <body>
     <header class="extension-header">
-        <h1>WICK-AG-Lens: Accessibility Inspector v2.0.0</h1>
+        <h1>WICK-AG-Lens: Accessibility Inspector v2.3.0</h1>
         <button id="btn-open-docs" class="header-icon-btn" aria-label="Open Documentation">
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -91,6 +91,7 @@
         </div>
         <div class="footer-content" id="footer-content">
             <ul>
+                <li><strong>Dynamic SPAs:</strong> The inspector automatically resyncs audits during client-side URL routing and dynamic DOM injections (e.g., modals). Rapid, continuous DOM mutations are debounced (750ms) to preserve browser performance.</li>
                 <li><strong>Visibility Filtering:</strong> Elements hidden via <code>display: none</code>, <code>visibility: hidden</code>, <code>hidden</code>, or <code>inert</code> are strictly excluded from all analysis to match native accessibility tree behavior.</li>
                 <li><strong>Clipping & X-Ray Vision:</strong> Elements scrolled off-screen or hidden inside <code>overflow: hidden</code> containers (like carousels) are successfully detected and rendered with a ghosted X-Ray hatched pattern.</li>
                 <li><strong>Z-Index Occlusion:</strong> Visibility calculations rely on CSS properties. The tool does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high <code>z-index</code> modal).</li>

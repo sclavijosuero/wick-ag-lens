@@ -2,7 +2,7 @@ const HIGHLIGHT_PADDING = 4;
 
 // In-Memory Registry for instant O(1) positioning lookups during scroll/resize
 const activeHighlightsMap = new Map();
-// NEW: Map to keep track of active rules so child iframes can auto-redraw upon prefix update
+// Map to keep track of active rules so child iframes can auto-redraw upon prefix update
 const lastRunLegends = new Map();
 
 // Global Listener to catch iframe indexing from parent documents
@@ -169,7 +169,6 @@ pulsateStyle.textContent = `
         border: 1px solid #5f6368;
     }
     
-    /* NEW: Inline Code Styling for Toast */
     .a11y-info-toast code {
         font-family: 'ui-monospace', 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
         background: rgba(168, 199, 250, 0.15);
@@ -397,7 +396,7 @@ function getContainerClippingBounds(element) {
             const style = win.getComputedStyle(current);
             const overflowY = style.overflowY;
             const overflowX = style.overflowX;
-            // Includes overflow: hidden to properly detect carousel slide clipping
+            
             const isScrollable = (
                 overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' || 
                 overflowX === 'auto' || overflowX === 'scroll' || overflowX === 'hidden'
@@ -477,13 +476,11 @@ function repositionHighlights() {
                 rect.left >= clip.maxRight
             );
 
-            // EXACT dimensions so we never expand the document boundary
             let top = rect.top + scrollTop;
             let left = rect.left + scrollLeft;
             let width = rect.width;
             let height = rect.height;
 
-            // Badges sit directly above the highlighted element border/outline
             let badgeTop = top - HIGHLIGHT_PADDING;
             let badgeLeft = left - HIGHLIGHT_PADDING;
 
@@ -511,14 +508,13 @@ function repositionHighlights() {
                 box.style.width = `${u.width}px`;
                 box.style.height = `${u.height}px`;
 
-                // APPLY GHOSTED & X-RAY STATE FOR OFF-SCREEN ELEMENTS
                 if (u.isClippedOut) {
                     box.style.opacity = '0.35';
                     box.style.outlineStyle = 'dashed';
                     const hatchColor = box.dataset.color || '#ffffff';
                     box.style.backgroundImage = `repeating-linear-gradient(45deg, ${hatchColor} 0, ${hatchColor} 2px, transparent 2px, transparent 8px)`;
                 } else {
-                    box.style.opacity = ''; // Reverts to default CSS class (0.75)
+                    box.style.opacity = ''; 
                     box.style.outlineStyle = box.dataset.originalBorderStyle || 'solid';
                     box.style.backgroundImage = 'none';
                 }
@@ -529,7 +525,6 @@ function repositionHighlights() {
                 u.entry.badgeContainer.style.top = `${u.badgeTop}px`;
                 u.entry.badgeContainer.style.left = `${u.badgeLeft}px`;
 
-                // UPDATE BADGE TEXT AND OPACITY FOR OFF-SCREEN ELEMENTS
                 const badges = u.entry.badgeContainer.querySelectorAll('.a11y-inspector-badge');
                 badges.forEach(b => {
                     const origText = b.dataset.originalText;
@@ -539,7 +534,7 @@ function repositionHighlights() {
                             b.textContent = `[Hidden] ${origText}`;
                         }
                     } else {
-                        b.style.opacity = ''; // Reverts to default CSS class (0.75)
+                        b.style.opacity = ''; 
                         if (origText && b.textContent !== origText) {
                             b.textContent = origText;
                         }
@@ -555,21 +550,50 @@ function repositionHighlights() {
 window.addEventListener("scroll", repositionHighlights, { passive: true, capture: true });
 window.addEventListener("resize", repositionHighlights, { passive: true });
 
+// NEW: Dual-Debounce DOM Mutation Logic
+let lastUrl = window.location.href;
 let mutationDebounceTimer = null;
+let domSyncDebounceTimer = null;
+
 const domMutationObserver = new MutationObserver((mutations) => {
+    // 1. SPA Navigation Check (Hard Wipe)
+    if (window.location.href !== lastUrl) {
+        lastUrl = window.location.href;
+        requestStateSync();
+        return;
+    }
+
     let hasRelevantMutation = false;
+    let needsRescan = false;
+
     for (let m of mutations) {
+        // Ignore extension UI injections
         if (m.target && (m.target.id === 'a11y-inspector-overlay' || (m.target.closest && m.target.closest('#a11y-inspector-overlay')))) continue;
         if (m.type === 'attributes' && m.attributeName && m.attributeName.startsWith('data-a11y')) continue;
+        
         hasRelevantMutation = true;
-        break;
+        // Identify structural changes requiring a rescan
+        if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
+            needsRescan = true;
+        }
     }
+    
     if (!hasRelevantMutation) return;
 
+    // 2. Visual Repositioning (Fast, for CSS/Class changes)
     if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
     mutationDebounceTimer = setTimeout(() => {
         repositionHighlights();
     }, 50);
+
+    // 3. Structural Rescan (Soft Update, only triggers if rules are active)
+    if (needsRescan && lastRunLegends.size > 0) {
+        if (domSyncDebounceTimer) clearTimeout(domSyncDebounceTimer);
+        domSyncDebounceTimer = setTimeout(() => {
+            // Tells panel.js to re-request highlights without a hard wipe
+            try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
+        }, 750);
+    }
 });
 
 if (document.body) {
@@ -950,9 +974,11 @@ let syncTimeout = null;
 function requestStateSync() {
     cleanupAllHighlights();
     if (syncTimeout) clearTimeout(syncTimeout);
+    
+    // Increased to 500ms to allow SPA frameworks time to mount the new DOM
     syncTimeout = setTimeout(() => {
         try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
-    }, 250); 
+    }, 500); 
 }
 
 window.addEventListener('pageshow', (event) => { if (event.persisted) requestStateSync(); });

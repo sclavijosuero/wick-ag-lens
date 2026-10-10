@@ -4,6 +4,6 @@ chrome.devtools.panels.create(
   "icons/icon48.png",
   "panel/panel.html", 
   function(panel) {
-    console.log("WICK-AG-Lens v2.0.0 Panel Created");
+    console.log("WICK-AG-Lens v2.3.0 Panel Created");
   }
 );
