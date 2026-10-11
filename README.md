@@ -278,7 +278,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 ## Real-Time SPA & Dynamic DOM Sync
 WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly. 
 * **SPA Navigation (Hard Wipe):** Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.
-* **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., modals, dropdowns, lazy-loaded content). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts (like Focus Order numbers) without flashing the screen.
+* **Dynamic DOM Mutations & Visibility Toggles (Soft Update):** Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling `display: none`, `aria-hidden`, or CSS classes on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.
 
 ## Limitations & Technical Bounds
 
@@ -320,7 +320,8 @@ Thank you for your support!
 
 ### v2.3.0: The Real-Time SPA Update
 * Engineered a Dual-Debounce MutationObserver to automatically handle Single Page Application (SPA) navigations.
-* Implemented "Soft Updates" for dynamic DOM mutations, silently re-auditing newly injected elements (modals, dropdowns) without flickering the UI.
+* Implemented "Soft Updates" for dynamic DOM mutations and visibility toggles, silently re-auditing newly injected or revealed elements (modals, dropdowns) without flickering the UI.
+* Expanded MutationObserver attribute filters to seamlessly monitor and react to `class`, `style`, `hidden`, `inert`, `aria-hidden`, and `aria-expanded` state changes.
 * Added "Hard Wipes" for URL changes to instantly clear stale overlays during client-side routing.
 
 ### v2.2.0: The Architecture & UX Update

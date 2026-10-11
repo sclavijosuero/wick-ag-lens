@@ -200,7 +200,7 @@ window.A11Y_DOCS_HTML = `
     <p>WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly.</p>
     <ul>
         <li><strong>SPA Navigation (Hard Wipe):</strong> Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.</li>
-        <li><strong>Dynamic DOM Mutations (Soft Update):</strong> Listens for injected elements (e.g., modals, dropdowns, lazy-loaded content). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts (like Focus Order numbers) without flashing the screen.</li>
+        <li><strong>Dynamic DOM Mutations &amp; Visibility Toggles (Soft Update):</strong> Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling <code>display: none</code>, <code>aria-hidden</code>, or CSS classes on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.</li>
     </ul>
 
     <h3 id="limitations">Limitations &amp; Technical Bounds</h3>

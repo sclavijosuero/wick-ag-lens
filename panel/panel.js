@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const yearEl = document.getElementById("copyright-year");
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+    // LIVE MODAL STATE TRACKERS
+    let activeModalRule = null;
+    let activeModalElements = [];
+
     // Custom UI Notification Utility
     function showPanelToast(message) {
         let toast = document.getElementById('panel-toast');
@@ -68,7 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Hierarchical Sorting Utility ---
     function sortElementsHierarchically(elements) {
         return elements.sort((a, b) => {
-            // Regex to find our specific focus order pattern (e.g., "#109.1:")
             const regex = /#(\d+(?:\.\d+)*):/;
             const matchA = a.label.match(regex);
             const matchB = b.label.match(regex);
@@ -86,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
             }
-            return 0; // Maintain original array order for standard rules
+            return 0;
         });
     }
 
@@ -491,7 +494,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         const activeLegends = getActiveLegends(feature);
                         
-                        // FIX: Hierarchically sort the payload before writing the report
                         let activeElements = elements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
                         activeElements = sortElementsHierarchically(activeElements);
 
@@ -533,6 +535,99 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const copyInformativeBtn = document.getElementById("copy-report-informative");
     if (copyInformativeBtn) copyInformativeBtn.addEventListener("click", () => copyTabReport("tab-informative", copyInformativeBtn));
+
+
+    // --- MODAL ELEMENT FETCHING & REFRESH LOGIC ---
+    async function fetchModalElements(ruleMapping) {
+        const featureId = ruleMapping.id;
+        const feature = getFeatureConfigById(featureId);
+        if (!feature) return [];
+
+        const allElements = [];
+        const activeFrames = frameCounts[featureId] ? Object.keys(frameCounts[featureId]) : [0];
+        
+        const promises = activeFrames.map(fId => {
+            return new Promise(resolve => {
+                chrome.tabs.sendMessage(tabId, { action: 'getRuleDetails', ruleId: featureId }, { frameId: parseInt(fId) }, (response) => {
+                    if (chrome.runtime.lastError || !response || !response.elements) {
+                        resolve({ frameId: parseInt(fId), elements: [] });
+                    } else {
+                        resolve({ frameId: parseInt(fId), elements: response.elements });
+                    }
+                });
+            });
+        });
+
+        const results = await Promise.all(promises);
+        results.forEach(res => {
+            res.elements.forEach(el => {
+                el.frameId = res.frameId; 
+                allElements.push(el);
+            });
+        });
+
+        const activeLegends = getActiveLegends(feature);
+        let filteredElements = allElements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
+        return sortElementsHierarchically(filteredElements);
+    }
+
+    async function refreshDetailsModal() {
+        if (!activeModalRule) return;
+        
+        const filteredElements = await fetchModalElements(activeModalRule);
+        activeModalElements = filteredElements; // Update global array for the copy button
+        
+        const modalList = document.querySelector('.a11y-modal-list');
+        const modalTitleArea = document.querySelector('.a11y-modal-title-area h2');
+        
+        if (!modalList || !modalTitleArea) return;
+
+        const countText = filteredElements.length > 0 ? `(${filteredElements.length} Total)` : '';
+        modalTitleArea.innerHTML = `Elements: ${activeModalRule.name} ${countText}`;
+
+        modalList.innerHTML = filteredElements.map(el => {
+            const pillBg = el.color ? el.color : '#e67e22';
+            const pillTxt = getTextColor(pillBg);
+            const pillShadow = pillTxt === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.4)' : 'none';
+            const rawLabel = formatLabel(el.legendLabel, el.label);
+            const safeLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            return `
+                <div class="a11y-modal-list-item" data-target-id="${el.id}">
+                    <div class="a11y-modal-item-info">
+                        <span class="a11y-pill-label" style="background-color: ${pillBg}; color:${pillTxt}; text-shadow: ${pillShadow};">${safeLabel}</span>
+                        <span class="a11y-selector-path">${el.selector}</span>
+                    </div>
+                    <button class="a11y-scroll-btn" aria-label="Scroll element into view">
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        // Re-attach locate button event listeners
+        modalList.querySelectorAll('.a11y-modal-list-item').forEach(item => {
+            const scrollBtn = item.querySelector('.a11y-scroll-btn');
+            scrollBtn.addEventListener('click', () => {
+                const targetId = item.dataset.targetId;
+                const elementData = filteredElements.find(e => e.id === targetId);
+                const message = { 
+                    action: 'highlightAndScroll', 
+                    targetId: targetId,
+                    featureId: activeModalRule.id, 
+                    color: elementData ? elementData.color : null 
+                };
+                if (elementData && elementData.frameId !== undefined) {
+                    chrome.tabs.sendMessage(tabId, message, { frameId: elementData.frameId });
+                } else {
+                    chrome.tabs.sendMessage(tabId, message);
+                }
+            });
+        });
+    }
 
     // 3. Build UI from Configuration
     config.tabs.forEach(tab => {
@@ -644,36 +739,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const viewBtn = rowDiv.querySelector(`#view-${feature.id}`);
                 viewBtn.addEventListener("click", async () => {
                     const ruleMapping = { id: feature.id, name: feature.label, description: feature.desc, severity: feature.severity };
-                    const allElements = [];
-                    
-                    const activeFrames = frameCounts[feature.id] ? Object.keys(frameCounts[feature.id]) : [0];
-                    
-                    const promises = activeFrames.map(fId => {
-                        return new Promise(resolve => {
-                            chrome.tabs.sendMessage(tabId, { action: 'getRuleDetails', ruleId: feature.id }, { frameId: parseInt(fId) }, (response) => {
-                                if (chrome.runtime.lastError || !response || !response.elements) {
-                                    resolve({ frameId: parseInt(fId), elements: [] });
-                                } else {
-                                    resolve({ frameId: parseInt(fId), elements: response.elements });
-                                }
-                            });
-                        });
-                    });
-
-                    const results = await Promise.all(promises);
-                    results.forEach(res => {
-                        res.elements.forEach(el => {
-                            el.frameId = res.frameId; 
-                            allElements.push(el);
-                        });
-                    });
-
-                    const activeLegends = getActiveLegends(feature);
-                    let filteredElements = allElements.filter(el => activeLegends.includes(el.legendType || el.legendLabel));
-                    
-                    // FIX: Hierarchically sort elements before pushing them to the modal
-                    filteredElements = sortElementsHierarchically(filteredElements);
-
+                    const filteredElements = await fetchModalElements(ruleMapping);
                     openDetailsModal(ruleMapping, filteredElements);
                 });
             });
@@ -764,17 +830,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (sender.tab && sender.tab.id === tabId) {
-            if (request.action === "contentScriptReady") {
-                connectToContentScript();
-
-                for (let fid in frameCounts) {
-                    delete frameCounts[fid];
-                    updateFeatureBadges(fid);
+            
+            // Handle both Page Reloads (Hard) and DOM Mutations (Soft)
+            if (request.action === "contentScriptReady" || request.action === "softResync") {
+                
+                // Only reset the connection and clear state for Hard Wipes
+                if (request.action === "contentScriptReady") {
+                    connectToContentScript();
+                    for (let fid in frameCounts) {
+                        delete frameCounts[fid];
+                        updateFeatureBadges(fid);
+                    }
+                    applyWcagFilters();
+                    updateAllHierarchyStates();
                 }
 
-                applyWcagFilters();
-                updateAllHierarchyStates();
-
+                // Both actions require re-highlighting active rules
                 const activeFeatures = Array.from(document.querySelectorAll('.feature-toggle:checked'))
                     .filter(ft => ft.closest('.feature-row').style.display !== 'none')
                     .map(cb => cb.getAttribute('data-feature'));
@@ -783,6 +854,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     const feature = getFeatureConfigById(featureId);
                     chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
                 });
+                
+                // Refresh the modal seamlessly if it was left open during the mutation
+                if (activeModalRule) {
+                    setTimeout(() => { refreshDetailsModal(); }, 250);
+                }
             }
 
             if (request.action === "updateCounts") {
@@ -859,6 +935,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (existing) existing.remove();
 
         const previousActiveElement = document.activeElement;
+        
+        activeModalRule = rule;
+        activeModalElements = elements;
 
         const countText = elements.length > 0 ? `(${elements.length} Total)` : '';
         const severityHtml = rule.severity ? `<span class="severity-badge severity-${rule.severity.toLowerCase()}">${rule.severity}</span>` : '';
@@ -917,6 +996,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const closeModal = () => {
             modal.remove();
+            activeModalRule = null;
+            activeModalElements = [];
             document.removeEventListener('keydown', trapFocus);
             if (previousActiveElement) previousActiveElement.focus();
         };
@@ -949,7 +1030,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modal-close-btn').focus();
 
         document.getElementById('modal-copy-btn').addEventListener('click', () => {
-            const elemCountLabel = `${elements.length} ${elements.length === 1 ? 'element' : 'elements'}`;
+            const elementsToCopy = activeModalElements;
+            const elemCountLabel = `${elementsToCopy.length} ${elementsToCopy.length === 1 ? 'element' : 'elements'}`;
             const severityMarker = rule.severity ? ` [SEVERITY: ${rule.severity.toUpperCase()}]` : '';
 
             let copyText = `------------------------------------------------------------\n`;
@@ -957,8 +1039,8 @@ document.addEventListener("DOMContentLoaded", () => {
             copyText += `Description: ${rule.description}\n`;
             copyText += `------------------------------------------------------------\n`;
 
-            if (elements.length > 0) {
-                elements.forEach(el => {
+            if (elementsToCopy.length > 0) {
+                elementsToCopy.forEach(el => {
                     const displayLabel = formatLabel(el.legendLabel, el.label);
                     copyText += `[${displayLabel}] ${el.selector}\n`;
                 });
@@ -977,7 +1059,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const scrollBtn = item.querySelector('.a11y-scroll-btn');
             scrollBtn.addEventListener('click', () => {
                 const targetId = item.dataset.targetId;
-                const elementData = elements.find(e => e.id === targetId);
+                const elementData = activeModalElements.find(e => e.id === targetId);
                 
                 const message = { 
                     action: 'highlightAndScroll', 

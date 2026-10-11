@@ -572,36 +572,41 @@ const domMutationObserver = new MutationObserver((mutations) => {
         if (m.type === 'attributes' && m.attributeName && m.attributeName.startsWith('data-a11y')) continue;
         
         hasRelevantMutation = true;
-        // Identify structural changes requiring a rescan
+        
+        // Identify structural OR visibility state changes requiring a rescan
         if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
-            needsRescan = true;
+            needsRescan = true; // Physical DOM injection/removal
+        } else if (m.type === 'attributes') {
+            needsRescan = true; // Visibility toggle (class, style, hidden, inert, etc.)
         }
     }
     
     if (!hasRelevantMutation) return;
 
-    // 2. Visual Repositioning (Fast, for CSS/Class changes)
+    // 2. Visual Repositioning (Fast, for scrolling or instant CSS geometry shifts)
     if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
     mutationDebounceTimer = setTimeout(() => {
         repositionHighlights();
     }, 50);
 
+
     // 3. Structural Rescan (Soft Update, only triggers if rules are active)
     if (needsRescan && lastRunLegends.size > 0) {
         if (domSyncDebounceTimer) clearTimeout(domSyncDebounceTimer);
         domSyncDebounceTimer = setTimeout(() => {
-            // Tells panel.js to re-request highlights without a hard wipe
-            try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
+            // Tells panel.js to re-request highlights using the new seamless sync
+            try { chrome.runtime.sendMessage({ action: "softResync" }); } catch (e) {}
         }, 750);
     }
 });
 
 if (document.body) {
+    // Added aria-hidden and aria-expanded to catch screen reader visibility toggles
     domMutationObserver.observe(document.body, { 
         attributes: true, 
         childList: true, 
         subtree: true,
-        attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert']
+        attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert', 'aria-hidden', 'aria-expanded']
     });
 }
 
