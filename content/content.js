@@ -478,6 +478,12 @@ function ensureOverlay() {
     if (!overlay) {
         overlay = document.createElement("div");
         overlay.id = "a11y-inspector-overlay";
+        
+        // NEW: Promote to Top Layer to overcome native <dialog> occlusion
+        if (HTMLElement.prototype.hasOwnProperty("popover")) {
+            overlay.setAttribute("popover", "manual");
+        }
+        
         overlay.style.position = "absolute";
         overlay.style.top = "0";
         overlay.style.left = "0";
@@ -486,7 +492,19 @@ function ensureOverlay() {
         overlay.style.overflow = "visible";
         overlay.style.pointerEvents = "none";
         overlay.style.zIndex = "2147483647"; 
+        
+        // Normalize native popover default styles
+        overlay.style.margin = "0";
+        overlay.style.padding = "0";
+        overlay.style.border = "none";
+        overlay.style.background = "transparent";
+        
         document.documentElement.appendChild(overlay); 
+        
+        // Activate the Top Layer rendering
+        if (overlay.showPopover) {
+            try { overlay.showPopover(); } catch(e) {}
+        }
     }
     return overlay;
 }
@@ -647,10 +665,17 @@ const domMutationObserver = new MutationObserver((mutations) => {
         repositionHighlights();
     }, 50);
 
-    // 3. Structural Rescan (Soft Update, only triggers if rules are active)
+// 3. Structural Rescan (Soft Update, only triggers if rules are active)
     if (needsRescan && lastRunLegends.size > 0) {
         if (domSyncDebounceTimer) clearTimeout(domSyncDebounceTimer);
         domSyncDebounceTimer = setTimeout(() => {
+            
+            // NEW: Bounce the overlay to the absolute front of the Top Layer stack
+            const overlay = document.getElementById("a11y-inspector-overlay");
+            if (overlay && overlay.showPopover) {
+                try { overlay.hidePopover(); overlay.showPopover(); } catch(e) {}
+            }
+            
             // Tells panel.js to re-request highlights using the new seamless sync
             try { chrome.runtime.sendMessage({ action: "softResync" }); } catch (e) {}
         }, 750);
@@ -662,7 +687,8 @@ if (document.body) {
         attributes: true, 
         childList: true, 
         subtree: true,
-        attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert', 'aria-hidden', 'aria-expanded']
+        // Added 'open' for native <dialog>/<details> elements, and 'data-state' for modern headless UI frameworks
+        attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert', 'aria-hidden', 'aria-expanded', 'open', 'data-state']
     });
 }
 
@@ -913,6 +939,12 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         toast.dataset.feature = featureId;
         toast.style.setProperty('--badge-bg', color);
         
+        // NEW: Promote Toast to Top Layer
+        if (HTMLElement.prototype.hasOwnProperty("popover")) {
+            toast.setAttribute("popover", "manual");
+            toast.style.margin = "0"; // Prevent native popover centering
+        }
+        
         toast.innerHTML = `
             <h2>
                 <span>${configData.category.label} &rsaquo; ${configData.feature.label}</span>
@@ -944,6 +976,11 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         `;
         
         document.documentElement.appendChild(toast);
+        
+        // NEW: Activate the Top Layer rendering for the Toast
+        if (toast.showPopover) {
+            try { toast.showPopover(); } catch(e) {}
+        }
 
         // Copy CSS Selector
         toast.querySelector('.selector-copy-btn').addEventListener('click', (btnEvent) => {

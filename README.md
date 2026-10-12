@@ -18,7 +18,8 @@ You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https:/
 7. [Compatibility](#compatibility)
 8. [License](#license)
 9. [Contributing](#contributing)
-10. [Changelog](#changelog)
+10. [Development & Testing Sites](#development--testing-sites)
+11. [Changelog](#changelog)
 
 ## Features Overview
 WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns directly on the page.
@@ -347,7 +348,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 ## License
 WICK-AG-Lens is available under the MIT License. Reference the [LICENSE.md](./LICENSE.md) file for standard permissions and limitations.
 
-## CONTRIBUTING
+## Contributing
 
 First off, thanks for taking the time to contribute!
 
@@ -363,6 +364,18 @@ And if you like the project but just don't have the time to contribute, that's f
 <a href="https://www.buymeacoffee.com/sclavijosuero" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 150px !important;" ></a>
 
 Thank you for your support!
+
+
+## Development & Testing Sites
+
+The following deliberately inaccessible and accessible demonstration websites were utilized extensively during the development and testing of WICK-AG-Lens to verify the accuracy of the heuristic audits:
+
+* **[W3C Before and After Demonstration (BAD)](https://www.w3.org/WAI/demos/bad/)**
+* **[ABI Testing Dojo Demo](https://abi-testing-dojo-demo.azurewebsites.net/)**
+* **[AccessComputing: Accessible University (AU) Demo Site](https://projects.accesscomputing.uw.edu/au/)**
+* **[Deque University Demo Sites](https://dequeuniversity.com/demo/)**
+* **[Intopia Accessibility Testing Playground](https://intopia.github.io/exercise/testing.html)**
+
 
 ## Changelog
 
