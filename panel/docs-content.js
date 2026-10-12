@@ -9,13 +9,63 @@ window.A11Y_DOCS_HTML = `
         <li><strong>41 Independent Audits:</strong> Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.</li>
         <li><strong>WCAG Criteria Filtering:</strong> Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).</li>
         <li><strong>Visual Highlighting:</strong> Draws bounding boxes and badges over target elements to clearly identify where issues occur.</li>
-        <li><strong>Interactive Info Panels:</strong> Clicking any on-page badge opens a detailed panel explaining what the issue is, why it matters, and providing the exact CSS selector.</li>
+        <li><strong>Interactive Info Panels &amp; Code Previews:</strong> Clicking any on-page badge opens a detailed panel explaining the issue, providing the CSS selector, and displaying a sanitized, syntax-highlighted HTML snippet.</li>
         <li><strong>Precision Element Locator:</strong> Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.</li>
         <li><strong>Accessible Interface:</strong> The extension's DevTools panel is designed to be keyboard-friendly and incorporates WCAG 2.2 AA best practices where possible.</li>
         <li><strong>One-Click Reporting:</strong> Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking.</li>
         <li><strong>Shadow DOM &amp; Iframe Support:</strong> Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.</li>
         <li><strong>WCAG Alignment:</strong> References current W3C standards for all checks.</li>
     </ul>
+
+    <h3 id="core-features">Core Features &amp; Usage</h3>
+    
+    <h4>1. WCAG Filtering &amp; Audit Controls</h4>
+    <p>The inspector categorizes 41 unique heuristic rulesets across two primary tabs: <strong>Violations &amp; Warnings</strong> (actionable failures) and <strong>Informative &amp; Structure</strong> (valid page architecture and semantic patterns).</p>
+    <ul>
+        <li><strong>Version &amp; Level Filters:</strong> Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.</li>
+        <li><strong>Master Toggles &amp; Clean UI:</strong> Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.</li>
+        <li><strong>Inline Information:</strong> Clicking the <code>[ i ]</code> icon next to any audit expands an inline panel detailing exactly <em>What it highlights</em> and <em>Why it's important</em>, complete with links directly to the official W3C WCAG documentation.</li>
+    </ul>
+    <p><img src="../images/wcag-filtering.png" alt="WCAG Criteria Filtering and Audit Tabs" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
+
+    <h4 style="margin-top: 24px;">2. Interactive Info Panels &amp; Code Previews</h4>
+    <p>Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining <em>what</em> was flagged and <em>why</em> it creates a barrier for users.</p>
+    <p>Crucially, the panel extracts a clean, extension-sanitized <strong>HTML Snippet</strong> of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise <strong>CSS Selector</strong>. Dedicated "Copy" buttons (&#128203;) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.</p>
+    <p><img src="../images/info-panel-preview.png" alt="Interactive Info Panel with HTML Snippet Preview" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
+
+    <h4 style="margin-top: 24px;">3. View Elements List &amp; Precision Locator</h4>
+    <p>For audits that return multiple findings, clicking the "View Elements" (list icon) button inside the DevTools panel opens a comprehensive details modal displaying a hierarchically sorted list of every flagged element.</p>
+    <ul>
+        <li><strong>Precision Locator:</strong> Clicking the target crosshair button next to any item will smoothly scroll the browser directly to that specific element on the page, flashing a bright pulsating focus ring to help you locate it instantly—even if it is deeply nested inside a complex UI or an embedded iframe.</li>
+        <li><strong>Export Modal List:</strong> A dedicated <code>Copy All</code> button allows you to copy the exact list of isolated elements, their labels, and their CSS selectors directly to your clipboard.</li>
+    </ul>
+    <p><img src="../images/elements-locator.png" alt="View Elements List and Locator Modal" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
+
+    <h4 style="margin-top: 24px;">4. Comprehensive Tab Reporting</h4>
+    <p>To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (&#128203;) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.</p>
+    <ul>
+        <li>The report only exports data for <strong>actively toggled audits</strong> that pass your current WCAG filters.</li>
+        <li>It organizes the output by Category and Rule, explicitly logging <code>(No matching elements found)</code> for active audits that currently pass, providing definitive proof of compliance for your audit trails.</li>
+    </ul>
+    <p><img src="../images/clipboard-report.png" alt="One-Click Clipboard Reporting Output" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
+
+    <h4 style="margin-top: 24px;">5. Real-Time SPA &amp; Dynamic DOM Sync</h4>
+    <p>WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly.</p>
+    <ul>
+        <li><strong>SPA Navigation (Hard Wipe):</strong> Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.</li>
+        <li><strong>Dynamic DOM Mutations &amp; Visibility Toggles (Soft Update):</strong> Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling <code>display: none</code>, <code>aria-hidden</code>, or CSS classes on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.</li>
+    </ul>
+    <p><img src="../images/spa-sync.png" alt="Real-Time SPA Sync automatically highlighting a newly opened dropdown" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
+
+    <h4 style="margin-top: 24px;">6. X-Ray Vision for Clipped Elements</h4>
+    <p>When elements are pushed off-screen or hidden inside <code>overflow: hidden</code> containers (like carousel slides or scrollable panels), the extension detects their clipping bounds. Instead of ignoring them or drawing misleading boxes, WICK-AG-Lens renders these hidden elements using a specialized "X-Ray" ghosted hatched pattern. This allows auditors to visualize the exact footprint of hidden interactive elements and invisible focus traps without breaking the page layout.</p>
+    <p><img src="../images/xray-vision.png" alt="X-Ray Vision highlighting clipped carousel elements" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
+
+    <h4 style="margin-top: 24px;">7. Native Dark Mode Support</h4>
+    <p>The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.</p>
+
+    <h4 style="margin-top: 24px;">8. Embedded Offline Documentation</h4>
+    <p>Accessibility auditing shouldn't require constantly hunting for internet resources. WICK-AG-Lens includes a fully embedded, offline-ready reference guide. Clicking the book icon in the extension header opens a comprehensive modal detailing every single rule, its WCAG mapping, technical limitations, and precise heuristic logic, ensuring your QA team always has context at their fingertips.</p>
 
     <h3 id="audit-library">Audit Library &amp; Ruleset</h3>
     <p>The following details the complete list of heuristic evaluations performed by the inspector, their classification, and the corresponding W3C WCAG guidelines.</p>
@@ -196,12 +246,6 @@ window.A11Y_DOCS_HTML = `
         <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html" target="_blank">WCAG 3.1.1</a>, <a href="https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html" target="_blank">WCAG 3.1.2</a> (2.0 A, 2.0 AA)</li>
     </ul>
 
-    <h3 id="real-time-sync">Real-Time SPA &amp; Dynamic DOM Sync</h3>
-    <p>WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly.</p>
-    <ul>
-        <li><strong>SPA Navigation (Hard Wipe):</strong> Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.</li>
-        <li><strong>Dynamic DOM Mutations &amp; Visibility Toggles (Soft Update):</strong> Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling <code>display: none</code>, <code>aria-hidden</code>, or CSS classes on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.</li>
-    </ul>
 
     <h3 id="limitations">Limitations &amp; Technical Bounds</h3>
     <ul>

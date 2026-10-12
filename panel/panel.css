@@ -317,7 +317,9 @@ input:indeterminate + .slider:before { transform: translateX(8px); width: 10px; 
 .a11y-modal-title-area h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-color); }
 .a11y-modal-desc { margin: 6px 0 0 0; font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
 .a11y-modal-actions { display: flex; gap: 12px; }
-.a11y-btn-secondary { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 8px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+
+.a11y-btn-secondary { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 4px 2px; margin: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+
 .a11y-btn-secondary:hover { background: var(--active-bg); border-color: var(--primary-color); color: var(--primary-color); }
 .a11y-btn-icon { background: none; border: 2px solid transparent; color: var(--text-color); font-size: 18px; cursor: pointer; padding: 6px; border-radius: 4px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
 .a11y-btn-icon:hover { color: #d93025; background-color: rgba(217, 48, 37, 0.1); }

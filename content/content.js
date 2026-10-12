@@ -157,16 +157,74 @@ pulsateStyle.textContent = `
         color: #ff8a80;
         border-color: #ff8a80;
     }
+    
+    .a11y-toast-selector-wrapper {
+        position: relative;
+        margin-bottom: 16px;
+    }
     .a11y-info-toast .a11y-toast-selector { 
         font-family: monospace; 
         color: #a8c7fa; 
         word-break: break-all; 
-        margin-bottom: 16px; 
+        margin: 0; 
         font-size: 12px; 
         background: rgba(0,0,0,0.5); 
-        padding: 8px 10px; 
+        padding: 8px 34px 8px 10px; 
         border-radius: 6px; 
         border: 1px solid #5f6368;
+    }
+    
+    /* HTML Preview Container Styling */
+    .a11y-toast-code-container {
+        position: relative;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid #5f6368;
+        border-radius: 6px;
+        margin-bottom: 16px;
+    }
+    .a11y-toast-code-container pre {
+        margin: 0;
+        padding: 10px 34px 10px 10px;
+        max-height: 100px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    .a11y-toast-code-container pre::-webkit-scrollbar { width: 6px; }
+    .a11y-toast-code-container pre::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 6px; }
+    .a11y-toast-code-container pre::-webkit-scrollbar-thumb { background: #5f6368; border-radius: 6px; }
+    .a11y-toast-code-container pre::-webkit-scrollbar-thumb:hover { background: #8ab4f8; }
+
+    /* Override standard inline code style specifically for the code block */
+    .a11y-toast-code-container code {
+        font-family: 'ui-monospace', 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
+        color: #a8c7fa !important;
+        font-size: 12px !important;
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .a11y-toast-copy-btn {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid transparent;
+        color: #f1f3f4;
+        border-radius: 4px;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+    .a11y-toast-copy-btn:hover {
+        background: rgba(168, 199, 250, 0.2);
+        color: #a8c7fa;
     }
     
     .a11y-info-toast code {
@@ -550,7 +608,7 @@ function repositionHighlights() {
 window.addEventListener("scroll", repositionHighlights, { passive: true, capture: true });
 window.addEventListener("resize", repositionHighlights, { passive: true });
 
-// NEW: Dual-Debounce DOM Mutation Logic
+// Dual-Debounce DOM Mutation Logic
 let lastUrl = window.location.href;
 let mutationDebounceTimer = null;
 let domSyncDebounceTimer = null;
@@ -575,9 +633,9 @@ const domMutationObserver = new MutationObserver((mutations) => {
         
         // Identify structural OR visibility state changes requiring a rescan
         if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
-            needsRescan = true; // Physical DOM injection/removal
+            needsRescan = true; 
         } else if (m.type === 'attributes') {
-            needsRescan = true; // Visibility toggle (class, style, hidden, inert, etc.)
+            needsRescan = true; 
         }
     }
     
@@ -588,7 +646,6 @@ const domMutationObserver = new MutationObserver((mutations) => {
     mutationDebounceTimer = setTimeout(() => {
         repositionHighlights();
     }, 50);
-
 
     // 3. Structural Rescan (Soft Update, only triggers if rules are active)
     if (needsRescan && lastRunLegends.size > 0) {
@@ -601,7 +658,6 @@ const domMutationObserver = new MutationObserver((mutations) => {
 });
 
 if (document.body) {
-    // Added aria-hidden and aria-expanded to catch screen reader visibility toggles
     domMutationObserver.observe(document.body, { 
         attributes: true, 
         childList: true, 
@@ -794,14 +850,63 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             relatedBox.style.backgroundColor = tintedBgColor;
         }
 
+        // --- NEW: Generate Clean & Truncated HTML Snippet ---
+        const isVoid = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i.test(el.tagName);
+        
+        // 1. Raw Snippet (For Clipboard)
+        let rawTagStr = `<${el.tagName.toLowerCase()}`;
+        for (let i = 0; i < el.attributes.length; i++) {
+            const attr = el.attributes[i];
+            if (!attr.name.startsWith('data-a11y-')) {
+                rawTagStr += ` ${attr.name}="${attr.value}"`;
+            }
+        }
+        rawTagStr += '>';
+        
+        let htmlSnippet = rawTagStr;
+        if (!isVoid) {
+            if (el.children.length === 0 && el.textContent.trim().length > 0) {
+                let txt = el.textContent;
+                if (txt.length > 60) txt = txt.substring(0, 60) + '...';
+                htmlSnippet += `${txt}</${el.tagName.toLowerCase()}>`;
+            } else {
+                htmlSnippet += ` ... </${el.tagName.toLowerCase()}>`;
+            }
+        }
+
+        // 2. Syntax Highlighted Snippet (For Display - VS Code Dark Theme Colors)
+        let syntaxHtml = `<span style="color: #808080">&lt;</span><span style="color: #569cd6">${el.tagName.toLowerCase()}</span>`;
+        for (let i = 0; i < el.attributes.length; i++) {
+            const attr = el.attributes[i];
+            if (!attr.name.startsWith('data-a11y-')) {
+                const safeName = attr.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeVal = attr.value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                syntaxHtml += ` <span style="color: #9cdcfe">${safeName}</span><span style="color: #d4d4d4">=</span><span style="color: #ce9178">"${safeVal}"</span>`;
+            }
+        }
+        syntaxHtml += `<span style="color: #808080">&gt;</span>`;
+        
+        if (!isVoid) {
+            if (el.children.length === 0 && el.textContent.trim().length > 0) {
+                let txt = el.textContent;
+                if (txt.length > 60) txt = txt.substring(0, 60) + '...';
+                const safeTxt = txt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                syntaxHtml += `<span style="color: #d4d4d4">${safeTxt}</span><span style="color: #808080">&lt;/</span><span style="color: #569cd6">${el.tagName.toLowerCase()}</span><span style="color: #808080">&gt;</span>`;
+            } else {
+                syntaxHtml += `<span style="color: #808080"> ... &lt;/</span><span style="color: #569cd6">${el.tagName.toLowerCase()}</span><span style="color: #808080">&gt;</span>`;
+            }
+        }
+        // --------------------------------------------------
+
         const info = configData.feature.info || { what: 'No information provided.', why: 'No information provided.' };
         const severityHtml = configData.feature.severity ? `<span class="a11y-toast-severity severity-${configData.feature.severity.toLowerCase()}">${configData.feature.severity}</span>` : '';
         
         const rawLabel = formatLabel(badge.dataset.legendLabel, text);
         const safeDisplayLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        
         const statusHtml = `<span class="a11y-toast-severity" style="background-color: ${color}; color: ${getTextColor(color)}; border: 1px solid rgba(255,255,255,0.2);">${safeDisplayLabel}</span>`;
         
+        const selectorStr = getCssSelector(el);
+
         const toast = document.createElement('div');
         toast.id = 'a11y-info-toast';
         toast.className = 'a11y-info-toast';
@@ -815,11 +920,23 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
                     <button class="a11y-toast-close" title="Close Toast Panel" aria-label="Close">✖</button>
                 </div>
             </h2>
-            <div style="margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+            <div style="margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px;">
                 ${severityHtml}
                 ${statusHtml}
             </div>
-            <div class="a11y-toast-selector" title="Element Selector">${getCssSelector(el)}</div>
+            
+            <span class="a11y-info-toast-section-title">CSS Selector</span>
+            <div class="a11y-toast-selector-wrapper">
+                <button class="a11y-toast-copy-btn selector-copy-btn" title="Copy CSS Selector">📋</button>
+                <div class="a11y-toast-selector" title="Element Selector">${selectorStr}</div>
+            </div>
+            
+            <span class="a11y-info-toast-section-title">HTML Snippet</span>
+            <div class="a11y-toast-code-container">
+                <button class="a11y-toast-copy-btn html-copy-btn" title="Copy HTML Snippet">📋</button>
+                <pre><code>${syntaxHtml}</code></pre>
+            </div>
+
             <span class="a11y-info-toast-section-title">What it highlights</span>
             <p>${info.what}</p>
             <span class="a11y-info-toast-section-title">Why it's important</span>
@@ -827,6 +944,24 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         `;
         
         document.documentElement.appendChild(toast);
+
+        // Copy CSS Selector
+        toast.querySelector('.selector-copy-btn').addEventListener('click', (btnEvent) => {
+            navigator.clipboard.writeText(selectorStr).then(() => {
+                const btn = btnEvent.currentTarget;
+                btn.textContent = '✔';
+                setTimeout(() => { btn.textContent = '📋'; }, 2000);
+            });
+        });
+
+        // Copy HTML Snippet
+        toast.querySelector('.html-copy-btn').addEventListener('click', (btnEvent) => {
+            navigator.clipboard.writeText(htmlSnippet).then(() => {
+                const btn = btnEvent.currentTarget;
+                btn.textContent = '✔';
+                setTimeout(() => { btn.textContent = '📋'; }, 2000);
+            });
+        });
 
         const badgeRect = badge.getBoundingClientRect();
         if (badgeRect.left > window.innerWidth / 2) {
@@ -980,7 +1115,6 @@ function requestStateSync() {
     cleanupAllHighlights();
     if (syncTimeout) clearTimeout(syncTimeout);
     
-    // Increased to 500ms to allow SPA frameworks time to mount the new DOM
     syncTimeout = setTimeout(() => {
         try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
     }, 500); 
