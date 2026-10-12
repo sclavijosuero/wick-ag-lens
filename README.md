@@ -91,13 +91,14 @@ When elements are pushed off-screen or hidden inside `overflow: hidden` containe
 
 ![X-Ray Vision highlighting clipped carousel elements](images/xray-vision.png)
 
-### 7. Native Dark Mode Support
-The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
-
-### 8. Embedded Offline Documentation
+### 7. Embedded Offline Documentation
 Accessibility auditing shouldn't require constantly hunting for internet resources. WICK-AG-Lens includes a fully embedded, offline-ready reference guide. Clicking the book icon in the extension header opens a comprehensive modal detailing every single rule, its WCAG mapping, technical limitations, and precise heuristic logic, ensuring your QA team always has context at their fingertips.
 
 ![Embedded Offline Documentation](images/embedded-doc.png)
+
+### 8. Native Dark Mode Support
+The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
+
 
 ## Audit Library & Ruleset
 
