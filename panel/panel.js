@@ -1,11 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Establish strict DevTools Tab ID scope
     const tabId = chrome.devtools.inspectedWindow.tabId;
+    const STORAGE_KEY_MODE = `a11y_mode_${tabId}`;
     const STORAGE_KEY_FEATURES = `a11y_active_features_${tabId}`;
     const STORAGE_KEY_GROUPS = `a11y_collapsed_groups_${tabId}`;
+    const STORAGE_KEY_SIM = `a11y_sim_state_${tabId}`;
+    const STORAGE_KEY_OPTIONS = `a11y_options_${tabId}`;
 
-    const yearEl = document.getElementById("copyright-year");
-    if (yearEl) yearEl.textContent = new Date().getFullYear();
+    document.querySelectorAll(".copyright-year").forEach(el => el.textContent = new Date().getFullYear());
 
     // LIVE MODAL STATE TRACKERS
     let activeModalRule = null;
@@ -26,21 +28,102 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => toast.classList.remove('show'), 4000);
     }
 
-    // 2. Tab Switching Logic
-    const tabBtns = document.querySelectorAll(".tab-btn");
-    const tabContents = document.querySelectorAll(".tab-content");
+    // 2. Mode Switching Logic (Inspect vs Simulate)
+    const modeBtnInspect = document.getElementById("mode-btn-inspect");
+    const modeBtnSimulate = document.getElementById("mode-btn-simulate");
+    const viewInspectMode = document.getElementById("view-inspect-mode");
+    const viewSimulateMode = document.getElementById("view-simulate-mode");
+    
+    // Footer Elements
+    const footerTitle = document.getElementById("footer-title");
+    const footerInspectContent = document.getElementById("footer-inspect-content");
+    const footerSimulateContent = document.getElementById("footer-simulate-content");
 
-    tabBtns.forEach(btn => {
+    function setAppMode(mode, save = true) {
+        if (mode === "simulate") {
+            modeBtnInspect.classList.remove("active");
+            modeBtnSimulate.classList.add("active");
+            modeBtnSimulate.querySelector("input").checked = true;
+
+            viewInspectMode.classList.remove("active");
+            viewSimulateMode.classList.add("active");
+            
+            if (footerTitle) footerTitle.textContent = "Simulate Mode Restrictions & Bounds";
+            if (footerInspectContent) footerInspectContent.style.display = "none";
+            if (footerSimulateContent) footerSimulateContent.style.display = "block";
+
+            // Clear all audit highlights on host page
+            chrome.tabs.sendMessage(tabId, { action: "clearAllAudits" });
+
+            // Apply current active simulator state
+            sendSimulateStateToContent();
+        } else {
+            modeBtnSimulate.classList.remove("active");
+            modeBtnInspect.classList.add("active");
+            modeBtnInspect.querySelector("input").checked = true;
+
+            viewSimulateMode.classList.remove("active");
+            viewInspectMode.classList.add("active");
+            
+            if (footerTitle) footerTitle.textContent = "Inspect Mode Restrictions & Bounds";
+            if (footerInspectContent) footerInspectContent.style.display = "block";
+            if (footerSimulateContent) footerSimulateContent.style.display = "none";
+
+            // Clear simulation filters on host page
+            chrome.tabs.sendMessage(tabId, { action: "clearSimulation" });
+
+            // Restore active Inspector highlights
+            restoreActiveAuditHighlights();
+        }
+
+        if (save) {
+            chrome.storage.local.set({ [STORAGE_KEY_MODE]: mode });
+        }
+    }
+
+    modeBtnInspect.addEventListener("click", () => setAppMode("inspect"));
+    modeBtnSimulate.addEventListener("click", () => setAppMode("simulate"));
+
+    // 3. Tab Switching Logic (Inspect Mode Sub-Tabs)
+    const inspectTabBtns = document.querySelectorAll("#view-inspect-mode .tab-btn");
+    const inspectTabContents = document.querySelectorAll("#view-inspect-mode .tab-content");
+
+    inspectTabBtns.forEach(btn => {
         btn.addEventListener("click", () => {
-            tabBtns.forEach(b => {
+            inspectTabBtns.forEach(b => {
                 b.classList.remove("active");
                 b.setAttribute("aria-selected", "false");
             });
-            tabContents.forEach(c => c.classList.remove("active"));
+            inspectTabContents.forEach(c => c.classList.remove("active"));
 
             btn.classList.add("active");
             btn.setAttribute("aria-selected", "true");
             document.getElementById(btn.getAttribute("aria-controls")).classList.add("active");
+        });
+    });
+
+    // 4. Tab Switching Logic (Simulate Mode Sub-Tabs)
+    const simTabBtns = document.querySelectorAll("#view-simulate-mode .tab-btn");
+    const simTabContents = document.querySelectorAll("#view-simulate-mode .tab-content");
+
+    simTabBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            simTabBtns.forEach(b => {
+                b.classList.remove("active");
+                b.setAttribute("aria-selected", "false");
+            });
+            simTabContents.forEach(c => c.classList.remove("active"));
+
+            btn.classList.add("active");
+            btn.setAttribute("aria-selected", "true");
+            document.getElementById(btn.getAttribute("aria-controls")).classList.add("active");
+            
+            // Set underlying category based on new tab
+            const targetId = btn.getAttribute("aria-controls");
+            if (targetId === "tab-sim-cb") simState.category = "colorBlindness";
+            else if (targetId === "tab-sim-iv") simState.category = "impairedVision";
+            
+            sendSimulateStateToContent();
         });
     });
 
@@ -109,6 +192,22 @@ document.addEventListener("DOMContentLoaded", () => {
             .filter(leg => isWcagMatch(leg.wcag || feature.wcag, checkedVersions, checkedLevels))
             .map(leg => leg.type);
     }
+    
+    function getActiveOptions(featureId) {
+        const opts = {};
+        document.querySelectorAll(`.feature-opt-toggle[data-feature="${featureId}"]`).forEach(t => {
+            opts[t.dataset.opt] = t.checked;
+        });
+        return opts;
+    }
+
+    function saveOptionsState() {
+        const opts = {};
+        document.querySelectorAll('.feature-opt-toggle').forEach(t => {
+            opts[`${t.dataset.feature}_${t.dataset.opt}`] = t.checked;
+        });
+        chrome.storage.local.set({ [STORAGE_KEY_OPTIONS]: opts });
+    }
 
     function formatWcagLabel(wcagArray) {
         if (!wcagArray || wcagArray.length === 0) return "";
@@ -149,11 +248,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
 
-                if (toggle && toggle.checked) {
+                if (toggle && toggle.checked && modeBtnInspect.classList.contains("active")) {
                     chrome.tabs.sendMessage(tabId, {
                         action: 'highlight',
                         featureId: featureId,
-                        activeLegends: activeLegends
+                        activeLegends: activeLegends,
+                        options: getActiveOptions(featureId)
                     });
                 }
             }
@@ -234,6 +334,117 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.local.set({ [STORAGE_KEY_GROUPS]: collapsedGroups });
     }
 
+    function restoreActiveAuditHighlights() {
+        const activeFeatures = Array.from(document.querySelectorAll('.feature-toggle:checked'))
+            .filter(ft => ft.closest('.feature-row').style.display !== 'none')
+            .map(cb => cb.getAttribute('data-feature'));
+
+        activeFeatures.forEach(featureId => {
+            const feature = getFeatureConfigById(featureId);
+            chrome.tabs.sendMessage(tabId, { 
+                action: 'highlight', 
+                featureId, 
+                activeLegends: getActiveLegends(feature),
+                options: getActiveOptions(featureId) 
+            });
+        });
+    }
+
+    // =========================================================================
+    // SIMULATOR STATE MANAGEMENT & DISPATCH
+    // =========================================================================
+    const simState = {
+        category: "colorBlindness", // "colorBlindness" | "impairedVision" 
+        colorBlindness: "none",     // "none" | "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia"
+        impairedVision: {
+            cataracts: 0,           // 0 - 100%
+            diplopia: 0,            // 0 - 100%
+            contrast: 0,            // 0 - 100%
+            yellowing: 0,           // 0 - 100%
+            fieldLossType: "none",  // "none" | "peripheral" | "central"
+            fieldLossVal: 5         // Default 5%
+        }
+    };
+
+    function sendSimulateStateToContent() {
+        if (!modeBtnSimulate.classList.contains("active")) return;
+        chrome.tabs.sendMessage(tabId, { action: "applySimulation", state: simState });
+        chrome.storage.local.set({ [STORAGE_KEY_SIM]: simState });
+    }
+    
+    // Simulator Info Toggles
+    document.querySelectorAll(".info-btn-sim").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const infoPanel = e.currentTarget.closest(".sim-control-header, .sim-card-header").parentElement.querySelector(".sim-info-panel");
+            if (infoPanel) {
+                if (infoPanel.style.display === "none") infoPanel.style.display = "block";
+                else infoPanel.style.display = "none";
+            }
+        });
+    });
+
+    // Bind Color Blindness Radios
+    document.querySelectorAll('input[name="sim-cb-option"]').forEach(radio => {
+        radio.addEventListener("change", (e) => {
+            simState.category = "colorBlindness";
+            simState.colorBlindness = e.target.value;
+            
+            sendSimulateStateToContent();
+        });
+    });
+
+    // Bind Impaired Vision Sliders & Radios
+    const sliderConfigs = [
+        { id: "sim-cataracts-range", valId: "sim-cataracts-val", key: "cataracts" },
+        { id: "sim-diplopia-range", valId: "sim-diplopia-val", key: "diplopia" },
+        { id: "sim-contrast-range", valId: "sim-contrast-val", key: "contrast" },
+        { id: "sim-yellowing-range", valId: "sim-yellowing-val", key: "yellowing" }
+    ];
+
+    sliderConfigs.forEach(cfg => {
+        const sliderEl = document.getElementById(cfg.id);
+        const valEl = document.getElementById(cfg.valId);
+        sliderEl.addEventListener("input", (e) => {
+            const v = parseInt(e.target.value, 10);
+            valEl.textContent = `${v}%`;
+            simState.category = "impairedVision";
+            simState.impairedVision[cfg.key] = v;
+
+            sendSimulateStateToContent();
+        });
+    });
+
+    // Field Loss Controls
+    const fieldLossGroup = document.getElementById("sim-field-loss-slider-group");
+    const fieldLossRange = document.getElementById("sim-field-loss-range");
+    const fieldLossVal = document.getElementById("sim-field-loss-val");
+
+    document.querySelectorAll('input[name="sim-field-loss-type"]').forEach(radio => {
+        radio.addEventListener("change", (e) => {
+            const type = e.target.value;
+            simState.category = "impairedVision";
+            simState.impairedVision.fieldLossType = type;
+
+            if (type === "none") {
+                fieldLossGroup.style.display = "none";
+            } else {
+                fieldLossGroup.style.display = "block";
+            }
+
+            sendSimulateStateToContent();
+        });
+    });
+
+    fieldLossRange.addEventListener("input", (e) => {
+        const v = parseInt(e.target.value, 10);
+        fieldLossVal.textContent = `${v}%`;
+        simState.category = "impairedVision";
+        simState.impairedVision.fieldLossVal = v;
+
+        sendSimulateStateToContent();
+    });
+
+    // --- Setup Global Collapse Controls ---
     const setupGlobalCollapseToggle = (tabIdName, toggleBtnId) => {
         const btn = document.getElementById(toggleBtnId);
         if (!btn) return () => { };
@@ -536,7 +747,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const copyInformativeBtn = document.getElementById("copy-report-informative");
     if (copyInformativeBtn) copyInformativeBtn.addEventListener("click", () => copyTabReport("tab-informative", copyInformativeBtn));
 
-
     // --- MODAL ELEMENT FETCHING & REFRESH LOGIC ---
     async function fetchModalElements(ruleMapping) {
         const featureId = ruleMapping.id;
@@ -575,7 +785,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!activeModalRule) return;
         
         const filteredElements = await fetchModalElements(activeModalRule);
-        activeModalElements = filteredElements; // Update global array for the copy button
+        activeModalElements = filteredElements;
         
         const modalList = document.querySelector('.a11y-modal-list');
         const modalTitleArea = document.querySelector('.a11y-modal-title-area h2');
@@ -608,7 +818,6 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
         }).join('');
 
-        // Re-attach locate button event listeners
         modalList.querySelectorAll('.a11y-modal-list-item').forEach(item => {
             const scrollBtn = item.querySelector('.a11y-scroll-btn');
             scrollBtn.addEventListener('click', () => {
@@ -629,7 +838,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 3. Build UI from Configuration
+    // 5. Build UI from Configuration
     config.tabs.forEach(tab => {
         const container = document.getElementById(tab.id === "tab-violations" ? "violations-container" : "informative-container");
         if (!container) return;
@@ -685,6 +894,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         `;
                     });
                 }
+                
+                let optionsHtml = '';
+                if (feature.options) {
+                    optionsHtml = `<div class="feature-options-area" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-light); display: none; flex-direction: column; gap: 6px;">`;
+                    feature.options.forEach(opt => {
+                        optionsHtml += `
+                            <label class="filter-checkbox" style="font-size: 12px; cursor: pointer; display: inline-flex;">
+                                <input type="checkbox" class="feature-opt-toggle" data-feature="${feature.id}" data-opt="${opt.id}" ${opt.default ? 'checked' : ''}>
+                                ${opt.label}
+                            </label>
+                        `;
+                    });
+                    optionsHtml += `</div>`;
+                }
 
                 rowDiv.innerHTML = `
                     <div class="feature-main">
@@ -701,6 +924,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="feature-desc">${feature.desc}</div>
                             <div class="legend-area">${legendHtml}</div>
+                            ${optionsHtml}
                             
                             <div class="info-panel" id="info-${feature.id}">
                                 <div class="info-section">
@@ -756,21 +980,42 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // 4. Input Toggle Logic
+    // 6. Input Toggle Logic
     document.querySelectorAll(".feature-toggle").forEach(toggle => {
         toggle.addEventListener("change", (e) => {
             const featureId = e.target.getAttribute("data-feature");
             const tabName = e.target.getAttribute("data-tab");
             const action = e.target.checked ? "highlight" : "clear";
+            
+            // Handle sub-options visibility
+            const optionsArea = e.target.closest('.feature-main').querySelector('.feature-options-area');
+            if (optionsArea) {
+                optionsArea.style.display = e.target.checked ? 'flex' : 'none';
+            }
 
             const feature = getFeatureConfigById(featureId);
             const activeLegends = getActiveLegends(feature);
 
-            chrome.tabs.sendMessage(tabId, { action, featureId, activeLegends });
+            if (modeBtnInspect.classList.contains("active")) {
+                chrome.tabs.sendMessage(tabId, { action, featureId, activeLegends, options: getActiveOptions(featureId) });
+            }
 
             if (!e.target.checked) resetBadges(featureId);
             updateTabHierarchyStates(tabName);
             saveActiveFeaturesState();
+        });
+    });
+    
+    document.querySelectorAll(".feature-opt-toggle").forEach(optToggle => {
+        optToggle.addEventListener("change", (e) => {
+            saveOptionsState();
+            const featureId = e.target.getAttribute("data-feature");
+            const featureToggle = document.querySelector(`.feature-toggle[data-feature="${featureId}"]`);
+            if (featureToggle && featureToggle.checked && modeBtnInspect.classList.contains("active")) {
+                const feature = getFeatureConfigById(featureId);
+                const activeLegends = getActiveLegends(feature);
+                chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends, options: getActiveOptions(featureId) });
+            }
         });
     });
 
@@ -821,7 +1066,7 @@ document.addEventListener("DOMContentLoaded", () => {
     handleMasterToggle("master-toggle-violations", "tab-violations");
     handleMasterToggle("master-toggle-informative", "tab-informative");
 
-    // 5. DevTools Lifecycle Management (Port & Reloads)
+    // 7. DevTools Lifecycle Management
     let panelPort = null;
     function connectToContentScript() {
         if (panelPort) panelPort.disconnect();
@@ -831,10 +1076,8 @@ document.addEventListener("DOMContentLoaded", () => {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (sender.tab && sender.tab.id === tabId) {
             
-            // Handle both Page Reloads (Hard) and DOM Mutations (Soft)
             if (request.action === "contentScriptReady" || request.action === "softResync") {
                 
-                // Only reset the connection and clear state for Hard Wipes
                 if (request.action === "contentScriptReady") {
                     connectToContentScript();
                     for (let fid in frameCounts) {
@@ -843,19 +1086,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     applyWcagFilters();
                     updateAllHierarchyStates();
+
+                    // Re-apply mode upon hard refresh
+                    if (modeBtnSimulate.classList.contains("active")) {
+                        sendSimulateStateToContent();
+                    }
                 }
 
-                // Both actions require re-highlighting active rules
-                const activeFeatures = Array.from(document.querySelectorAll('.feature-toggle:checked'))
-                    .filter(ft => ft.closest('.feature-row').style.display !== 'none')
-                    .map(cb => cb.getAttribute('data-feature'));
-
-                activeFeatures.forEach(featureId => {
-                    const feature = getFeatureConfigById(featureId);
-                    chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
-                });
+                if (modeBtnInspect.classList.contains("active")) {
+                    restoreActiveAuditHighlights();
+                }
                 
-                // Refresh the modal seamlessly if it was left open during the mutation
                 if (activeModalRule) {
                     setTimeout(() => { refreshDetailsModal(); }, 250);
                 }
@@ -878,10 +1119,22 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 6. Final Initialization via Scoped Storage
-    chrome.storage.local.get([STORAGE_KEY_FEATURES, STORAGE_KEY_GROUPS], (result) => {
+    // 8. Final Initialization via Scoped Storage
+    chrome.storage.local.get([STORAGE_KEY_MODE, STORAGE_KEY_FEATURES, STORAGE_KEY_GROUPS, STORAGE_KEY_SIM, STORAGE_KEY_OPTIONS], (result) => {
         applyWcagFilters();
 
+        const savedMode = result[STORAGE_KEY_MODE] || "inspect";
+        const savedOpts = result[STORAGE_KEY_OPTIONS] || {};
+        
+        // Restore feature sub-options
+        document.querySelectorAll('.feature-opt-toggle').forEach(t => {
+            const key = `${t.dataset.feature}_${t.dataset.opt}`;
+            if (savedOpts.hasOwnProperty(key)) {
+                t.checked = savedOpts[key];
+            }
+        });
+
+        // Restore audit toggles
         const active = result[STORAGE_KEY_FEATURES] || [];
         document.querySelectorAll('.feature-toggle').forEach(toggle => {
             if (toggle.closest('.feature-row').style.display !== 'none') {
@@ -890,19 +1143,56 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (toggle.checked !== shouldBeChecked) {
                     toggle.checked = shouldBeChecked;
                 }
+                
+                // Initialize option area visibility
+                const optionsArea = toggle.closest('.feature-main').querySelector('.feature-options-area');
+                if (optionsArea) {
+                    optionsArea.style.display = shouldBeChecked ? 'flex' : 'none';
+                }
             }
         });
         updateAllHierarchyStates();
 
+        // Restore simulator state
+        const savedSim = result[STORAGE_KEY_SIM];
+        if (savedSim) {
+            Object.assign(simState, savedSim);
+            if (simState.colorBlindness && simState.colorBlindness !== "none") {
+                const cbRadio = document.querySelector(`input[name="sim-cb-option"][value="${simState.colorBlindness}"]`);
+                if (cbRadio) cbRadio.checked = true;
+            }
+            if (simState.impairedVision) {
+                const iv = simState.impairedVision;
+                document.getElementById("sim-cataracts-range").value = iv.cataracts ?? 0;
+                document.getElementById("sim-cataracts-val").textContent = `${iv.cataracts ?? 0}%`;
+
+                document.getElementById("sim-diplopia-range").value = iv.diplopia ?? 0;
+                document.getElementById("sim-diplopia-val").textContent = `${iv.diplopia ?? 0}%`;
+
+                document.getElementById("sim-contrast-range").value = iv.contrast ?? 0;
+                document.getElementById("sim-contrast-val").textContent = `${iv.contrast ?? 0}%`;
+
+                document.getElementById("sim-yellowing-range").value = iv.yellowing ?? 0;
+                document.getElementById("sim-yellowing-val").textContent = `${iv.yellowing ?? 0}%`;
+
+                if (iv.fieldLossType) {
+                    const flRadio = document.querySelector(`input[name="sim-field-loss-type"][value="${iv.fieldLossType}"]`);
+                    if (flRadio) flRadio.checked = true;
+                    if (iv.fieldLossType !== "none") {
+                        fieldLossGroup.style.display = "block";
+                    }
+                }
+                document.getElementById("sim-field-loss-range").value = iv.fieldLossVal ?? 5;
+                document.getElementById("sim-field-loss-val").textContent = `${iv.fieldLossVal ?? 5}%`;
+            }
+        }
+
         connectToContentScript();
-        Array.from(document.querySelectorAll('.feature-toggle:checked')).forEach(toggle => {
-            const featureId = toggle.getAttribute('data-feature');
-            const feature = getFeatureConfigById(featureId);
-            chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends: getActiveLegends(feature) });
-        });
+
+        // Activate Mode
+        setAppMode(savedMode, false);
 
         let collapsedGroups = result[STORAGE_KEY_GROUPS];
-
         if (typeof collapsedGroups === 'undefined') {
             collapsedGroups = Array.from(document.querySelectorAll('.category-group')).map(g => g.id);
         }

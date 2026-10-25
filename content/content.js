@@ -2,8 +2,8 @@ const HIGHLIGHT_PADDING = 4;
 
 // In-Memory Registry for instant O(1) positioning lookups during scroll/resize
 const activeHighlightsMap = new Map();
-// Map to keep track of active rules so child iframes can auto-redraw upon prefix update
-const lastRunLegends = new Map();
+// Map to keep track of active rules and their options so child iframes can auto-redraw
+const lastRunState = new Map();
 
 // Global Listener to catch iframe indexing from parent documents
 window.addEventListener('message', (event) => {
@@ -12,10 +12,10 @@ window.addEventListener('message', (event) => {
             window.A11Y_FOCUS_PREFIX = event.data.prefix;
             window.A11Y_FRAME_DEPTH = event.data.depth;
             
-            // If the i-focus-order check is actively running on the page, force it to redraw with the new prefix
-            if (lastRunLegends.has('i-focus-order')) {
+            if (lastRunState.has('i-focus-order')) {
+                const state = lastRunState.get('i-focus-order');
                 requestAnimationFrame(() => {
-                    runCheck('i-focus-order', lastRunLegends.get('i-focus-order'));
+                    runCheck('i-focus-order', state.activeLegends, state.options);
                 });
             }
         }
@@ -23,6 +23,7 @@ window.addEventListener('message', (event) => {
 });
 
 const pulsateStyle = document.createElement('style');
+pulsateStyle.id = "a11y-inspector-styles";
 pulsateStyle.textContent = `
     .a11y-inspector-box {
         opacity: 0.75;
@@ -45,7 +46,7 @@ pulsateStyle.textContent = `
         backdrop-filter: contrast(140%) brightness(1.15);
         -webkit-backdrop-filter: contrast(140%) brightness(1.15);
         z-index: 2147483647 !important;
-        animation: a11y-spotlight-pulse 1s ease-in-out 2; 
+        animation: a11y-spotlight-pulse 1.5s ease-in-out infinite; 
     }
     
     .a11y-badge-container {
@@ -122,7 +123,7 @@ pulsateStyle.textContent = `
         border-left: 6px solid var(--badge-bg);
         border-radius: 8px;
         box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
-        z-index: 2147483647;
+        z-index: 2147483647 !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         font-size: 14px;
         padding: 20px;
@@ -174,7 +175,6 @@ pulsateStyle.textContent = `
         border: 1px solid #5f6368;
     }
     
-    /* HTML Preview Container Styling */
     .a11y-toast-code-container {
         position: relative;
         background: rgba(0, 0, 0, 0.4);
@@ -195,7 +195,6 @@ pulsateStyle.textContent = `
     .a11y-toast-code-container pre::-webkit-scrollbar-thumb { background: #5f6368; border-radius: 6px; }
     .a11y-toast-code-container pre::-webkit-scrollbar-thumb:hover { background: #8ab4f8; }
 
-    /* Override standard inline code style specifically for the code block */
     .a11y-toast-code-container code {
         font-family: 'ui-monospace', 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
         color: #a8c7fa !important;
@@ -285,6 +284,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (port.name === 'a11y-panel') {
         port.onDisconnect.addListener(() => {
             cleanupAllHighlights();
+            clearSimulationFilters();
         });
     }
 });
@@ -308,7 +308,221 @@ function cleanupAllHighlights() {
         delete entry.targetEl.dataset.a11yTargetId;
     });
     activeHighlightsMap.clear();
-    lastRunLegends.clear(); 
+    lastRunState.clear(); 
+}
+
+// =============================================================================
+// DISABILITY SIMULATION ENGINE (SVG Filters, Field Loss Masks)
+// =============================================================================
+function ensureSvgFilterContainer() {
+    let svgContainer = document.getElementById("a11y-sim-svg-container");
+    if (!svgContainer) {
+        svgContainer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgContainer.id = "a11y-sim-svg-container";
+        svgContainer.style.position = "absolute";
+        svgContainer.style.width = "0";
+        svgContainer.style.height = "0";
+        svgContainer.style.overflow = "hidden";
+
+        // Inject SVG Color Matrices & Offset Filters
+        svgContainer.innerHTML = `
+            <defs>
+                <!-- Protanopia (LinearRGB Viénot model) -->
+                <filter id="a11y-filter-protanopia" color-interpolation-filters="linearRGB">
+                    <feColorMatrix type="matrix" values="
+                        0.56667, 0.43333, 0.00000, 0, 0
+                        0.55833, 0.44167, 0.00000, 0, 0
+                        0.00000, 0.24167, 0.75833, 0, 0
+                        0,       0,       0,       1, 0" />
+                </filter>
+
+                <!-- Deuteranopia (LinearRGB Viénot model) -->
+                <filter id="a11y-filter-deuteranopia" color-interpolation-filters="linearRGB">
+                    <feColorMatrix type="matrix" values="
+                        0.62500, 0.37500, 0.00000, 0, 0
+                        0.70000, 0.30000, 0.00000, 0, 0
+                        0.00000, 0.30000, 0.70000, 0, 0
+                        0,       0,       0,       1, 0" />
+                </filter>
+
+                <!-- Tritanopia (Linear Least-Squares Approximation) -->
+                <filter id="a11y-filter-tritanopia" color-interpolation-filters="linearRGB">
+                    <feColorMatrix type="matrix" values="
+                        0.95000, 0.05000, 0.00000, 0, 0
+                        0.00000, 0.43333, 0.56667, 0, 0
+                        0.00000, 0.47500, 0.52500, 0, 0
+                        0,       0,       0,       1, 0" />
+                </filter>
+
+                <!-- Achromatopsia (Monochromacy - WCAG Luminance) -->
+                <filter id="a11y-filter-achromatopsia" color-interpolation-filters="linearRGB">
+                    <feColorMatrix type="matrix" values="
+                        0.2126, 0.7152, 0.0722, 0, 0
+                        0.2126, 0.7152, 0.0722, 0, 0
+                        0.2126, 0.7152, 0.0722, 0, 0
+                        0,      0,      0,      1, 0" />
+                </filter>
+
+                <!-- Double Vision (Diplopia SVG Offset with feMerge) -->
+                <filter id="a11y-filter-diplopia" color-interpolation-filters="sRGB">
+                    <feOffset id="a11y-diplopia-offset" dx="6" dy="2" in="SourceGraphic" result="offset1" />
+                    <feComponentTransfer in="offset1" result="opacity1">
+                        <feFuncA type="linear" slope="0.55" />
+                    </feComponentTransfer>
+                    <feMerge>
+                        <feMergeNode in="SourceGraphic" />
+                        <feMergeNode in="opacity1" />
+                    </feMerge>
+                </filter>
+                
+                <!-- Yellowing (Aging Lens) -->
+                <filter id="a11y-filter-yellowing" color-interpolation-filters="sRGB">
+                    <feColorMatrix id="a11y-yellowing-matrix" type="matrix" values="
+                        1, 0, 0, 0, 0
+                        0, 1, 0, 0, 0
+                        0, 0, 1, 0, 0
+                        0, 0, 0, 1, 0" />
+                </filter>
+            </defs>
+        `;
+        document.documentElement.appendChild(svgContainer);
+    }
+    return svgContainer;
+}
+
+function ensureFieldLossMask() {
+    let maskOverlay = document.getElementById("a11y-sim-field-mask");
+    if (!maskOverlay) {
+        maskOverlay = document.createElement("div");
+        maskOverlay.id = "a11y-sim-field-mask";
+        
+        if (HTMLElement.prototype.hasOwnProperty("popover")) {
+            maskOverlay.setAttribute("popover", "manual");
+        }
+        
+        maskOverlay.style.position = "fixed";
+        maskOverlay.style.top = "0";
+        maskOverlay.style.left = "0";
+        maskOverlay.style.width = "100vw";
+        maskOverlay.style.height = "100vh";
+        maskOverlay.style.pointerEvents = "none";
+        maskOverlay.style.zIndex = "2147483646";
+        maskOverlay.style.margin = "0";
+        maskOverlay.style.padding = "0";
+        maskOverlay.style.border = "none";
+        maskOverlay.style.background = "transparent";
+        maskOverlay.style.display = "none";
+
+        document.documentElement.appendChild(maskOverlay);
+
+        if (maskOverlay.showPopover) {
+            try { maskOverlay.showPopover(); } catch(e) {}
+        }
+    }
+    return maskOverlay;
+}
+
+function clearSimulationFilters() {
+    document.documentElement.style.filter = "";
+
+    const maskOverlay = document.getElementById("a11y-sim-field-mask");
+    if (maskOverlay) {
+        maskOverlay.style.display = "none";
+    }
+
+    const svgContainer = document.getElementById("a11y-sim-svg-container");
+    if (svgContainer) svgContainer.remove();
+}
+
+function getSafeFilterUrl(id) {
+    // Strips out any existing URL hash logic to ensure absolute SVG filter resolution
+    return `url('${window.location.href.split('#')[0]}#${id}')`;
+}
+
+function applyDisabilitySimulation(state) {
+    clearSimulationFilters();
+    if (!state) return;
+
+    // 1. COLOR BLINDNESS CATEGORY
+    if (state.category === "colorBlindness") {
+        if (state.colorBlindness && state.colorBlindness !== "none") {
+            ensureSvgFilterContainer();
+            document.documentElement.style.filter = getSafeFilterUrl(`a11y-filter-${state.colorBlindness}`);
+        }
+        return;
+    }
+
+    // 2. IMPAIRED VISION CATEGORY (Stackable)
+    if (state.category === "impairedVision") {
+        const iv = state.impairedVision;
+        if (!iv) return;
+
+        const filterParts = [];
+
+        // A. Double Vision (Diplopia %) - Ensure it's executed first in the chain
+        if (iv.diplopia > 0) {
+            ensureSvgFilterContainer();
+            const offsetPx = (iv.diplopia / 100) * 14 + 2; // 2px to 16px shift
+            const offsetEl = document.getElementById("a11y-diplopia-offset");
+            if (offsetEl) {
+                offsetEl.setAttribute("dx", offsetPx.toFixed(1));
+                offsetEl.setAttribute("dy", (offsetPx * 0.3).toFixed(1));
+            }
+            filterParts.push(getSafeFilterUrl('a11y-filter-diplopia'));
+        }
+
+        // B. Yellowing (Aging Lens) via SVG blue-absorption matrix
+        if (iv.yellowing > 0) {
+            ensureSvgFilterContainer();
+            // True nuclear sclerosis biologically absorbs blue light heavily.
+            const blueMultiplier = 1 - (iv.yellowing / 100) * 0.85; 
+            const redMultiplier = 1 - (iv.yellowing / 100) * 0.15; 
+            const yellowEl = document.getElementById("a11y-yellowing-matrix");
+            if (yellowEl) {
+                yellowEl.setAttribute("values", `
+                    ${redMultiplier} 0 0 0 0
+                    0 1 0 0 0
+                    0 0 ${blueMultiplier} 0 0
+                    0 0 0 1 0
+                `);
+            }
+            filterParts.push(getSafeFilterUrl('a11y-filter-yellowing'));
+        }
+
+        // C. Cataracts Blur (%)
+        if (iv.cataracts > 0) {
+            const blurPx = (iv.cataracts / 100) * 8; // 0px to 8px
+            const contrastDrop = 100 - (iv.cataracts * 0.35); // 100% down to 65%
+            const sepiaAdd = iv.cataracts * 0.25; // 0% to 25%
+            filterParts.push(`blur(${blurPx.toFixed(1)}px) contrast(${contrastDrop.toFixed(0)}%) sepia(${sepiaAdd.toFixed(0)}%)`);
+        }
+
+        // D. Loss of Contrast (%)
+        if (iv.contrast > 0) {
+            const contrastVal = 100 - (iv.contrast * 0.8); // 100% down to 20%
+            filterParts.push(`contrast(${contrastVal.toFixed(0)}%)`);
+        }
+
+        if (filterParts.length > 0) {
+            document.documentElement.style.filter = filterParts.join(" ");
+        }
+
+        // E. Field Loss Mask (Peripheral vs Central %)
+        if (iv.fieldLossType && iv.fieldLossType !== "none" && iv.fieldLossVal > 0) {
+            const maskOverlay = ensureFieldLossMask();
+            maskOverlay.style.display = "block";
+
+            if (iv.fieldLossType === "peripheral") {
+                // Tunnel Vision: Transparent center, black edges (Closer bounding for accuracy)
+                const tunnelRadius = 60 - (iv.fieldLossVal * 0.55); // 60% down to 5%
+                maskOverlay.style.background = `radial-gradient(circle at center, transparent ${tunnelRadius.toFixed(0)}%, rgba(0,0,0,0.98) ${(tunnelRadius + 15).toFixed(0)}%)`;
+            } else if (iv.fieldLossType === "central") {
+                // Macular Loss: Black center, transparent edges (Small biological blind spot)
+                const blindRadius = iv.fieldLossVal * 0.20; // 0% to 20% max coverage
+                maskOverlay.style.background = `radial-gradient(circle at center, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.92) ${blindRadius.toFixed(0)}%, transparent ${(blindRadius + 10).toFixed(0)}%)`;
+            }
+        }
+    }
 }
 
 function getCssSelector(el) {
@@ -375,7 +589,7 @@ function querySelectorAllDeep(selector, root = document) {
         if (!node) return;
         if (node.nodeType === Node.ELEMENT_NODE) {
             
-            if (node.id === 'a11y-inspector-overlay' || node.id === 'a11y-info-toast' || node.id === 'panel-toast') {
+            if (node.id === 'a11y-inspector-overlay' || node.id === 'a11y-info-toast' || node.id === 'panel-toast' || node.id === 'a11y-sim-field-mask') {
                 return; 
             }
 
@@ -479,7 +693,6 @@ function ensureOverlay() {
         overlay = document.createElement("div");
         overlay.id = "a11y-inspector-overlay";
         
-        // NEW: Promote to Top Layer to overcome native <dialog> occlusion
         if (HTMLElement.prototype.hasOwnProperty("popover")) {
             overlay.setAttribute("popover", "manual");
         }
@@ -493,7 +706,6 @@ function ensureOverlay() {
         overlay.style.pointerEvents = "none";
         overlay.style.zIndex = "2147483647"; 
         
-        // Normalize native popover default styles
         overlay.style.margin = "0";
         overlay.style.padding = "0";
         overlay.style.border = "none";
@@ -501,10 +713,22 @@ function ensureOverlay() {
         
         document.documentElement.appendChild(overlay); 
         
-        // Activate the Top Layer rendering
         if (overlay.showPopover) {
             try { overlay.showPopover(); } catch(e) {}
         }
+        
+        // Add dedicated SVG layer for lines (e.g. Focus Order path)
+        let svgLines = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgLines.id = "a11y-inspector-lines";
+        svgLines.setAttribute("width", "1");
+        svgLines.setAttribute("height", "1");
+        svgLines.style.overflow = "visible";
+        svgLines.style.position = "absolute";
+        svgLines.style.top = "0";
+        svgLines.style.left = "0";
+        svgLines.style.pointerEvents = "none";
+        svgLines.style.zIndex = "2147483644"; // Sits below HTML badges
+        overlay.appendChild(svgLines);
     }
     return overlay;
 }
@@ -520,7 +744,15 @@ function repositionHighlights() {
     
     requestAnimationFrame(() => {
         const overlay = document.getElementById("a11y-inspector-overlay");
+        const svgLines = document.getElementById("a11y-inspector-lines");
+
+        // Fast-fail cleanup if no audits are active
         if (!overlay || activeHighlightsMap.size === 0) {
+            if (svgLines) {
+                while (svgLines.firstChild) {
+                    svgLines.removeChild(svgLines.firstChild);
+                }
+            }
             isRepositioning = false;
             return;
         }
@@ -528,6 +760,10 @@ function repositionHighlights() {
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
         const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
         const updates = [];
+        const focusNodes = []; // Storage for Focus Order paths
+        
+        const focusState = lastRunState.get('i-focus-order');
+        const showPath = focusState && focusState.options ? focusState.options['opt-show-path'] !== false : true;
 
         activeHighlightsMap.forEach((entry, uniqueId) => {
             const targetEl = entry.targetEl;
@@ -561,6 +797,17 @@ function repositionHighlights() {
             let badgeLeft = left - HIGHLIGHT_PADDING;
 
             updates.push({ entry, uniqueId, isVisible: true, isClippedOut, top, left, width, height, badgeTop, badgeLeft });
+            
+            // Register coordinates for Focus Order routing
+            if (entry.boxes.has('i-focus-order') && showPath) {
+                const box = entry.boxes.get('i-focus-order');
+                focusNodes.push({
+                    label: box.dataset.label,
+                    color: box.dataset.color,
+                    cx: left + (width / 2),
+                    cy: top + (height / 2)
+                });
+            }
         });
 
         updates.forEach(u => {
@@ -618,6 +865,93 @@ function repositionHighlights() {
                 });
             }
         });
+        
+        // Re-draw SVG connecting lines for Focus Order
+        if (svgLines) {
+            // Safely clear existing nodes to avoid innerHTML parsing conflicts
+            while (svgLines.firstChild) {
+                svgLines.removeChild(svgLines.firstChild);
+            }
+
+            if (focusNodes.length > 1) {
+                // Sort hierarchically based on badge labels (e.g. #1, #2, #3.1)
+                focusNodes.sort((a, b) => {
+                    const regex = /#(\d+(?:\.\d+)*):/;
+                    const matchA = a.label.match(regex);
+                    const matchB = b.label.match(regex);
+                    if (matchA && matchB) {
+                        const hA = matchA[1].split('.').map(Number);
+                        const hB = matchB[1].split('.').map(Number);
+                        const len = Math.max(hA.length, hB.length);
+                        for (let i = 0; i < len; i++) {
+                            const valA = hA[i] !== undefined ? hA[i] : -1;
+                            const valB = hB[i] !== undefined ? hB[i] : -1;
+                            if (valA !== valB) return valA - valB;
+                        }
+                    }
+                    return 0;
+                });
+                
+                const pointsStr = focusNodes.map(n => `${n.cx},${n.cy}`).join(' ');
+                
+                // 1. Solid background line (white buffer)
+                const bgLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                bgLine.setAttribute("points", pointsStr);
+                bgLine.setAttribute("fill", "none");
+                bgLine.setAttribute("stroke", "#ffffff");
+                bgLine.setAttribute("stroke-width", "6");
+
+                // 2. Solid foreground line (Valid Focus color)
+                const fgLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                fgLine.setAttribute("points", pointsStr);
+                fgLine.setAttribute("fill", "none");
+                fgLine.setAttribute("stroke", "#9c27b0"); 
+                fgLine.setAttribute("stroke-width", "2.5");
+                
+                svgLines.appendChild(bgLine);
+                svgLines.appendChild(fgLine);
+
+                // 3. Draw dynamic numerical pills at vertices matching the target's legend color
+                focusNodes.forEach(n => {
+                    const match = n.label.match(/#(\d+(?:\.\d+)*)/);
+                    const stepNum = match ? match[1] : "";
+                    const charCount = stepNum.length;
+                    
+                    // Dynamic width calc: Minimum 24px (for a circle), expanding dynamically for decimals
+                    const rectWidth = Math.max(24, charCount * 7.5 + 10); 
+
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    
+                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    rect.setAttribute("x", n.cx - (rectWidth / 2));
+                    rect.setAttribute("y", n.cy - 12);
+                    rect.setAttribute("width", rectWidth);
+                    rect.setAttribute("height", "24");
+                    rect.setAttribute("rx", "12"); 
+                    rect.setAttribute("ry", "12");
+                    rect.setAttribute("fill", n.color);
+                    rect.setAttribute("stroke", "#ffffff");
+                    rect.setAttribute("stroke-width", "2");
+                    rect.style.filter = "drop-shadow(0px 1px 2px rgba(0,0,0,0.4))";
+
+                    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    t.setAttribute("x", n.cx);
+                    t.setAttribute("y", n.cy);
+                    t.setAttribute("fill", getTextColor(n.color));
+                    t.setAttribute("font-family", '"Atkinson Hyperlegible", Verdana, Tahoma, sans-serif');
+                    t.setAttribute("font-size", "11");
+                    t.setAttribute("font-weight", "bold");
+                    t.setAttribute("text-anchor", "middle");
+                    t.setAttribute("dominant-baseline", "central");
+                    t.setAttribute("dy", "1"); 
+                    t.textContent = stepNum;
+
+                    g.appendChild(rect);
+                    g.appendChild(t);
+                    svgLines.appendChild(g);
+                });
+            }
+        }
 
         isRepositioning = false;
     });
@@ -632,7 +966,6 @@ let mutationDebounceTimer = null;
 let domSyncDebounceTimer = null;
 
 const domMutationObserver = new MutationObserver((mutations) => {
-    // 1. SPA Navigation Check (Hard Wipe)
     if (window.location.href !== lastUrl) {
         lastUrl = window.location.href;
         requestStateSync();
@@ -643,13 +976,12 @@ const domMutationObserver = new MutationObserver((mutations) => {
     let needsRescan = false;
 
     for (let m of mutations) {
-        // Ignore extension UI injections
         if (m.target && (m.target.id === 'a11y-inspector-overlay' || (m.target.closest && m.target.closest('#a11y-inspector-overlay')))) continue;
+        if (m.target && (m.target.id === 'a11y-sim-svg-container' || m.target.id === 'a11y-sim-field-mask')) continue;
         if (m.type === 'attributes' && m.attributeName && m.attributeName.startsWith('data-a11y')) continue;
         
         hasRelevantMutation = true;
         
-        // Identify structural OR visibility state changes requiring a rescan
         if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
             needsRescan = true; 
         } else if (m.type === 'attributes') {
@@ -659,24 +991,25 @@ const domMutationObserver = new MutationObserver((mutations) => {
     
     if (!hasRelevantMutation) return;
 
-    // 2. Visual Repositioning (Fast, for scrolling or instant CSS geometry shifts)
     if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
     mutationDebounceTimer = setTimeout(() => {
         repositionHighlights();
     }, 50);
 
-// 3. Structural Rescan (Soft Update, only triggers if rules are active)
-    if (needsRescan && lastRunLegends.size > 0) {
+    if (needsRescan && lastRunState.size > 0) {
         if (domSyncDebounceTimer) clearTimeout(domSyncDebounceTimer);
         domSyncDebounceTimer = setTimeout(() => {
-            
-            // NEW: Bounce the overlay to the absolute front of the Top Layer stack
             const overlay = document.getElementById("a11y-inspector-overlay");
             if (overlay && overlay.showPopover) {
                 try { overlay.hidePopover(); overlay.showPopover(); } catch(e) {}
             }
             
-            // Tells panel.js to re-request highlights using the new seamless sync
+            // NEW: Ensure toast is promoted above the overlay during soft resyncs
+            const activeToast = document.getElementById('a11y-info-toast');
+            if (activeToast && activeToast.showPopover) {
+                try { activeToast.hidePopover(); activeToast.showPopover(); } catch(e) {}
+            }
+            
             try { chrome.runtime.sendMessage({ action: "softResync" }); } catch (e) {}
         }, 750);
     }
@@ -687,12 +1020,14 @@ if (document.body) {
         attributes: true, 
         childList: true, 
         subtree: true,
-        // Added 'open' for native <dialog>/<details> elements, and 'data-state' for modern headless UI frameworks
         attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert', 'aria-hidden', 'aria-expanded', 'open', 'data-state']
     });
 }
 
-function clearHighlights(featureId) {
+function clearHighlights(featureId, preserveToast = false) {
+    const activeToast = document.getElementById('a11y-info-toast');
+    const activeTargetId = activeToast ? activeToast.dataset.targetId : null;
+
     activeHighlightsMap.forEach((entry, uniqueId) => {
         if (entry.boxes.has(featureId)) {
             entry.boxes.get(featureId).remove();
@@ -711,9 +1046,14 @@ function clearHighlights(featureId) {
         entry.targetEl.removeAttribute(`data-a11y-target-${featureId}`);
 
         if (entry.boxes.size === 0) {
-            targetResizeObserver.unobserve(entry.targetEl);
-            delete entry.targetEl.dataset.a11yTargetId;
-            activeHighlightsMap.delete(uniqueId);
+            // FIX: If preserving the toast, DO NOT delete the target ID mapping
+            if (preserveToast && activeTargetId === uniqueId) {
+                // Do nothing, leave it in the map so it can reconnect when redrawn
+            } else {
+                targetResizeObserver.unobserve(entry.targetEl);
+                delete entry.targetEl.dataset.a11yTargetId;
+                activeHighlightsMap.delete(uniqueId);
+            }
         }
     });
 
@@ -722,10 +1062,14 @@ function clearHighlights(featureId) {
         el.removeAttribute(`data-a11y-target-${featureId}`);
     });
 
-    const activeToast = document.getElementById('a11y-info-toast');
-    if (activeToast && activeToast.dataset.feature === featureId) {
-        activeToast.remove();
+    if (!preserveToast) {
+        if (activeToast && activeToast.dataset.feature === featureId) {
+            activeToast.remove();
+        }
     }
+    
+    // Explicitly call to erase any SVG paths or graphics immediately
+    requestAnimationFrame(() => repositionHighlights());
 }
 
 function getTextColor(hexColor) {
@@ -850,6 +1194,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     badge.style.setProperty('--badge-bg', color); 
     badge.style.setProperty('--badge-text', getTextColor(color)); 
     
+    // Fix for Popover UA Stylesheet Overrides
     badge.addEventListener('click', (e) => {
         e.stopPropagation();
         
@@ -876,10 +1221,8 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             relatedBox.style.backgroundColor = tintedBgColor;
         }
 
-        // --- NEW: Generate Clean & Truncated HTML Snippet ---
         const isVoid = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i.test(el.tagName);
         
-        // 1. Raw Snippet (For Clipboard)
         let rawTagStr = `<${el.tagName.toLowerCase()}`;
         for (let i = 0; i < el.attributes.length; i++) {
             const attr = el.attributes[i];
@@ -900,7 +1243,6 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             }
         }
 
-        // 2. Syntax Highlighted Snippet (For Display - VS Code Dark Theme Colors)
         let syntaxHtml = `<span style="color: #808080">&lt;</span><span style="color: #569cd6">${el.tagName.toLowerCase()}</span>`;
         for (let i = 0; i < el.attributes.length; i++) {
             const attr = el.attributes[i];
@@ -922,7 +1264,6 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
                 syntaxHtml += `<span style="color: #808080"> ... &lt;/</span><span style="color: #569cd6">${el.tagName.toLowerCase()}</span><span style="color: #808080">&gt;</span>`;
             }
         }
-        // --------------------------------------------------
 
         const info = configData.feature.info || { what: 'No information provided.', why: 'No information provided.' };
         const severityHtml = configData.feature.severity ? `<span class="a11y-toast-severity severity-${configData.feature.severity.toLowerCase()}">${configData.feature.severity}</span>` : '';
@@ -937,12 +1278,12 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         toast.id = 'a11y-info-toast';
         toast.className = 'a11y-info-toast';
         toast.dataset.feature = featureId;
+        toast.dataset.targetId = uniqueId;
         toast.style.setProperty('--badge-bg', color);
         
-        // NEW: Promote Toast to Top Layer
         if (HTMLElement.prototype.hasOwnProperty("popover")) {
             toast.setAttribute("popover", "manual");
-            toast.style.margin = "0"; // Prevent native popover centering
+            toast.style.margin = "0"; 
         }
         
         toast.innerHTML = `
@@ -977,12 +1318,10 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         
         document.documentElement.appendChild(toast);
         
-        // NEW: Activate the Top Layer rendering for the Toast
         if (toast.showPopover) {
             try { toast.showPopover(); } catch(e) {}
         }
 
-        // Copy CSS Selector
         toast.querySelector('.selector-copy-btn').addEventListener('click', (btnEvent) => {
             navigator.clipboard.writeText(selectorStr).then(() => {
                 const btn = btnEvent.currentTarget;
@@ -991,7 +1330,6 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             });
         });
 
-        // Copy HTML Snippet
         toast.querySelector('.html-copy-btn').addEventListener('click', (btnEvent) => {
             navigator.clipboard.writeText(htmlSnippet).then(() => {
                 const btn = btnEvent.currentTarget;
@@ -1001,6 +1339,13 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         });
 
         const badgeRect = badge.getBoundingClientRect();
+        
+        // Fix for Popover UA Stylesheet Overrides
+        toast.style.left = 'auto';
+        toast.style.right = 'auto';
+        toast.style.top = 'auto';
+        toast.style.bottom = 'auto';
+
         if (badgeRect.left > window.innerWidth / 2) {
             toast.style.left = '24px';
         } else {
@@ -1012,24 +1357,40 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             toast.style.bottom = '24px';
         }
         
+        // FIX: Replaced isolated variables with global DOM lookups to prevent closure null crashes
         toast.querySelector('.a11y-toast-close').addEventListener('click', () => {
-            badge.classList.remove('a11y-badge-active');
-            entry.badgeContainer.classList.remove('a11y-container-active');
-            if (relatedBox) {
-                relatedBox.classList.remove('a11y-box-active');
-                relatedBox.style.backgroundColor = "transparent";
-            }
+            document.querySelectorAll('.a11y-badge-active').forEach(b => b.classList.remove('a11y-badge-active'));
+            document.querySelectorAll('.a11y-container-active').forEach(c => c.classList.remove('a11y-container-active'));
+            document.querySelectorAll('.a11y-box-active').forEach(b => {
+                b.classList.remove('a11y-box-active');
+                b.style.backgroundColor = "transparent";
+            });
             toast.remove();
         });
     });
 
     entry.badgeContainer.appendChild(badge);
     targetResizeObserver.observe(el);
+
+    // Restore active highlight states if the toast for this element is currently open
+    const activeToast = document.getElementById('a11y-info-toast');
+    if (activeToast && activeToast.dataset.targetId === uniqueId && activeToast.dataset.feature === featureId) {
+        badge.classList.add('a11y-badge-active');
+        entry.badgeContainer.classList.add('a11y-container-active');
+        
+        if (entry.boxes.has(featureId)) {
+            const activeBox = entry.boxes.get(featureId);
+            activeBox.style.setProperty('--badge-bg', color);
+            activeBox.classList.add('a11y-box-active');
+            const tintedBgColor = color.length === 7 && color.startsWith('#') ? color + '33' : 'rgba(128, 128, 128, 0.2)';
+            activeBox.style.backgroundColor = tintedBgColor;
+        }
+    }
 }
 
-function runCheck(featureId, activeLegends) {
-    lastRunLegends.set(featureId, activeLegends); 
-    clearHighlights(featureId);
+function runCheck(featureId, activeLegends, options = {}) {
+    lastRunState.set(featureId, { activeLegends, options }); 
+    clearHighlights(featureId, true);
     
     const configData = getFeatureConfig(featureId);
     if (!configData) return;
@@ -1068,14 +1429,23 @@ function runCheck(featureId, activeLegends) {
     try {
         chrome.runtime.sendMessage({ action: "updateCounts", featureId, totals: counts });
     } catch (e) {}
+    
+    // Explicitly call to render SVG paths or graphics immediately after batch processing
+    requestAnimationFrame(() => repositionHighlights());
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'highlight') {
-        runCheck(request.featureId, request.activeLegends);
+        runCheck(request.featureId, request.activeLegends, request.options);
     } else if (request.action === 'clear') {
-        lastRunLegends.delete(request.featureId); 
+        lastRunState.delete(request.featureId); 
         clearHighlights(request.featureId);
+    } else if (request.action === 'clearAllAudits') {
+        cleanupAllHighlights();
+    } else if (request.action === 'applySimulation') {
+        applyDisabilitySimulation(request.state);
+    } else if (request.action === 'clearSimulation') {
+        clearSimulationFilters();
     } else if (request.action === 'getRuleDetails') {
         const overlays = document.querySelectorAll(`.a11y-inspector-box[data-rule-id="${request.ruleId}"]`);
         const elementsList = Array.from(overlays).map(box => ({
@@ -1150,6 +1520,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 let syncTimeout = null;
 function requestStateSync() {
     cleanupAllHighlights();
+    clearSimulationFilters();
     if (syncTimeout) clearTimeout(syncTimeout);
     
     syncTimeout = setTimeout(() => {

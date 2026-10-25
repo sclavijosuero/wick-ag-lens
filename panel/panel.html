@@ -7,7 +7,20 @@
 </head>
 <body>
     <header class="extension-header">
-        <h1>WICK-AG-Lens: Accessibility Inspector v2.3.0</h1>
+        <div class="header-title-area">
+            <h1>WICK-AG-Lens v2.4.0</h1>
+            <!-- Top-Level Mode Selector -->
+            <div class="mode-selector" role="radiogroup" aria-label="Extension Operating Mode">
+                <label class="mode-radio-btn active" id="mode-btn-inspect">
+                    <input type="radio" name="app-mode" value="inspect" checked>
+                    <span>Inspect Mode</span>
+                </label>
+                <label class="mode-radio-btn" id="mode-btn-simulate">
+                    <input type="radio" name="app-mode" value="simulate">
+                    <span>Simulate Mode</span>
+                </label>
+            </div>
+        </div>
         <button id="btn-open-docs" class="header-icon-btn" aria-label="Open Documentation">
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -18,66 +31,285 @@
     </header>
 
     <main>
-        <div class="tabs-nav" role="tablist" aria-label="Inspector Views">
-            <button class="tab-btn active" id="btn-tab-violations" role="tab" aria-selected="true" aria-controls="tab-violations">Violations & Warnings</button>
-            <button class="tab-btn" id="btn-tab-informative" role="tab" aria-selected="false" aria-controls="tab-informative">Informative & Structure</button>
-        </div>
-
-        <div class="filter-bar" aria-label="WCAG Criteria Filters">
-            <div class="filter-group">
-                <span class="filter-label">Version:</span>
-                <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.0" checked> 2.0</label>
-                <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.1" checked> 2.1</label>
-                <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.2" checked> 2.2</label>
+        <!-- ===================================================================
+             INSPECT MODE VIEWS
+             =================================================================== -->
+        <div id="view-inspect-mode" class="mode-view active">
+            <div class="tabs-nav" role="tablist" aria-label="Inspector Views">
+                <button class="tab-btn active" id="btn-tab-violations" role="tab" aria-selected="true" aria-controls="tab-violations">Violations & Warnings</button>
+                <button class="tab-btn" id="btn-tab-informative" role="tab" aria-selected="false" aria-controls="tab-informative">Informative & Structure</button>
             </div>
-            <div class="filter-divider"></div>
-            <div class="filter-group">
-                <span class="filter-label">Level:</span>
-                <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="A" checked> A</label>
-                <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="AA" checked> AA</label>
-                <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="AAA" checked> AAA</label>
-            </div>
-        </div>
 
-        <div class="main-container">
-            <!-- TAB 1: VIOLATIONS -->
-            <div class="tab-content active" id="tab-violations" role="tabpanel" aria-labelledby="btn-tab-violations">
-                <p class="tab-description">This tab strictly isolates actionable failures, critical accessibility errors, and severe anti-patterns.</p>
-                
-                <div class="tab-global-actions">
-                    <div class="master-toggle-container">
-                        <label class="toggle-switch" for="master-toggle-violations">
-                            <input type="checkbox" id="master-toggle-violations">
-                            <span class="slider"></span>
-                        </label>
-                        <label class="master-toggle-label" for="master-toggle-violations">Toggle All Violations</label>
-                        <span class="master-count-info" id="master-count-violations"></span>
+            <div class="filter-bar" aria-label="WCAG Criteria Filters">
+                <div class="filter-group">
+                    <span class="filter-label">Version:</span>
+                    <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.0" checked> 2.0</label>
+                    <label class="filter-checkbox"><input type="checkbox" class="wcag-version-filter" value="2.1" checked> 2.1</label>
+                    <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="2.2" checked> 2.2</label>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <span class="filter-label">Level:</span>
+                    <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="A" checked> A</label>
+                    <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="AA" checked> AA</label>
+                    <label class="filter-checkbox"><input type="checkbox" class="wcag-level-filter" value="AAA" checked> AAA</label>
+                </div>
+            </div>
+
+            <div class="main-container">
+                <!-- TAB 1: VIOLATIONS -->
+                <div class="tab-content active" id="tab-violations" role="tabpanel" aria-labelledby="btn-tab-violations">
+                    <p class="tab-description">This tab strictly isolates actionable failures, critical accessibility errors, and severe anti-patterns.</p>
+                    
+                    <div class="tab-global-actions">
+                        <div class="master-toggle-container">
+                            <label class="toggle-switch" for="master-toggle-violations">
+                                <input type="checkbox" id="master-toggle-violations">
+                                <span class="slider"></span>
+                            </label>
+                            <label class="master-toggle-label" for="master-toggle-violations">Toggle All Violations</label>
+                            <span class="master-count-info" id="master-count-violations"></span>
+                        </div>
+                        <button class="action-icon-btn copy-report-btn" id="copy-report-violations" title="Copy Tab Report to Clipboard">📋</button>
+                        <button class="action-icon-btn" id="toggle-collapse-violations" title="Toggle Expand/Collapse All">▼</button>
                     </div>
-                    <button class="action-icon-btn copy-report-btn" id="copy-report-violations" title="Copy Tab Report to Clipboard">📋</button>
-                    <button class="action-icon-btn" id="toggle-collapse-violations" title="Toggle Expand/Collapse All">▼</button>
+
+                    <div id="violations-container" class="features-container"></div>
                 </div>
 
-                <div id="violations-container" class="features-container"></div>
+                <!-- TAB 2: INFORMATIVE -->
+                <div class="tab-content" id="tab-informative" role="tabpanel" aria-labelledby="btn-tab-informative">
+                    <p class="tab-description">This tab provides an exploratory audit of valid page architecture, semantic landmarks, structural maps, and proper accessibility patterns.</p>
+                    
+                    <div class="tab-global-actions">
+                        <div class="master-toggle-container">
+                            <label class="toggle-switch" for="master-toggle-informative">
+                                <input type="checkbox" id="master-toggle-informative">
+                                <span class="slider"></span>
+                            </label>
+                            <label class="master-toggle-label" for="master-toggle-informative">Toggle All Informative Audits</label>
+                            <span class="master-count-info" id="master-count-informative"></span>
+                        </div>
+                        <button class="action-icon-btn copy-report-btn" id="copy-report-informative" title="Copy Tab Report to Clipboard">📋</button>
+                        <button class="action-icon-btn" id="toggle-collapse-informative" title="Toggle Expand/Collapse All">▼</button>
+                    </div>
+
+                    <div id="informative-container" class="features-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             SIMULATE MODE VIEWS
+             =================================================================== -->
+        <div id="view-simulate-mode" class="mode-view">
+            <div class="tabs-nav" role="tablist" aria-label="Simulator Categories">
+                <button class="tab-btn active" id="btn-tab-sim-cb" role="tab" aria-selected="true" aria-controls="tab-sim-cb">Color Blindness</button>
+                <button class="tab-btn" id="btn-tab-sim-iv" role="tab" aria-selected="false" aria-controls="tab-sim-iv">Impaired Vision</button>
             </div>
 
-            <!-- TAB 2: INFORMATIVE -->
-            <div class="tab-content" id="tab-informative" role="tabpanel" aria-labelledby="btn-tab-informative">
-                <p class="tab-description">This tab provides an exploratory audit of valid page architecture, semantic landmarks, structural maps, and proper accessibility patterns.</p>
-                
-                <div class="tab-global-actions">
-                    <div class="master-toggle-container">
-                        <label class="toggle-switch" for="master-toggle-informative">
-                            <input type="checkbox" id="master-toggle-informative">
-                            <span class="slider"></span>
+            <div class="main-container">
+                <!-- SIM TAB 1: COLOR BLINDNESS -->
+                <div class="tab-content active" id="tab-sim-cb" role="tabpanel" aria-labelledby="btn-tab-sim-cb">
+                    <p class="tab-description">Simulate how users with color vision deficiencies perceive page hues and contrast ratios. Select one type to apply.</p>
+                    
+                    <div class="sim-card-group">
+                        <label class="sim-option-card">
+                            <input type="radio" name="sim-cb-option" value="none" checked>
+                            <div class="sim-card-content">
+                                <div class="sim-card-header">
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                        <span class="sim-card-title">Normal Vision</span>
+                                        <span class="sim-accuracy-tag accuracy-high">Standard</span>
+                                    </div>
+                                </div>
+                                <span class="sim-card-desc">No color filter applied. Default rendering.</span>
+                            </div>
                         </label>
-                        <label class="master-toggle-label" for="master-toggle-informative">Toggle All Informative Audits</label>
-                        <span class="master-count-info" id="master-count-informative"></span>
+
+                        <label class="sim-option-card">
+                            <input type="radio" name="sim-cb-option" value="achromatopsia">
+                            <div class="sim-card-content">
+                                <div class="sim-card-header">
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                        <span class="sim-card-title">Achromatopsia (Monochromacy)</span>
+                                        <span class="sim-accuracy-tag accuracy-high" title="WCAG luminance monochrome calculation">Strict Simulation</span>
+                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    </div>
+                                </div>
+                                <span class="sim-card-desc">Complete absence of color perception. Entirely greyscale.</span>
+                                <div class="info-panel sim-info-panel" style="display: none; margin-top: 8px;">
+                                    <strong>Logic & Assumptions:</strong> Utilizes a standard SVG <code>feColorMatrix</code> strictly mapped to the WCAG relative luminance formula <code>(0.2126 R + 0.7152 G + 0.0722 B)</code> to ensure colors are converted to grayscale in direct proportion to their perceived brightness.
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="sim-option-card">
+                            <input type="radio" name="sim-cb-option" value="protanopia">
+                            <div class="sim-card-content">
+                                <div class="sim-card-header">
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                        <span class="sim-card-title">Protanopia (Red-Blind)</span>
+                                        <span class="sim-accuracy-tag accuracy-high" title="LinearRGB FeColorMatrix physiological model">Strict Simulation</span>
+                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    </div>
+                                </div>
+                                <span class="sim-card-desc">Inability to perceive red light. Red appears dark or brown.</span>
+                                <div class="info-panel sim-info-panel" style="display: none; margin-top: 8px;">
+                                    <strong>Logic & Assumptions:</strong> Simulates red-blind vision deficiency (CVD). Utilizes the precise mathematical linearRGB Viénot model matrices via an SVG <code>feColorMatrix</code> to simulate the physiological lack of L-cones.
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="sim-option-card">
+                            <input type="radio" name="sim-cb-option" value="deuteranopia">
+                            <div class="sim-card-content">
+                                <div class="sim-card-header">
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                        <span class="sim-card-title">Deuteranopia (Green-Blind)</span>
+                                        <span class="sim-accuracy-tag accuracy-high" title="LinearRGB FeColorMatrix physiological model">Strict Simulation</span>
+                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    </div>
+                                </div>
+                                <span class="sim-card-desc">Inability to perceive green light. Greens look brownish/yellowish.</span>
+                                <div class="info-panel sim-info-panel" style="display: none; margin-top: 8px;">
+                                    <strong>Logic & Assumptions:</strong> Simulates green-blind vision deficiency (CVD). Utilizes the precise mathematical linearRGB Viénot model matrices via an SVG <code>feColorMatrix</code> to simulate the physiological lack of M-cones.
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="sim-option-card">
+                            <input type="radio" name="sim-cb-option" value="tritanopia">
+                            <div class="sim-card-content">
+                                <div class="sim-card-header">
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                        <span class="sim-card-title">Tritanopia (Blue-Blind)</span>
+                                        <span class="sim-accuracy-tag accuracy-approx" title="Linear approximation via matrix transformation">Approximate</span>
+                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    </div>
+                                </div>
+                                <span class="sim-card-desc">Inability to perceive blue light. Blues look greenish, yellow looks pink.</span>
+                                <div class="info-panel sim-info-panel" style="display: none; margin-top: 8px;">
+                                    <strong>Logic & Assumptions:</strong> Simulates blue-blind vision deficiency (CVD). While perfectly simulating Tritanopia requires a 3D dual-plane mapping (Brettel 1997), we utilize an optimized SVG linear least-squares approximation matrix for high-performance rendering within the browser compositor.
+                                </div>
+                            </div>
+                        </label>
                     </div>
-                    <button class="action-icon-btn copy-report-btn" id="copy-report-informative" title="Copy Tab Report to Clipboard">📋</button>
-                    <button class="action-icon-btn" id="toggle-collapse-informative" title="Toggle Expand/Collapse All">▼</button>
                 </div>
 
-                <div id="informative-container" class="features-container"></div>
+                <!-- SIM TAB 2: IMPAIRED VISION -->
+                <div class="tab-content" id="tab-sim-iv" role="tabpanel" aria-labelledby="btn-tab-sim-iv">
+                    <p class="tab-description">Simulate optical and physiological visual impairments. Multiple conditions below can be combined simultaneously.</p>
+                    
+                    <div class="sim-controls-container">
+                        <!-- Double Vision -->
+                        <div class="sim-control-row">
+                            <div class="sim-control-header">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                    <label for="sim-diplopia-range" class="sim-control-title">Double Vision (Diplopia)</label>
+                                    <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
+                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                </div>
+                                <span class="sim-slider-val" id="sim-diplopia-val">0%</span>
+                            </div>
+                            <p class="sim-control-desc">Perceiving a secondary ghosted image offset from the original content.</p>
+                            <div class="info-panel sim-info-panel" style="display: none; margin-bottom: 8px;">
+                                <strong>Logic & Assumptions:</strong> Renders a highly accurate secondary ghost image using an SVG <code>feOffset</code> function combined with an alpha reduction (<code>feFuncA</code>) and composited using <code>feBlend</code> directly into the page layer.
+                            </div>
+                            <input type="range" id="sim-diplopia-range" min="0" max="100" value="0" class="sim-slider">
+                        </div>
+
+                        <!-- Loss of Contrast -->
+                        <div class="sim-control-row">
+                            <div class="sim-control-header">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                    <label for="sim-contrast-range" class="sim-control-title">Loss of Contrast</label>
+                                    <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
+                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                </div>
+                                <span class="sim-slider-val" id="sim-contrast-val">0%</span>
+                            </div>
+                            <p class="sim-control-desc">Reduced ability to distinguish between text and its surrounding background.</p>
+                            <div class="info-panel sim-info-panel" style="display: none; margin-bottom: 8px;">
+                                <strong>Logic & Assumptions:</strong> Utilizes the native CSS <code>contrast()</code> function. Note: We purposefully maintain structural color (e.g. blues remain blue, just washed out). Contrast sensitivity loss affects the luminance amplitude difference between elements, but it does not strip the biological functionality of the eye's cone cells. Other tools that aggressively convert the page to grayscale to simulate "contrast loss" are biologically flawed and are actually simulating a separate condition entirely: Achromatopsia (Monochromacy).
+                            </div>
+                            <input type="range" id="sim-contrast-range" min="0" max="100" value="0" class="sim-slider">
+                        </div>
+
+                        <!-- Yellowing -->
+                        <div class="sim-control-row">
+                            <div class="sim-control-header">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                    <label for="sim-yellowing-range" class="sim-control-title">Yellowing (Aging Lens)</label>
+                                    <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
+                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                </div>
+                                <span class="sim-slider-val" id="sim-yellowing-val">0%</span>
+                            </div>
+                            <p class="sim-control-desc">Natural yellowing of the eye crystalline lens over time, shifting color temperatures.</p>
+                            <div class="info-panel sim-info-panel" style="display: none; margin-bottom: 8px;">
+                                <strong>Logic & Assumptions:</strong> Simulates Nuclear Sclerosis. Instead of utilizing a generic CSS <code>sepia()</code> tone (which unrealistically paints everything brown), we built a custom SVG <code>feColorMatrix</code> that fundamentally degrades the blue channel to replicate the actual biological absorption of short-wavelength light caused by a hardening ocular lens.
+                            </div>
+                            <input type="range" id="sim-yellowing-range" min="0" max="100" value="0" class="sim-slider">
+                        </div>
+
+                        <!-- Cataracts -->
+                        <div class="sim-control-row">
+                            <div class="sim-control-header">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                    <label for="sim-cataracts-range" class="sim-control-title">Cataracts</label>
+                                    <span class="sim-accuracy-tag accuracy-approx">Approximate</span>
+                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                </div>
+                                <span class="sim-slider-val" id="sim-cataracts-val">0%</span>
+                            </div>
+                            <p class="sim-control-desc">Progressive clouding of the eye lens leading to blurriness and yellow tinting.</p>
+                            <div class="info-panel sim-info-panel" style="display: none; margin-bottom: 8px;">
+                                <strong>Logic & Assumptions:</strong> Employs a combinatorial filter simulating the light scattering and opacity caused by cloudy lenses. It mathematically intertwines a Gaussian blur function alongside a proportional drop in visual contrast and a minor inclusion of short-wavelength light absorption.
+                            </div>
+                            <input type="range" id="sim-cataracts-range" min="0" max="100" value="0" class="sim-slider">
+                        </div>
+
+                        <!-- Field Loss Section (Mutually Exclusive) -->
+                        <div class="sim-control-row field-loss-box">
+                            <div class="sim-control-header">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+                                    <span class="sim-control-title">Field of Vision Loss</span>
+                                    <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
+                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                </div>
+                            </div>
+                            <p class="sim-control-desc">Choose one type of visual field restriction and adjust the percentage slider.</p>
+                            
+                            <div class="info-panel sim-info-panel" style="display: none; margin-bottom: 8px;">
+                                <strong>Logic & Assumptions:</strong> Employs a non-interactive overlay bounded by a static CSS radial gradient. <br><br><strong>Central Loss (Macular Degeneration)</strong> creates a localized, harsh central scotoma constrained correctly to a 20% limit of the visual angle to replicate the biological boundaries of the macula. <br><br><strong>Peripheral Loss (Glaucoma)</strong> severely restricts outer peripheral inputs, aggressively shrinking the clear tunnel parameters down to 5%.
+                            </div>
+
+                            <div class="field-loss-options">
+                                <label class="sim-radio-label">
+                                    <input type="radio" name="sim-field-loss-type" value="none" checked>
+                                    <span>None</span>
+                                </label>
+                                <label class="sim-radio-label">
+                                    <input type="radio" name="sim-field-loss-type" value="peripheral">
+                                    <span>Peripheral (Tunnel Vision)</span>
+                                </label>
+                                <label class="sim-radio-label">
+                                    <input type="radio" name="sim-field-loss-type" value="central">
+                                    <span>Central (Macular Loss)</span>
+                                </label>
+                            </div>
+
+                            <div class="sim-slider-subgroup" id="sim-field-loss-slider-group" style="display: none;">
+                                <div class="sim-control-header" style="margin-top: 10px;">
+                                    <span class="sim-sublabel">Field Loss Radius</span>
+                                    <span class="sim-slider-val" id="sim-field-loss-val">5%</span>
+                                </div>
+                                <input type="range" id="sim-field-loss-range" min="0" max="100" value="5" class="sim-slider">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -85,26 +317,46 @@
     <footer class="footer collapsed" id="footer-restrictions">
         <div class="footer-header" id="footer-header">
             <button class="footer-expand-btn" id="footer-expand-btn" aria-expanded="false" aria-controls="footer-content">
-                <h2>Inspector Restrictions & Bounds</h2>
+                <h2 id="footer-title">Inspect Mode Restrictions & Bounds</h2>
                 <span class="footer-chevron">▼</span>
             </button>
         </div>
         <div class="footer-content" id="footer-content">
-            <ul>
-                <li><strong>Dynamic SPAs & State:</strong> The inspector automatically resyncs audits during client-side URL routing, dynamic DOM injections, and visibility attribute toggles (e.g., revealing a pre-rendered modal via CSS/ARIA). Rapid, continuous mutations are debounced (750ms) to preserve browser performance.</li>
-                <li><strong>Visibility Filtering:</strong> Elements hidden via <code>display: none</code>, <code>visibility: hidden</code>, <code>hidden</code>, or <code>inert</code> are strictly excluded from all analysis to match native accessibility tree behavior.</li>
-                <li><strong>Clipping & X-Ray Vision:</strong> Elements scrolled off-screen or hidden inside <code>overflow: hidden</code> containers (like carousels) are successfully detected and rendered with a ghosted X-Ray hatched pattern.</li>
-                <li><strong>Z-Index Occlusion:</strong> Visibility calculations rely on CSS properties. The tool does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high <code>z-index</code> modal).</li>
-                <li><strong>Focus Order:</strong> Mirrors standard browser <code>Tab</code> execution, prioritizing <code>tabindex &gt; 0</code>, respecting native Radio Group bundling, and tracing hierarchical paths inside nested iframes.</li>
-                <li><strong>Shadow DOMs:</strong> Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.</li>
-                <li><strong>Iframes & Cross-Origin Policies:</strong> The tool successfully merges accessibility data across cross-origin iframes. However, it cannot bypass strict Same-Origin Policies to force scroll events inside cross-origin windows.</li>
-                <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Elements overlaying complex backgrounds (images, gradients) are explicitly flagged for Manual Review.</li>
-                <li><strong>WCAG Criteria Filtering:</strong> The version (2.0, 2.1, 2.2) and conformance level (A, AA, AAA) filters are strictly isolated. You must explicitly check all versions and levels you wish to evaluate in your current analysis.</li>
-            </ul>
-            <div class="footer-disclaimer">
-                <p><strong>Disclaimer:</strong> WICK-AG-Lens is an automated heuristic tool implemented to the best knowledge of its author. It does not cover all possible accessibility barriers that may exist on a page, and existing audits may occasionally yield false positives or false negatives. Passing these checks does not guarantee full WCAG compliance. Automated testing should always be combined with manual testing and assistive technology validation.</p>
-                <p>Copyright &copy; <span id="copyright-year"></span> Sebastian Clavijo Suero.</p>
+            
+            <!-- Inspect Mode Content -->
+            <div id="footer-inspect-content" style="display: block;">
+                <ul>
+                    <li><strong>Dynamic SPAs & State:</strong> The inspector automatically resyncs audits during client-side URL routing, dynamic DOM injections, and visibility attribute toggles (e.g., revealing a pre-rendered modal via CSS/ARIA). Rapid, continuous mutations are debounced (750ms) to preserve browser performance.</li>
+                    <li><strong>Visibility Filtering:</strong> Elements hidden via <code>display: none</code>, <code>visibility: hidden</code>, <code>hidden</code>, or <code>inert</code> are strictly excluded from all analysis to match native accessibility tree behavior.</li>
+                    <li><strong>Clipping & X-Ray Vision:</strong> Elements scrolled off-screen or hidden inside <code>overflow: hidden</code> containers (like carousels) are successfully detected and rendered with a ghosted X-Ray hatched pattern.</li>
+                    <li><strong>Z-Index Occlusion:</strong> Visibility calculations rely on CSS properties. The tool does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high <code>z-index</code> modal).</li>
+                    <li><strong>Focus Order:</strong> Mirrors standard browser <code>Tab</code> execution, prioritizing <code>tabindex &gt; 0</code>, respecting native Radio Group bundling, and tracing hierarchical paths inside nested iframes.</li>
+                    <li><strong>Shadow DOMs:</strong> Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.</li>
+                    <li><strong>Iframes & Cross-Origin Policies:</strong> The tool successfully merges accessibility data across cross-origin iframes. However, it cannot bypass strict Same-Origin Policies to force scroll events inside cross-origin windows.</li>
+                    <li><strong>Color Contrast Heuristics:</strong> Contrast ratios are calculated using computed DOM styles. Elements overlaying complex backgrounds (images, gradients) are explicitly flagged for Manual Review.</li>
+                    <li><strong>WCAG Criteria Filtering:</strong> The version (2.0, 2.1, 2.2) and conformance level (A, AA, AAA) filters are strictly isolated. You must explicitly check all versions and levels you wish to evaluate in your current analysis.</li>
+                </ul>
+                <div class="footer-disclaimer">
+                    <p><strong>Disclaimer:</strong> WICK-AG-Lens is an automated heuristic tool implemented to the best knowledge of its author. It does not cover all possible accessibility barriers that may exist on a page, and existing audits may occasionally yield false positives or false negatives. Passing these checks does not guarantee full WCAG compliance. Automated testing should always be combined with manual testing and assistive technology validation.</p>
+                    <p>Copyright &copy; <span class="copyright-year"></span> Sebastian Clavijo Suero.</p>
+                </div>
             </div>
+
+            <!-- Simulate Mode Content -->
+            <div id="footer-simulate-content" style="display: none;">
+                <ul>
+                    <li><strong>Hardware & Monitor Limitations:</strong> All visual simulations are inherently constrained by the physical hardware of the screen. Absolute accuracy is limited by your monitor's specific color calibration, backlight brightness, viewing angle, and ambient room lighting.</li>
+                    <li><strong>Color Blindness (Viénot & Brettel Models):</strong> The color vision deficiency models rely on SVG <code>feColorMatrix</code> implementations. Protanopia and Deuteranopia use strict linearRGB Viénot physiological matrices, while Tritanopia utilizes an optimized linear least-squares approximation. Achromatopsia strictly follows the WCAG relative luminance formula rather than modeling biological rod-monochromacy.</li>
+                    <li><strong>Impaired Vision Approximations:</strong> Conditions like Cataracts and Loss of Contrast are generated using mathematical CSS filter combinations (blur, opacity, and amplitude reductions). They mimic the optical experience to identify severe contrast issues but do not perfectly replicate the physiological deterioration of the human eye.</li>
+                    <li><strong>Field Loss Topography:</strong> Central (Macular) and Peripheral (Glaucoma) visual field losses are simulated using CSS radial gradients bounded by static angles/percentages. These are 2D geometric approximations and do not account for physical biological blind-spot mapping, head movement, or dynamic pupil dilation.</li>
+                    <li><strong>Heuristic Scope:</strong> These tools provide an empathetic heuristic overlay to help developers identify critical contrast and layout barriers. They are strictly informational and cannot substitute for clinical diagnostic tools, native OS high-contrast modes, or actual user testing with assistive devices.</li>
+                </ul>
+                <div class="footer-disclaimer">
+                    <p><strong>Disclaimer:</strong> WICK-AG-Lens is an automated heuristic tool implemented to the best knowledge of its author. It does not cover all possible accessibility barriers that may exist on a page, and existing audits may occasionally yield false positives or false negatives. Passing these checks does not guarantee full WCAG compliance. Automated testing should always be combined with manual testing and assistive technology validation.</p>
+                    <p>Copyright &copy; <span class="copyright-year"></span> Sebastian Clavijo Suero.</p>
+                </div>
+            </div>
+
         </div>
     </footer>
 
