@@ -1,6 +1,6 @@
 # WICK-AG-Lens: Accessibility Inspector
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations and structural information directly within your page layout.
+WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh.
 
 You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
 
@@ -14,23 +14,25 @@ You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https:/
 3. [Core Features & Usage](#core-features--usage)
 4. [Audit Library & Ruleset](#audit-library--ruleset)
 5. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
-6. [Limitations & Technical Bounds](#limitations--technical-bounds)
-7. [Compatibility](#compatibility)
-8. [License](#license)
-9. [Contributing](#contributing)
-10. [Development & Testing Sites](#development--testing-sites)
-11. [Changelog](#changelog)
+6. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
+7. [Limitations & Technical Bounds](#limitations--technical-bounds)
+8. [Compatibility](#compatibility)
+9. [License](#license)
+10. [Contributing](#contributing)
+11. [Development & Testing Sites](#development--testing-sites)
+12. [Changelog](#changelog)
 
 ## Features Overview
-WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns directly on the page.
+WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions.
 
 *   **Real-Time SPA & DOM Sync:** Automatically detects Single Page Application (SPA) client-side routing and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time without requiring a manual refresh.
 *   **41 Independent Audits:** Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.
+*   **Disability Simulation Engine (New v2.4.0):** Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout.
 *   **WCAG Criteria Filtering:** Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).
-*   **Visual Highlighting:** Draws bounding boxes and badges over target elements to clearly identify where issues occur.
+*   **Visual Highlighting & Focus Tracing:** Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.
+*   **X-Ray Vision for Clipped Elements:** Renders hidden or off-screen interactive elements (like carousel slides) with a ghosted hatched pattern so you can visualize hidden focus traps without breaking the layout.
 *   **Interactive Info Panels & Code Previews:** Clicking any on-page badge opens a detailed panel explaining the issue, providing the CSS selector, and displaying a sanitized, syntax-highlighted HTML snippet of the target element.
 *   **Precision Element Locator:** Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.
-*   **Accessible Interface:** The extension's DevTools panel is designed to be keyboard-friendly and incorporates WCAG 2.2 AA best practices where possible.
 *   **One-Click Reporting:** Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking.
 *   **Shadow DOM & Iframe Support:** Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.
 
@@ -49,7 +51,7 @@ Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Sto
 
 ## Core Features & Usage
 
-### 1. WCAG Filtering & Audit Controls
+### 1. WCAG Filtering & Audit Controls (Inspect Mode)
 The inspector categorizes 41 unique heuristic rulesets across two primary tabs: **Violations & Warnings** (actionable failures) and **Informative & Structure** (valid page architecture and semantic patterns). 
 
 *   **Version & Level Filters:** Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.
@@ -58,14 +60,28 @@ The inspector categorizes 41 unique heuristic rulesets across two primary tabs: 
 
 ![WCAG Criteria Filtering, Master Toggles, and Inline Info](images/wcag-filtering.png)
 
-### 2. Interactive Info Panels & Code Previews
+### 2. Disability Simulation Engine (Simulate Mode)
+Switch from the standard "Inspect Mode" into "Simulate Mode" using the top header toggle to visually alter the host page, allowing developers to experience structural boundaries and contrast failures firsthand.
+*   **Color Blindness:** Applies strict SVG `feColorMatrix` transformations to emulate Achromatopsia, Protanopia, Deuteranopia, and Tritanopia.
+*   **Impaired Vision:** Utilizes interactive intensity sliders to dynamically emulate Double Vision (Diplopia), Loss of Contrast, Yellowing (Aging Lens), Cataracts, and Field of Vision Loss (Central Macular and Peripheral Tunnel parameters).
+*   **Accuracy Indicators:** The UI explicitly tags simulations as *Strict Simulation* (mapped to established physiological math) or *Approximate* (combinatorial CSS filters).
+
+Color Blindness:
+
+![Disability Simulation Engine](images/disability-simulation-blindness.png)
+
+Impaired Vision:
+
+![Disability Simulation Engine](images/disability-simulation-impaired.png)
+
+### 3. Interactive Info Panels & Code Previews
 Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining *what* was flagged and *why* it creates a barrier for users.
 
 Crucially, the panel extracts a clean, extension-sanitized **HTML Snippet** of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise **CSS Selector**. Dedicated "Copy" buttons (📋) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.
 
 ![Interactive Info Panel with HTML Snippet Preview](images/info-panel-preview.png)
 
-### 3. View Elements List & Precision Locator
+### 4. View Elements List & Precision Locator
 For audits that return multiple findings, clicking the "View Elements" (list icon) button inside the DevTools panel opens a comprehensive details modal displaying a hierarchically sorted list of every flagged element.
 
 *   **Precision Locator:** Clicking the target crosshair button next to any item will smoothly scroll the browser directly to that specific element on the page, flashing a bright pulsating focus ring to help you locate it instantly—even if it is deeply nested inside a complex UI or an embedded iframe.
@@ -73,31 +89,31 @@ For audits that return multiple findings, clicking the "View Elements" (list ico
 
 ![View Elements List and Locator Modal](images/elements-locator.png)
 
-### 4. Comprehensive Tab Reporting
+### 5. Comprehensive Tab Reporting
 To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (📋) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.
 *   The report only exports data for **actively toggled audits** that pass your current WCAG filters.
 *   It organizes the output by Category and Rule, explicitly logging `(No matching elements found)` for active audits that currently pass, providing definitive proof of compliance for your audit trails.
 
 ![One-Click Clipboard Reporting Output](images/clipboard-report.png)
 
-### 5. Real-Time SPA & Dynamic DOM Sync
+### 6. Real-Time SPA & Dynamic DOM Sync
 WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly. 
 *   **SPA Navigation (Hard Wipe):** Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.
-*   **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling `display: none` or `aria-hidden` on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts (like focus order numbering) without flashing the screen.
+*   **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling `display: none` or `aria-hidden` on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.
 
 ![Real-Time SPA Sync automatically highlighting a newly opened dropdown](images/spa-sync.gif)
 
-### 6. X-Ray Vision for Clipped Elements
+### 7. X-Ray Vision for Clipped Elements
 When elements are pushed off-screen or hidden inside `overflow: hidden` containers (like carousel slides or scrollable panels), the extension detects their clipping bounds. Instead of ignoring them or drawing misleading boxes, WICK-AG-Lens renders these hidden elements using a specialized "X-Ray" ghosted hatched pattern. This allows auditors to visualize the exact footprint of hidden interactive elements and invisible focus traps without breaking the page layout.
 
 ![X-Ray Vision highlighting clipped carousel elements](images/xray-vision.png)
 
-### 7. Embedded Offline Documentation
+### 8. Embedded Offline Documentation
 Accessibility auditing shouldn't require constantly hunting for internet resources. WICK-AG-Lens includes a fully embedded, offline-ready reference guide. Clicking the book icon in the extension header opens a comprehensive modal detailing every single rule, its WCAG mapping, technical limitations, and precise heuristic logic, ensuring your QA team always has context at their fingertips.
 
 ![Embedded Offline Documentation](images/embedded-doc.png)
 
-### 8. Native Dark Mode Support
+### 9. Native Dark Mode Support
 The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
 
 
@@ -203,7 +219,7 @@ The following details the complete list of heuristic evaluations performed by th
 | **Display Focus Order** | Informative | `#{num}: <{tag}>` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-2) |
 
 *   **Tabindex (Comparison):** Visual comparison of all `tabindex` usages. **Provides a sweeping visual map of the programmatic focus strategy.** 
-*   **Display Focus Order:** Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., `[Iframe] #4.1`) for isolated DOM boundaries. **Simulates the exact path of the `TAB` key route.** 
+*   **Display Focus Order:** Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., `[Iframe] #4.1`) for isolated DOM boundaries, connected by dynamic SVG paths and numerical pills. **Simulates the exact path of the `TAB` key route.** 
 
 #### Images & Media
 
@@ -329,8 +345,27 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="i-20"></a>**Lists and List Items:** Uses the CSS selector `ul, ol, li, dl, dt, dd`. Elements matching the selector are highlighted.
 *   <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
 
+
+## Disability Simulation Engine (Logic & Assumptions)
+
+The Simulate Mode provides an empathetic heuristic overlay to help developers identify critical contrast and layout barriers by simulating severe visual impairments directly in the DOM. These modules map to documented mathematical approximations rather than applying arbitrary color tints.
+
+### Color Vision Deficiencies (CVD)
+*   **Achromatopsia (Monochromacy):** Simulates a complete absence of color perception. Rather than a basic grayscale filter, it utilizes a standard SVG `feColorMatrix` mapped strictly to the WCAG relative luminance formula `(0.2126 R + 0.7152 G + 0.0722 B)` to ensure colors are converted to grayscale in direct proportion to their perceived brightness.
+*   **Protanopia & Deuteranopia (Red/Green Blindness):** Simulates the physiological lack of L-cones and M-cones, respectively. It applies the precise mathematical linearRGB Viénot model matrices via an SVG `feColorMatrix`.
+*   **Tritanopia (Blue-Blindness):** Simulates the lack of S-cones. While a perfect simulation requires a 3D dual-plane mapping (Brettel 1997), WICK-AG-Lens utilizes an optimized SVG linear least-squares approximation matrix to maintain high-performance, real-time rendering within the browser compositor.
+
+### Impaired Vision Physiology
+*   **Double Vision (Diplopia):** Simulates perceiving a secondary ghosted image offset from the original content. It renders a highly accurate secondary ghost image using an SVG `feOffset` function combined with an alpha reduction (`feFuncA`) and composites it using `feBlend` directly into the page layer.
+*   **Loss of Contrast:** Reduces the ability to distinguish between text and its surrounding background. It utilizes the native CSS `contrast()` function to reduce the luminance amplitude difference between elements while purposefully maintaining structural color (unlike other tools that biologically misrepresent contrast loss by aggressively converting the page to grayscale).
+*   **Yellowing (Aging Lens / Nuclear Sclerosis):** Simulates the natural yellowing of the eye crystalline lens over time. Rather than utilizing a generic CSS `sepia()` tone (which unrealistically paints everything brown), it uses a custom SVG `feColorMatrix` that fundamentally degrades the blue channel to replicate the actual biological absorption of short-wavelength light.
+*   **Cataracts:** Simulates the progressive clouding of the eye lens. It employs an approximate combinatorial filter simulating light scattering and opacity by mathematically intertwining a Gaussian blur function alongside a proportional drop in visual contrast and minor short-wavelength light absorption.
+*   **Field of Vision Loss:** Simulates both Central Loss (Macular Degeneration) and Peripheral Loss (Glaucoma/Tunnel Vision). It employs a non-interactive overlay bounded by a static CSS radial gradient. Central Loss creates a localized central scotoma constrained correctly to a 20% limit of the visual angle, while Peripheral Loss aggressively restricts outer inputs, shrinking the clear tunnel down to 5%.
+
+
 ## Limitations & Technical Bounds
 
+### Inspect Mode
 *   **Dynamic Content & SPAs:** The inspector listens to DOM mutations to provide real-time updates. However, rapidly mutating animations or heavily throttled browser threads may occasionally delay the soft-update rescan (debounced to 750ms).
 *   **Visibility Filtering:** Elements hidden via `display: none`, `visibility: hidden`, `hidden`, or `inert` are strictly excluded from all analysis to match native accessibility tree behavior.
 *   **Clipping & X-Ray Vision:** Elements scrolled off-screen or hidden inside `overflow: hidden` containers (like carousels) are successfully detected and rendered with a ghosted X-Ray hatched pattern.
@@ -338,8 +373,13 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   **Focus Order:** Mirrors standard browser `Tab` execution, prioritizing `tabindex > 0`, respecting native Radio Group bundling, and tracing hierarchical paths inside nested iframes.
 *   **Shadow DOMs:** Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.
 *   **Iframes & Cross-Origin Policies:** The tool successfully aggregates data across all active iframes (including nested cross-origin embeds) for reporting and element listings. However, it cannot bypass strict Same-Origin Policies to force browser scroll events inside cross-origin windows.
-*   **Color Contrast Heuristics:** Contrast ratios are calculated using computed DOM styles. Elements overlaying complex backgrounds (images, gradients) are explicitly flagged for Manual Review. The algorithm dynamically calculates required thresholds based on computed `font-size` and `font-weight`.
-*   **WCAG Criteria Filtering:** The version (2.0, 2.1, 2.2) and conformance level (A, AA, AAA) filters are strictly isolated. Selecting version 2.2 does *not* automatically include 2.0 or 2.1 audits, and selecting AAA does *not* include A or AA checks. You must explicitly check all versions and levels you wish to evaluate in your current analysis.
+
+### Simulate Mode
+*   **Hardware & Monitor Limitations:** All visual simulations are inherently constrained by the physical hardware of the screen. Absolute accuracy is limited by your monitor's specific color calibration, backlight brightness, viewing angle, and ambient room lighting.
+*   **Color Blindness Models:** Protanopia and Deuteranopia use strict linearRGB Viénot physiological matrices, while Tritanopia utilizes an optimized linear least-squares approximation. Achromatopsia strictly follows the WCAG relative luminance formula rather than modeling biological rod-monochromacy.
+*   **Impaired Vision Approximations:** Conditions like Cataracts and Loss of Contrast are generated using mathematical CSS filter combinations. They mimic the optical experience to identify severe contrast issues but do not perfectly replicate the physiological deterioration of the human eye.
+*   **Field Loss Topography:** Central (Macular) and Peripheral (Glaucoma) visual field losses are simulated using CSS radial gradients bounded by static angles/percentages. These are 2D geometric approximations and do not account for physical biological blind-spot mapping, head movement, or dynamic pupil dilation.
+
 
 ## Compatibility
 *   **Browser:** Compatible with Google Chrome version 100.0 or higher.
@@ -378,6 +418,15 @@ The following deliberately inaccessible and accessible demonstration websites we
 
 
 ## Changelog
+
+### v2.4.0: The Simulation Update
+* Introduced a dedicated "Simulate Mode" featuring an entire suite of Disability Simulation rendering tools.
+* Added 5 Color Blindness profiles utilizing rigorous SVG `feColorMatrix` implementations (Achromatopsia, Protanopia, Deuteranopia via Viénot models, and Tritanopia).
+* Added 5 interactive Impaired Vision conditions with live-updating intensity sliders (Diplopia, Loss of Contrast, Yellowing/Aging Lens, Cataracts, and strict geometric Field Loss).
+* Upgraded the "Display Focus Order" audit in Inspect Mode to physically draw connecting SVG pathways and dynamic numerical tracking pills across the layout to completely visualize keyboard navigation routes.
+* Resolved a critical ReferenceError in the MutationObserver that prevented SPA soft-updates (modals, dropdowns) from dynamically resyncing.
+* Split and overhauled the DevTools footer to house isolated, mode-specific "Restrictions & Bounds" with independent viewport scrolling.
+* Refined the DevTools UI with grouped headers, unified flex layouts, and precise "Strict Simulation" accuracy tags.
 
 ### v2.3.0: The Real-Time SPA Update
 * Engineered a Dual-Debounce MutationObserver to automatically handle Single Page Application (SPA) navigations.

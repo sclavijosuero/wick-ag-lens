@@ -575,6 +575,9 @@ window.A11Y_CONFIG = {
                             desc: "Sequential trace of naturally focusable elements",
                             wcag: [{ version: "2.0", level: "A" }],
                             selector: "a[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex='-1'])",
+                            options: [
+                                { id: "opt-show-path", label: "Draw sequential focus path & numbered steps", default: true }
+                            ],
                             legends: [
                                 { label: "Valid Focus", color: "#9c27b0", type: "path" },
                                 { label: "Hidden from AT (aria-hidden)", color: "#d93025", type: "hidden-at" }
