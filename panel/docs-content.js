@@ -353,6 +353,6 @@ window.A11Y_DOCS_HTML = `
     </ul>
 
     <h3 id="compatibility">Compatibility &amp; License</h3>
-    <p>Compatible with Google Chrome version 100.0 or higher. Operates on all URLs permitted by the user using the <code>activeTab</code>, <code>scripting</code>, and <code>storage</code> host permissions. Available under the MIT License.</p>
+    <p>Compatible with Google Chrome version 100.0 or higher. Operates on all URLs permitted by the user using the <code>activeTab</code> and <code>storage</code> permissions. Available under the MIT License.</p>
 </div>
 `;
