@@ -437,8 +437,11 @@ The following deliberately inaccessible and accessible demonstration websites we
 
 ## Changelog
 
-### v2.4.1: The Simulation Update
-* Adjusted chrome extension permissions.
+### v2.4.2: Adjusting some other permissions
+* Adjusted chrome extension permissions (removed "scripting" permission).
+
+### v2.4.1: Adjusting permissions
+* Adjusted chrome extension permissions (removed unnecesary "activeTab").
 
 ### v2.4.0: The Simulation Update
 * Introduced a dedicated "Simulate Mode" featuring an entire suite of Disability Simulation rendering tools.
