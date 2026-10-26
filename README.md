@@ -343,7 +343,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="i-18"></a>**Landmark Regions:** Uses the CSS selector `main, nav, header, footer, aside, [role='main'], [role='navigation'], [role='banner'], [role='contentinfo']`. The logic retrieves the role attribute or the HTML tag name for the badge output.
 *   <a id="i-19"></a>**Table & Grid Structure:** Uses the CSS selector `table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']`. The logic applies a dashed style to header roles and tags, and applies a solid style for grid and table containers.
 *   <a id="i-20"></a>**Lists and List Items:** Uses the CSS selector `ul, ol, li, dl, dt, dd`. Elements matching the selector are highlighted.
-*   <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
+*   <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
 
 
 ## Disability Simulation Engine (Logic & Assumptions)
@@ -383,7 +383,7 @@ The Simulate Mode provides an empathetic heuristic overlay to help developers id
 
 ## Compatibility
 *   **Browser:** Compatible with Google Chrome version 100.0 or higher.
-*   **Permissions:** Operates on all URLs permitted by the user using the `activeTab`, `scripting`, and `storage` host permissions.
+*   **Permissions:** Operates on all URLs permitted by the user using the `activeTab` and `storage` permissions.
 
 ## License
 WICK-AG-Lens is available under the MIT License. Reference the [LICENSE.md](./LICENSE.md) file for standard permissions and limitations.
@@ -418,6 +418,9 @@ The following deliberately inaccessible and accessible demonstration websites we
 
 
 ## Changelog
+
+### v2.4.1: The Simulation Update
+* Adjusted chrome extension permissions.
 
 ### v2.4.0: The Simulation Update
 * Introduced a dedicated "Simulate Mode" featuring an entire suite of Disability Simulation rendering tools.
