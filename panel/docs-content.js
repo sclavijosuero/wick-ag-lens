@@ -6,7 +6,7 @@ window.A11Y_DOCS_HTML = `
     <p>WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions.</p>
     <ul>
         <li><strong>Real-Time SPA &amp; DOM Sync:</strong> Automatically detects Single Page Application (SPA) navigations and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time.</li>
-        <li><strong>41 Independent Audits:</strong> Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.</li>
+        <li><strong>Comprehensive Audits:</strong> Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.</li>
         <li><strong>Disability Simulation Engine (New v2.4.0):</strong> Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout.</li>
         <li><strong>WCAG Criteria Filtering:</strong> Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).</li>
         <li><strong>Visual Highlighting & Focus Tracing:</strong> Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.</li>
@@ -20,7 +20,7 @@ window.A11Y_DOCS_HTML = `
     <h3 id="core-features">Core Features &amp; Usage</h3>
     
     <h4>1. WCAG Filtering &amp; Audit Controls (Inspect Mode)</h4>
-    <p>The inspector categorizes 41 unique heuristic rulesets across two primary tabs: <strong>Violations &amp; Warnings</strong> (actionable failures) and <strong>Informative &amp; Structure</strong> (valid page architecture and semantic patterns).</p>
+    <p>The inspector categorizes heuristic rulesets across two primary tabs: <strong>Violations &amp; Warnings</strong> (actionable failures) and <strong>Informative &amp; Structure</strong> (valid page architecture and semantic patterns).</p>
     <ul>
         <li><strong>Version &amp; Level Filters:</strong> Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.</li>
         <li><strong>Master Toggles &amp; Clean UI:</strong> Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.</li>
@@ -82,23 +82,26 @@ window.A11Y_DOCS_HTML = `
 
     <h4 class="docs-tab-title">Tab 1: Violations & Warnings</h4>
     
-    <h4>Keyboard Navigation</h4>
+    <h4>Structure & Document</h4>
     <ul>
-        <li><strong>Unfocusable Clickables:</strong> Flags generic elements with <code>onclick</code> handlers lacking a <code>tabindex</code> and a valid semantic <code>role</code>. <strong>Keyboard users cannot tab to or activate these elements.</strong><br>
-        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html" target="_blank">WCAG 2.1.1</a> (2.0 A) &bull; <a href="#v-1">View Logic</a></li>
+        <li><strong>Document Title:</strong> Checks if the document is missing a <code>&lt;title&gt;</code> tag or if it is empty. <strong>Screen readers announce the page title first.</strong><br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html" target="_blank">WCAG 2.4.2</a> (2.0 A) &bull; <a href="#v-doc-title">View Logic</a></li>
         
-        <li><strong>Disabled Focus Outlines:</strong> Parses page CSS via heuristic evaluation to find focusable elements where <code>outline: none</code> or <code>0</code> is applied on the <code>:focus</code> state without a fallback <code>box-shadow</code> or <code>border</code>. <strong>Sighted keyboard users rely entirely on focus rings</strong> to know which element they are interacting with.<br>
-        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html" target="_blank">WCAG 2.4.7</a> (2.0 AA) &bull; <a href="#v-2">View Logic</a></li>
+        <li><strong>Page Encoding:</strong> Checks if the document character set is defined (UTF-8). <strong>Ensures text is parsed and pronounced correctly.</strong><br>
+        <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#v-page-encoding">View Logic</a></li>
         
-        <li><strong>Tabindex Violations:</strong> Flags elements dynamically forcing focus order via <code>tabindex &gt; 0</code>. <strong>Overrides natural DOM focus order</strong>, creating unpredictable navigation paths.<br>
-        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html" target="_blank">WCAG 2.4.3</a> (2.0 A) &bull; <a href="#v-3">View Logic</a></li>
+        <li><strong>Auto-playing Media:</strong> Flags audio or video elements set to <code>autoplay</code>. <strong>Unexpected audio conflicts with screen reader announcements.</strong><br>
+        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html" target="_blank">WCAG 1.4.2</a> (2.0 A) &bull; <a href="#v-18">View Logic</a></li>
         
-        <li><strong>Accesskey Attributes:</strong> Flags explicit <code>accesskey</code> definitions. <strong>Often conflicts with native browser or screen reader shortcuts.</strong><br>
-        <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html" target="_blank">WCAG 2.1.4</a> (2.1 A) &bull; <a href="#v-4">View Logic</a></li>
+        <li><strong>Heading Hierarchy Errors:</strong> Flags skipped levels (e.g., <code>H1</code> to <code>H3</code>) or fake non-semantic headings. <strong>Skipping levels confuses screen reader navigation.</strong><br>
+        <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#v-19">View Logic</a></li>
     </ul>
 
     <h4>Images & Media</h4>
     <ul>
+        <li><strong>Inaccessible SVGs:</strong> Flags inline <code>&lt;svg&gt;</code> elements exposed to screen readers lacking an accessible name. <strong>Screen readers will read out raw SVG code nodes.</strong><br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#v-svg-accessible">View Logic</a></li>
+        
         <li><strong>Missing Alt Text:</strong> Flags <code>&lt;img&gt;</code> elements completely lacking an <code>alt</code> attribute. <strong>Screen readers will read the raw filename</strong> if the attribute is missing.<br>
         <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#v-5">View Logic</a></li>
         
@@ -108,19 +111,7 @@ window.A11Y_DOCS_HTML = `
         <li><strong>Redundant Alt Text:</strong> Flags <code>alt</code> attributes containing words like <em>'image of'</em> or <em>'photo of'</em>. <strong>Screen readers automatically announce images</strong>, making these prefixes redundant.<br>
         <span class="severity-badge severity-minor">MINOR</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#v-7">View Logic</a></li>
     </ul>
-
-    <h4>Forms & Controls</h4>
-    <ul>
-        <li><strong>Unlabeled Form Inputs:</strong> Flags form controls missing <code>&lt;label&gt;</code> wrappers, <code>aria-label</code>s, or <code>for</code> attributes. <strong>Screen readers cannot announce what the input is for.</strong><br>
-        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html" target="_blank">WCAG 3.3.2</a> (2.0 A) &bull; <a href="#v-8">View Logic</a></li>
-        
-        <li><strong>Empty Buttons:</strong> Flags buttons without readable text or an <code>aria-label</code>. <strong>Screen readers will only announce 'Button'</strong>, providing no context.<br>
-        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-9">View Logic</a></li>
-        
-        <li><strong>Placeholder as Label:</strong> Flags inputs relying solely on the <code>placeholder</code> attribute for their accessible name. <strong>Placeholders disappear on typing</strong> and often lack sufficient contrast.<br>
-        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-10">View Logic</a></li>
-    </ul>
-
+    
     <h4>Links & Navigation</h4>
     <ul>
         <li><strong>Empty Links:</strong> Flags <code>&lt;a&gt;</code> tags lacking readable text or accessible names. <strong>Screen readers will read the URL</strong>, which is often confusing.<br>
@@ -140,25 +131,52 @@ window.A11Y_DOCS_HTML = `
         <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html" target="_blank">WCAG 3.2.5</a> (2.0 AAA) &bull; <a href="#v-14">View Logic</a></li>
     </ul>
 
-    <h4>ARIA & Semantics</h4>
+    <h4>Forms & Controls</h4>
+    <ul>
+        <li><strong>Unlabeled Form Inputs:</strong> Flags form controls missing <code>&lt;label&gt;</code> wrappers, <code>aria-label</code>s, or <code>for</code> attributes. <strong>Screen readers cannot announce what the input is for.</strong><br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html" target="_blank">WCAG 3.3.2</a> (2.0 A) &bull; <a href="#v-8">View Logic</a></li>
+        
+        <li><strong>Empty Buttons:</strong> Flags buttons without readable text or an <code>aria-label</code>. <strong>Screen readers will only announce 'Button'</strong>, providing no context.<br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-9">View Logic</a></li>
+        
+        <li><strong>Placeholder as Label:</strong> Flags inputs relying solely on the <code>placeholder</code> attribute for their accessible name. <strong>Placeholders disappear on typing</strong> and often lack sufficient contrast.<br>
+        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-10">View Logic</a></li>
+        
+        <li><strong>Invalid Autocomplete:</strong> Flags fields where <code>autocomplete</code> contains unrecognized HTML5 tokens. <strong>Invalid tokens prevent browsers and password managers from functioning correctly.</strong><br>
+        <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html" target="_blank">WCAG 1.3.5</a> (2.1 AA) &bull; <a href="#v-autocomplete-invalid">View Logic</a></li>
+    </ul>
+
+    <h4>Keyboard Navigation</h4>
+    <ul>
+        <li><strong>Unfocusable Clickables:</strong> Flags generic elements with <code>onclick</code> handlers lacking a <code>tabindex</code> and a valid semantic <code>role</code>. <strong>Keyboard users cannot tab to or activate these elements.</strong><br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html" target="_blank">WCAG 2.1.1</a> (2.0 A) &bull; <a href="#v-1">View Logic</a></li>
+        
+        <li><strong>Tabindex Violations:</strong> Flags elements dynamically forcing focus order via <code>tabindex &gt; 0</code>. <strong>Overrides natural DOM focus order</strong>, creating unpredictable navigation paths.<br>
+        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html" target="_blank">WCAG 2.4.3</a> (2.0 A) &bull; <a href="#v-3">View Logic</a></li>
+        
+        <li><strong>Accesskey Attributes:</strong> Flags explicit <code>accesskey</code> definitions. <strong>Often conflicts with native browser or screen reader shortcuts.</strong><br>
+        <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html" target="_blank">WCAG 2.1.4</a> (2.1 A) &bull; <a href="#v-4">View Logic</a></li>
+        
+        <li><strong>Disabled Focus Outlines:</strong> Parses page CSS via heuristic evaluation to find focusable elements where <code>outline: none</code> or <code>0</code> is applied on the <code>:focus</code> state without a fallback <code>box-shadow</code> or <code>border</code>. <strong>Sighted keyboard users rely entirely on focus rings</strong> to know which element they are interacting with.<br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html" target="_blank">WCAG 2.4.7</a> (2.0 AA) &bull; <a href="#v-2">View Logic</a></li>
+    </ul>
+
+    <h4>ARIA Names (Errors)</h4>
+    <ul>
+        <li><strong>Prohibited Author Names:</strong> Flags structural roles containing <code>aria-label</code> or <code>aria-labelledby</code>. <strong>Adding a name to a transparent structural role breaks its semantics.</strong><br>
+        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-17">View Logic</a></li>
+        
+        <li><strong>Label in Name Mismatch:</strong> Flags interactive elements where the visible text is completely overridden by an <code>aria-label</code> that does not include the visible text. <strong>Voice dictation users rely on visible text commands.</strong><br>
+        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html" target="_blank">WCAG 2.5.3</a> (2.1 A) &bull; <a href="#v-label-in-name">View Logic</a></li>
+    </ul>
+
+    <h4>ARIA States (Errors)</h4>
     <ul>
         <li><strong>Focusable in Aria-Hidden:</strong> Flags active controls trapped in <code>aria-hidden='true'</code> trees. <strong>Keyboard users can reach them, but screen readers cannot</strong>, creating a severe mismatch.<br>
         <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-15">View Logic</a></li>
         
         <li><strong>Invalid ARIA State:</strong> Flags form controls explicitly marked <code>aria-invalid='true'</code>. <strong>Identifies application-enforced validation errors.</strong><br>
         <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html" target="_blank">WCAG 3.3.1</a> (2.0 A) &bull; <a href="#v-16">View Logic</a></li>
-        
-        <li><strong>Prohibited Author Names:</strong> Flags structural roles containing <code>aria-label</code> or <code>aria-labelledby</code>. <strong>Adding a name to a transparent structural role breaks its semantics.</strong><br>
-        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#v-17">View Logic</a></li>
-    </ul>
-
-    <h4>Structure & Document</h4>
-    <ul>
-        <li><strong>Auto-playing Media:</strong> Flags audio or video elements set to <code>autoplay</code>. <strong>Unexpected audio conflicts with screen reader announcements.</strong><br>
-        <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html" target="_blank">WCAG 1.4.2</a> (2.0 A) &bull; <a href="#v-18">View Logic</a></li>
-        
-        <li><strong>Heading Hierarchy Errors:</strong> Flags skipped levels (e.g., <code>H1</code> to <code>H3</code>) or fake non-semantic headings. <strong>Skipping levels confuses screen reader navigation.</strong><br>
-        <span class="severity-badge severity-moderate">MODERATE</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#v-19">View Logic</a></li>
     </ul>
 
     <h4>Visual & Contrast</h4>
@@ -175,69 +193,6 @@ window.A11Y_DOCS_HTML = `
 
     <h4 class="docs-tab-title" style="margin-top: 32px;">Tab 2: Informative & Structure</h4>
     
-    <h4>Keyboard Navigation</h4>
-    <ul>
-        <li><strong>Tabindex (Comparison):</strong> Visual comparison of all <code>tabindex</code> usages. <strong>Provides a sweeping visual map of the programmatic focus strategy.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html" target="_blank">WCAG 2.4.3</a> (2.0 A) &bull; <a href="#i-1">View Logic</a></li>
-        
-        <li><strong>Display Focus Order:</strong> Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., <code>[Iframe] #4.1</code>) for isolated DOM boundaries, connected by dynamic SVG paths and numerical pills. <strong>Simulates the exact path of the <code>TAB</code> key route.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html" target="_blank">WCAG 2.4.3</a> (2.0 A) &bull; <a href="#i-2">View Logic</a></li>
-    </ul>
-
-    <h4>Images & Media</h4>
-    <ul>
-        <li><strong>Display Image Alternatives:</strong> Prints <code>alt</code> text for all images. <strong>Allows rapid visual auditing of alternative text descriptions.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#i-3">View Logic</a></li>
-        
-        <li><strong>Captioned Video:</strong> Videos containing <code>&lt;track&gt;</code> elements. <strong>Confirms proper multimedia accessibility setup.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html" target="_blank">WCAG 1.2.2</a> (2.0 A) &bull; <a href="#i-4">View Logic</a></li>
-        
-        <li><strong>Iframe Context & Titles:</strong> Analyzes third-party embed context and <code>title</code> attributes. <strong>Screen readers announce the title to inform the user</strong> what the sub-document contains.<br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-5">View Logic</a></li>
-    </ul>
-
-    <h4>Forms & Controls</h4>
-    <ul>
-        <li><strong>Form Field Descriptions:</strong> Supplemental instructional text (<code>aria-describedby</code>). <strong>Ensures extended hints or error messages are programmatically tied to inputs.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html" target="_blank">WCAG 3.3.2</a> (2.0 A) &bull; <a href="#i-6">View Logic</a></li>
-        
-        <li><strong>Fieldsets & Captions:</strong> Visual grouping containers (<code>&lt;fieldset&gt;</code>). <strong>Crucial for grouping related radio buttons or complex form sections.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#i-7">View Logic</a></li>
-        
-        <li><strong>Touch Target Sizes:</strong> Calculates interactive pixel bounds (<code>width</code> / <code>height</code>). <strong>Undersized targets prevent users with fine motor impairments from activating controls accurately.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html" target="_blank">WCAG 2.5.8</a> (2.2 AA, 2.1 AAA) &bull; <a href="#i-8">View Logic</a></li>
-    </ul>
-
-    <h4>Links & Navigation</h4>
-    <ul>
-        <li><strong>Warned New Window Links:</strong> <code>target='_blank'</code> links with proper warning. <strong>Confirms proper communication of context shifts to assistive technologies.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html" target="_blank">WCAG 3.2.5</a> (2.0 AAA) &bull; <a href="#i-9">View Logic</a></li>
-    </ul>
-
-    <h4>ARIA & Semantics</h4>
-    <ul>
-        <li><strong>Accessible Name Resolution:</strong> Computes the final accessible name by simulating the browser's fallback calculation sequence: <code>aria-labelledby</code>, then <code>aria-label</code>, then native linked labels/text, and finally <code>title</code>. <strong>Reveals exactly what a screen reader will announce.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-10">View Logic</a></li>
-
-        <li><strong>ARIA Roles & Attributes:</strong> Maps explicit <code>role</code> definitions. <strong>Allows rapid structural auditing of custom widget semantics.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-11">View Logic</a></li>
-        
-        <li><strong>ARIA Live Regions:</strong> Maps dynamic <code>aria-live</code> injection containers. <strong>Ensures dynamic content updates are announced to screen readers.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html" target="_blank">WCAG 4.1.3</a> (2.1 AA) &bull; <a href="#i-12">View Logic</a></li>
-        
-        <li><strong>Required Fields:</strong> Mandatory input enforcement (<code>required</code> / <code>aria-required</code>). <strong>Ensures required status is programmatically available.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html" target="_blank">WCAG 3.3.1</a> (2.0 A) &bull; <a href="#i-13">View Logic</a></li>
-        
-        <li><strong>Aria-Expanded State:</strong> Expandable/collapsible widget states (<code>aria-expanded</code>). <strong>Visualizes the current programmatic state of accordions and menus.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-14">View Logic</a></li>
-        
-        <li><strong>Aria-Controls:</strong> Remote DOM visibility targets (<code>aria-controls</code>). <strong>Links trigger mechanisms to their targets.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-15">View Logic</a></li>
-        
-        <li><strong>Aria-Owns:</strong> Remote programmatic ownership (<code>aria-owns</code>). <strong>Reconstructs accessibility tree hierarchy for disjointed widgets.</strong><br>
-        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-16">View Logic</a></li>
-    </ul>
-
     <h4>Structure & Document</h4>
     <ul>
         <li><strong>Valid Heading Order:</strong> Standard <code>H1-H6</code> structural outline. <strong>Verifies the logical outline of the page.</strong><br>
@@ -256,6 +211,96 @@ window.A11Y_DOCS_HTML = `
         <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html" target="_blank">WCAG 3.1.1</a>, <a href="https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html" target="_blank">WCAG 3.1.2</a> (2.0 A, 2.0 AA) &bull; <a href="#i-21">View Logic</a></li>
     </ul>
 
+    <h4>Images & Media</h4>
+    <ul>
+        <li><strong>Display Image Alternatives:</strong> Prints <code>alt</code> text for all images. <strong>Allows rapid visual auditing of alternative text descriptions.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#i-3">View Logic</a></li>
+        
+        <li><strong>Captioned Video:</strong> Videos containing <code>&lt;track&gt;</code> elements. <strong>Confirms proper multimedia accessibility setup.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html" target="_blank">WCAG 1.2.2</a> (2.0 A) &bull; <a href="#i-4">View Logic</a></li>
+        
+        <li><strong>Iframe Context & Titles:</strong> Analyzes third-party embed context and <code>title</code> attributes. <strong>Screen readers announce the title to inform the user</strong> what the sub-document contains.<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-5">View Logic</a></li>
+    </ul>
+    
+    <h4>Links & Navigation</h4>
+    <ul>
+        <li><strong>Warned New Window Links:</strong> <code>target='_blank'</code> links with proper warning. <strong>Confirms proper communication of context shifts to assistive technologies.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html" target="_blank">WCAG 3.2.5</a> (2.0 AAA) &bull; <a href="#i-9">View Logic</a></li>
+    </ul>
+
+    <h4>Forms & Controls</h4>
+    <ul>
+        <li><strong>Fieldsets & Captions:</strong> Visual grouping containers (<code>&lt;fieldset&gt;</code>). <strong>Crucial for grouping related radio buttons or complex form sections.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#i-7">View Logic</a></li>
+        
+        <li><strong>Touch Target Sizes:</strong> Calculates interactive pixel bounds (<code>width</code> / <code>height</code>). <strong>Undersized targets prevent users with fine motor impairments from activating controls accurately.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html" target="_blank">WCAG 2.5.8</a> (2.2 AA, 2.1 AAA) &bull; <a href="#i-8">View Logic</a></li>
+        
+        <li><strong>Read-Only Fields:</strong> Inputs marked as <code>readonly</code> or <code>aria-readonly</code>. <strong>Read-only fields must remain focusable</strong> (unlike disabled fields) so screen readers can access their content.<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#i-readonly-fields">View Logic</a></li>
+    </ul>
+
+    <h4>Keyboard Navigation</h4>
+    <ul>
+        <li><strong>Tabindex (Comparison):</strong> Visual comparison of all <code>tabindex</code> usages. <strong>Provides a sweeping visual map of the programmatic focus strategy.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html" target="_blank">WCAG 2.4.3</a> (2.0 A) &bull; <a href="#i-1">View Logic</a></li>
+        
+        <li><strong>Display Focus Order:</strong> Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., <code>[Iframe] #4.1</code>) for isolated DOM boundaries, connected by dynamic SVG paths and numerical pills. <strong>Simulates the exact path of the <code>TAB</code> key route.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html" target="_blank">WCAG 2.4.3</a> (2.0 A) &bull; <a href="#i-2">View Logic</a></li>
+    </ul>
+    
+    <h4>ARIA Roles (Identity)</h4>
+    <ul>
+        <li><strong>ARIA Roles & Attributes:</strong> Maps explicit <code>role</code> definitions. <strong>Allows rapid structural auditing of custom widget semantics.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-11">View Logic</a></li>
+        
+        <li><strong>Aria-Roledescription:</strong> Custom semantic overrides via <code>aria-roledescription</code>. <strong>Overrides the native role announcement</strong> (e.g., turning 'button' into 'slide').<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-aria-roledescription">View Logic</a></li>
+    </ul>
+
+    <h4>ARIA Names & Relationships</h4>
+    <ul>
+        <li><strong>Accessible Name Resolution:</strong> Computes the final accessible name by simulating the browser's fallback calculation sequence: <code>aria-labelledby</code>, then <code>aria-label</code>, then native linked labels/text, and finally <code>title</code>. <strong>Reveals exactly what a screen reader will announce.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-10">View Logic</a></li>
+
+        <li><strong>Form Field Descriptions:</strong> Supplemental instructional text (<code>aria-describedby</code>). <strong>Ensures extended hints or error messages are programmatically tied to inputs.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html" target="_blank">WCAG 3.3.2</a> (2.0 A) &bull; <a href="#i-6">View Logic</a></li>
+        
+        <li><strong>Aria-Details:</strong> Highlights elements utilizing <code>aria-details</code>. <strong>Links complex, rich explanations to an element</strong> (allows structured HTML in the description).<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-aria-details">View Logic</a></li>
+        
+        <li><strong>Aria-Controls:</strong> Remote DOM visibility targets (<code>aria-controls</code>). <strong>Links trigger mechanisms to their targets.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-15">View Logic</a></li>
+        
+        <li><strong>Aria-Owns:</strong> Remote programmatic ownership (<code>aria-owns</code>). <strong>Reconstructs accessibility tree hierarchy for disjointed widgets.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-16">View Logic</a></li>
+        
+        <li><strong>List Set & Position:</strong> Virtual list mapping (<code>aria-setsize</code>, <code>aria-posinset</code>). <strong>Tells screen readers the total size of a list and the element's position</strong>, even if all items aren't in the DOM.<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#i-aria-setsize">View Logic</a></li>
+    </ul>
+
+    <h4>ARIA States (Conditions)</h4>
+    <ul>
+        <li><strong>ARIA Live Regions:</strong> Maps dynamic <code>aria-live</code> injection containers. <strong>Ensures dynamic content updates are announced to screen readers.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html" target="_blank">WCAG 4.1.3</a> (2.1 AA) &bull; <a href="#i-12">View Logic</a></li>
+        
+        <li><strong>Required Fields:</strong> Mandatory input enforcement (<code>required</code> / <code>aria-required</code>). <strong>Ensures required status is programmatically available.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html" target="_blank">WCAG 3.3.1</a> (2.0 A) &bull; <a href="#i-13">View Logic</a></li>
+        
+        <li><strong>Aria-Expanded State:</strong> Expandable/collapsible widget states (<code>aria-expanded</code>). <strong>Visualizes the current programmatic state of accordions and menus.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-14">View Logic</a></li>
+        
+        <li><strong>Aria-Pressed State:</strong> Toggle button states (<code>aria-pressed</code>). <strong>Visualizes the programmatic state of toggle buttons</strong> (e.g., Mute/Unmute, Play/Pause).<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-aria-pressed">View Logic</a></li>
+        
+        <li><strong>Aria-Value Properties:</strong> Slider & progress bar states (<code>valuenow</code>, <code>valuetext</code>). <strong>Ensures visual slider values match their programmatic data.</strong><br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-aria-value">View Logic</a></li>
+        
+        <li><strong>Aria-Haspopup:</strong> Elements triggering overlays (<code>aria-haspopup</code>). <strong>Prepares users for a context shift</strong> by announcing an interactive overlay.<br>
+        <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" target="_blank">WCAG 4.1.2</a> (2.0 A) &bull; <a href="#i-aria-haspopup">View Logic</a></li>
+    </ul>
+
     <h3 id="search-predicates-and-logic-definitions">Search Predicates and Logic Definitions</h3>
     <p>Elements hidden via CSS parameters like <code>display: none</code> or <code>visibility: hidden</code>, or by using the HTML <code>inert</code> attribute, are excluded by the global DOM processing logic before the specific audits run.</p>
     
@@ -265,51 +310,63 @@ window.A11Y_DOCS_HTML = `
 
     <h4 style="margin-top: 16px;">Tab 1: Violations & Warnings</h4>
     <ul style="list-style-type: none; padding-left: 0;">
-        <li id="v-1" style="margin-bottom: 12px;"><strong>Unfocusable Clickables:</strong> Uses the CSS selector <code>div[onclick], span[onclick], section[onclick]</code>. The Javascript logic evaluates each element to ensure it lacks a <code>role</code> attribute or lacks a <code>tabindex</code> attribute before flagging a violation.</li>
-        <li id="v-2" style="margin-bottom: 12px;"><strong>Disabled Focus Outlines:</strong> Uses the base CSS selector <code>a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])</code>. The Javascript logic iterates through <code>document.styleSheets</code> and checks each <code>CSSRule.STYLE_RULE</code> to see if the selector includes <code>:focus</code> or <code>:focus-visible</code>. It reads the <code>outline</code>, <code>outlineWidth</code>, <code>boxShadow</code>, and <code>border</code> properties. If outline rules contain <code>none</code> or <code>0px</code> and no fallback border or shadow is provided, the selector is recorded. Any interactive element matching that recorded selector is flagged.</li>
-        <li id="v-3" style="margin-bottom: 12px;"><strong>Tabindex Violations:</strong> Uses the CSS selector <code>[tabindex]</code>. The logic parses the attribute value as a base 10 integer and triggers a violation if the value is strictly greater than 0.</li>
-        <li id="v-4" style="margin-bottom: 12px;"><strong>Accesskey Attributes:</strong> Uses the CSS selector <code>[accesskey]</code>. All elements matching this selector are flagged.</li>
+        <li id="v-doc-title" style="margin-bottom: 12px;"><strong>Document Title:</strong> Uses the CSS selector <code>html</code>. The logic checks if <code>document.title</code> is missing or entirely empty strings.</li>
+        <li id="v-page-encoding" style="margin-bottom: 12px;"><strong>Page Encoding:</strong> Uses the CSS selector <code>html</code>. The logic evaluates <code>document.characterSet</code> to ensure it is defined and set to UTF-8.</li>
+        <li id="v-18" style="margin-bottom: 12px;"><strong>Auto-playing Media:</strong> Uses the CSS selector <code>audio[autoplay], video[autoplay]</code>. Elements matching the selector are flagged.</li>
+        <li id="v-19" style="margin-bottom: 12px;"><strong>Heading Hierarchy Errors:</strong> Uses the CSS selector <code>h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']</code>. The logic tracks the integer level of headings. It flags an element if the current heading level skips sequentially past the previous tracked level. It also flags elements without a role attribute if the text length is under 80 characters.</li>
+        <li id="v-svg-accessible" style="margin-bottom: 12px;"><strong>Inaccessible SVGs:</strong> Uses the CSS selector <code>svg:not([aria-hidden='true']):not([aria-hidden='1'])</code>. The logic ignores SVGs explicitly hidden from screen readers. For exposed SVGs, it checks if it lacks an <code>aria-label</code>, lacks a nested <code>&lt;title&gt;</code>, and is not nested within an interactive parent (like a <code>&lt;button&gt;</code>) that already provides an accessible name.</li>
         <li id="v-5" style="margin-bottom: 12px;"><strong>Missing Alt Text:</strong> Uses the CSS selector <code>img:not([alt])</code>. All elements matching this selector are flagged.</li>
         <li id="v-6" style="margin-bottom: 12px;"><strong>Uncaptioned Video:</strong> Uses the CSS selector <code>video</code>. The logic queries descendants for <code>track[kind="captions"], track[kind="subtitles"]</code>. If the result length is 0, the video is flagged.</li>
         <li id="v-7" style="margin-bottom: 12px;"><strong>Redundant Alt Text:</strong> Uses the CSS selector <code>img[alt]</code>. The logic reads the alt attribute and uses the regular expression <code>/\\b(image|img|photo|picture|graphic)\\b/i</code> to identify redundant terms before flagging.</li>
-        <li id="v-8" style="margin-bottom: 12px;"><strong>Unlabeled Form Inputs:</strong> Uses the CSS selector <code>input:not([type='hidden']):not([type='submit']):not([type='button']), select, textarea</code>. The logic searches the document for a <code>&lt;label&gt;</code> with a <code>for</code> attribute matching the input ID. It also checks the element for <code>aria-label</code> or <code>aria-labelledby</code> attributes, or if it is nested directly inside a <code>label</code> element. If all checks fail, it is flagged.</li>
-        <li id="v-9" style="margin-bottom: 12px;"><strong>Empty Buttons:</strong> Uses the CSS selector <code>button, [role='button']</code>. The logic checks the text content of the element, the presence of <code>aria-label</code> or <code>aria-labelledby</code>, and the presence of child <code>img[alt]</code> elements. If the trimmed text is empty and alternative names are missing, it flags a violation.</li>
-        <li id="v-10" style="margin-bottom: 12px;"><strong>Placeholder as Label:</strong> Uses the CSS selector <code>input[placeholder], textarea[placeholder]</code>. The logic checks if the element lacks a <code>label[for]</code> referencing its ID and lacks <code>aria-label</code> or <code>aria-labelledby</code> attributes.</li>
         <li id="v-11" style="margin-bottom: 12px;"><strong>Empty Links:</strong> Uses the CSS selector <code>a[href]</code>. The logic evaluates the text content, ARIA labels, and child image alt text. If all sources of accessible names are empty, it triggers a violation.</li>
         <li id="v-12" style="margin-bottom: 12px;"><strong>Suspicious Link Targets:</strong> Uses the CSS selector <code>a[href='#'], a[href^='javascript:']</code>. The logic ignores elements that possess <code>role="button"</code>. It categorizes the remaining matches based on whether the <code>href</code> prefix is javascript or a hash.</li>
         <li id="v-13" style="margin-bottom: 12px;"><strong>Generic Link Text:</strong> Uses the CSS selector <code>a[href]</code>. The logic trims the text content and applies an exact word boundary regular expression <code>/\\b(click here|read more|learn more|more|link|here)\\b/i</code> to flag matching elements.</li>
         <li id="v-14" style="margin-bottom: 12px;"><strong>Unwarned New Window Links:</strong> Uses the CSS selector <code>a[target='_blank']</code>. The logic concatenates the text content and <code>aria-label</code> to test against the regular expression <code>/new (window|tab)/</code>. If no match is found, it flags a violation.</li>
+        <li id="v-8" style="margin-bottom: 12px;"><strong>Unlabeled Form Inputs:</strong> Uses the CSS selector <code>input:not([type='hidden']):not([type='submit']):not([type='button']), select, textarea</code>. The logic searches the document for a <code>&lt;label&gt;</code> with a <code>for</code> attribute matching the input ID. It also checks the element for <code>aria-label</code> or <code>aria-labelledby</code> attributes, or if it is nested directly inside a <code>label</code> element. If all checks fail, it is flagged.</li>
+        <li id="v-9" style="margin-bottom: 12px;"><strong>Empty Buttons:</strong> Uses the CSS selector <code>button, [role='button']</code>. The logic checks the text content of the element, the presence of <code>aria-label</code> or <code>aria-labelledby</code>, and the presence of child <code>img[alt]</code> elements. If the trimmed text is empty and alternative names are missing, it flags a violation.</li>
+        <li id="v-10" style="margin-bottom: 12px;"><strong>Placeholder as Label:</strong> Uses the CSS selector <code>input[placeholder], textarea[placeholder]</code>. The logic checks if the element lacks a <code>label[for]</code> referencing its ID and lacks <code>aria-label</code> or <code>aria-labelledby</code> attributes.</li>
+        <li id="v-autocomplete-invalid" style="margin-bottom: 12px;"><strong>Invalid Autocomplete:</strong> Uses the CSS selector <code>input[autocomplete], select[autocomplete], textarea[autocomplete]</code>. The logic splits the token values and validates them against the official W3C HTML5 autocomplete token registry.</li>
+        <li id="v-1" style="margin-bottom: 12px;"><strong>Unfocusable Clickables:</strong> Uses the CSS selector <code>div[onclick], span[onclick], section[onclick]</code>. The Javascript logic evaluates each element to ensure it lacks a <code>role</code> attribute or lacks a <code>tabindex</code> attribute before flagging a violation.</li>
+        <li id="v-3" style="margin-bottom: 12px;"><strong>Tabindex Violations:</strong> Uses the CSS selector <code>[tabindex]</code>. The logic parses the attribute value as a base 10 integer and triggers a violation if the value is strictly greater than 0.</li>
+        <li id="v-4" style="margin-bottom: 12px;"><strong>Accesskey Attributes:</strong> Uses the CSS selector <code>[accesskey]</code>. All elements matching this selector are flagged.</li>
+        <li id="v-2" style="margin-bottom: 12px;"><strong>Disabled Focus Outlines:</strong> Uses the base CSS selector <code>a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])</code>. The Javascript logic iterates through <code>document.styleSheets</code> and checks each <code>CSSRule.STYLE_RULE</code> to see if the selector includes <code>:focus</code> or <code>:focus-visible</code>. It reads the <code>outline</code>, <code>outlineWidth</code>, <code>boxShadow</code>, and <code>border</code> properties. If outline rules contain <code>none</code> or <code>0px</code> and no fallback border or shadow is provided, the selector is recorded. Any interactive element matching that recorded selector is flagged.</li>
+        <li id="v-17" style="margin-bottom: 12px;"><strong>Prohibited Author Names:</strong> Uses the CSS selector <code>[role='presentation'], [role='none'], [role='generic']</code>. The logic triggers a violation if the matched element has an <code>aria-label</code> or <code>aria-labelledby</code> attribute.</li>
+        <li id="v-label-in-name" style="margin-bottom: 12px;"><strong>Label in Name Mismatch:</strong> Uses the CSS selector <code>button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]</code>. The logic normalizes whitespace, strips punctuation, and lowercases both the visible <code>innerText</code> and the computed <code>aria-label</code>. If the visible text is not found as a substring within the <code>aria-label</code>, it throws a violation.</li>
         <li id="v-15" style="margin-bottom: 12px;"><strong>Focusable in Aria-Hidden:</strong> Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses <code>aria-hidden='true'</code>. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.</li>
         <li id="v-16" style="margin-bottom: 12px;"><strong>Invalid ARIA State:</strong> Uses the CSS selector <code>[aria-invalid='true']</code>. Elements matching the selector are flagged.</li>
-        <li id="v-17" style="margin-bottom: 12px;"><strong>Prohibited Author Names:</strong> Uses the CSS selector <code>[role='presentation'], [role='none'], [role='generic']</code>. The logic triggers a violation if the matched element has an <code>aria-label</code> or <code>aria-labelledby</code> attribute.</li>
-        <li id="v-18" style="margin-bottom: 12px;"><strong>Auto-playing Media:</strong> Uses the CSS selector <code>audio[autoplay], video[autoplay]</code>. Elements matching the selector are flagged.</li>
-        <li id="v-19" style="margin-bottom: 12px;"><strong>Heading Hierarchy Errors:</strong> Uses the CSS selector <code>h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']</code>. The logic tracks the integer level of headings. It flags an element if the current heading level skips sequentially past the previous tracked level. It also flags elements without a role attribute if the text length is under 80 characters.</li>
         <li id="v-20" style="margin-bottom: 12px;"><strong>Text Color Contrast:</strong> Uses the CSS selector targeting standard text elements like <code>h1</code>, <code>p</code>, <code>span</code>, <code>button</code>. The logic verifies child text nodes exist. It uses <code>window.getComputedStyle</code> to retrieve the foreground color and background color, dynamically factoring in <code>font-size</code> and <code>font-weight</code> against WCAG large-text thresholds. It applies the WCAG relative luminance formula and categorizes failures as AA Fail or AAA Fail. Elements over background images or CSS gradients are automatically flagged for manual review.</li>
     </ul>
 
     <h4 style="margin-top: 16px;">Tab 2: Informative & Structure</h4>
     <ul style="list-style-type: none; padding-left: 0;">
-        <li id="i-1" style="margin-bottom: 12px;"><strong>Tabindex (Comparison):</strong> Uses the CSS selector <code>[tabindex]</code>. The logic parses the attribute as an integer and assigns different visual legends based on whether the value is equal to 0, less than 0, or greater than 0.</li>
-        <li id="i-2" style="margin-bottom: 12px;"><strong>Display Focus Order:</strong> Traces and numbers the natural sequential path of focusable elements using hierarchical decimal prefixing for cross-frame focus tracking. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies via <code>aria-hidden='true'</code> on the element or an ancestor.</li>
-        <li id="i-3" style="margin-bottom: 12px;"><strong>Display Image Alternatives:</strong> Uses the CSS selector <code>img</code>. The logic assigns distinct legends depending on whether the <code>alt</code> attribute is completely missing, present but empty, or populated.</li>
-        <li id="i-4" style="margin-bottom: 12px;"><strong>Captioned Video:</strong> Uses the CSS selector <code>video</code>. The logic checks for child <code>track[kind="captions"]</code> or <code>track[kind="subtitles"]</code> elements to highlight the video.</li>
-        <li id="i-5" style="margin-bottom: 12px;"><strong>Iframe Context & Titles:</strong> Uses the CSS selector <code>iframe</code>. The logic checks if the iframe has <code>aria-hidden</code> set to true or <code>tabindex</code> set to -1. It flags missing titles if the <code>title</code> attribute is missing or empty, otherwise, it outputs the title text.</li>
-        <li id="i-6" style="margin-bottom: 12px;"><strong>Form Field Descriptions:</strong> Uses the CSS selector <code>[aria-describedby], [title]</code>. The logic outputs the presence of these specific attributes to the badge.</li>
-        <li id="i-7" style="margin-bottom: 12px;"><strong>Fieldsets & Captions:</strong> Uses the CSS selector <code>fieldset, legend</code>. Elements matching the selector are highlighted.</li>
-        <li id="i-8" style="margin-bottom: 12px;"><strong>Touch Target Sizes:</strong> Uses a CSS selector targeting interactive elements and roles like <code>button</code>, <code>link</code>, <code>checkbox</code>, <code>slider</code>. The logic uses <code>getBoundingClientRect()</code> to compute width and height. It finds the minimum of the two dimensions and categorizes the element based on limits at 24px and 44px.</li>
-        <li id="i-9" style="margin-bottom: 12px;"><strong>Warned New Window Links:</strong> Uses the CSS selector <code>a[target='_blank']</code>. The logic combines the text content and <code>aria-label</code> to test against the regular expression <code>/new (window|tab)/</code>. Matches are highlighted.</li>
-        <li id="i-10" style="margin-bottom: 12px;"><strong>Accessible Name Resolution:</strong> Uses a CSS selector targeting interactive widgets. The logic simulates the browser's native fallback sequence, sequentially checking <code>aria-labelledby</code>, <code>aria-label</code>, native associated labels/inner text, and finally the <code>title</code> attribute to print exactly what the screen reader will announce.</li>
-        <li id="i-11" style="margin-bottom: 12px;"><strong>ARIA Roles & Attributes:</strong> Uses the CSS selector <code>[role]</code>. The logic retrieves the value of the role attribute for display.</li>
-        <li id="i-12" style="margin-bottom: 12px;"><strong>ARIA Live Regions:</strong> Uses the CSS selector <code>[aria-live]</code>. The logic retrieves the value of the aria-live attribute for display.</li>
-        <li id="i-13" style="margin-bottom: 12px;"><strong>Required Fields:</strong> Uses the CSS selector <code>[required], [aria-required='true']</code>. The logic distinguishes between HTML required attributes and ARIA required attributes for the output.</li>
-        <li id="i-14" style="margin-bottom: 12px;"><strong>Aria-Expanded State:</strong> Uses the CSS selector <code>[aria-expanded]</code>. The logic categorizes the element based on whether the attribute equals true or false.</li>
-        <li id="i-15" style="margin-bottom: 12px;"><strong>Aria-Controls:</strong> Uses the CSS selector <code>[aria-controls]</code>. Elements matching the selector are highlighted.</li>
-        <li id="i-16" style="margin-bottom: 12px;"><strong>Aria-Owns:</strong> Uses the CSS selector <code>[aria-owns]</code>. Elements matching the selector are highlighted.</li>
         <li id="i-17" style="margin-bottom: 12px;"><strong>Valid Heading Order:</strong> Uses the CSS selector <code>h1, h2, h3, h4, h5, h6</code>. Elements matching the selector are highlighted.</li>
         <li id="i-18" style="margin-bottom: 12px;"><strong>Landmark Regions:</strong> Uses the CSS selector <code>main, nav, header, footer, aside, [role='main'], [role='navigation'], [role='banner'], [role='contentinfo']</code>. The logic retrieves the role attribute or the HTML tag name for the badge output.</li>
         <li id="i-19" style="margin-bottom: 12px;"><strong>Table & Grid Structure:</strong> Uses the CSS selector <code>table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']</code>. The logic applies a dashed style to header roles and tags, and applies a solid style for grid and table containers.</li>
         <li id="i-20" style="margin-bottom: 12px;"><strong>Lists and List Items:</strong> Uses the CSS selector <code>ul, ol, li, dl, dt, dd</code>. Elements matching the selector are highlighted.</li>
         <li id="i-21" style="margin-bottom: 12px;"><strong>Language Definitions:</strong> Uses the CSS selector <code>html, [lang], [xml\\:lang]</code>. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.</li>
+        <li id="i-3" style="margin-bottom: 12px;"><strong>Display Image Alternatives:</strong> Uses the CSS selector <code>img</code>. The logic assigns distinct legends depending on whether the <code>alt</code> attribute is completely missing, present but empty, or populated.</li>
+        <li id="i-4" style="margin-bottom: 12px;"><strong>Captioned Video:</strong> Uses the CSS selector <code>video</code>. The logic checks for child <code>track[kind="captions"]</code> or <code>track[kind="subtitles"]</code> elements to highlight the video.</li>
+        <li id="i-5" style="margin-bottom: 12px;"><strong>Iframe Context & Titles:</strong> Uses the CSS selector <code>iframe</code>. The logic checks if the iframe has <code>aria-hidden</code> set to true or <code>tabindex</code> set to -1. It flags missing titles if the <code>title</code> attribute is missing or empty, otherwise, it outputs the title text.</li>
+        <li id="i-9" style="margin-bottom: 12px;"><strong>Warned New Window Links:</strong> Uses the CSS selector <code>a[target='_blank']</code>. The logic combines the text content and <code>aria-label</code> to test against the regular expression <code>/new (window|tab)/</code>. Matches are highlighted.</li>
+        <li id="i-7" style="margin-bottom: 12px;"><strong>Fieldsets & Captions:</strong> Uses the CSS selector <code>fieldset, legend</code>. Elements matching the selector are highlighted.</li>
+        <li id="i-8" style="margin-bottom: 12px;"><strong>Touch Target Sizes:</strong> Uses a CSS selector targeting interactive elements and roles like <code>button</code>, <code>link</code>, <code>checkbox</code>, <code>slider</code>. The logic uses <code>getBoundingClientRect()</code> to compute width and height. It finds the minimum of the two dimensions and categorizes the element based on limits at 24px and 44px.</li>
+        <li id="i-readonly-fields" style="margin-bottom: 12px;"><strong>Read-Only Fields:</strong> Uses the CSS selector <code>[readonly], [aria-readonly='true']</code>. Highlights controls marked as read-only.</li>
+        <li id="i-1" style="margin-bottom: 12px;"><strong>Tabindex (Comparison):</strong> Uses the CSS selector <code>[tabindex]</code>. The logic parses the attribute as an integer and assigns different visual legends based on whether the value is equal to 0, less than 0, or greater than 0.</li>
+        <li id="i-2" style="margin-bottom: 12px;"><strong>Display Focus Order:</strong> Traces and numbers the natural sequential path of focusable elements using hierarchical decimal prefixing for cross-frame focus tracking. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies via <code>aria-hidden='true'</code> on the element or an ancestor.</li>
+        <li id="i-11" style="margin-bottom: 12px;"><strong>ARIA Roles & Attributes:</strong> Uses the CSS selector <code>[role]</code>. The logic retrieves the value of the role attribute for display.</li>
+        <li id="i-aria-roledescription" style="margin-bottom: 12px;"><strong>Aria-Roledescription:</strong> Uses the CSS selector <code>[aria-roledescription]</code>. Retrieves the value of the attribute for display.</li>
+        <li id="i-10" style="margin-bottom: 12px;"><strong>Accessible Name Resolution:</strong> Uses a CSS selector targeting interactive widgets. The logic simulates the browser's native fallback sequence, sequentially checking <code>aria-labelledby</code>, <code>aria-label</code>, native associated labels/inner text, and finally the <code>title</code> attribute to print exactly what the screen reader will announce.</li>
+        <li id="i-6" style="margin-bottom: 12px;"><strong>Form Field Descriptions:</strong> Uses the CSS selector <code>[aria-describedby], [title]</code>. The logic outputs the presence of these specific attributes to the badge.</li>
+        <li id="i-aria-details" style="margin-bottom: 12px;"><strong>Aria-Details:</strong> Uses the CSS selector <code>[aria-details]</code>. Elements matching the selector are highlighted.</li>
+        <li id="i-15" style="margin-bottom: 12px;"><strong>Aria-Controls:</strong> Uses the CSS selector <code>[aria-controls]</code>. Elements matching the selector are highlighted.</li>
+        <li id="i-16" style="margin-bottom: 12px;"><strong>Aria-Owns:</strong> Uses the CSS selector <code>[aria-owns]</code>. Elements matching the selector are highlighted.</li>
+        <li id="i-aria-setsize" style="margin-bottom: 12px;"><strong>List Set & Position:</strong> Uses the CSS selector <code>[aria-setsize], [aria-posinset]</code>. The logic retrieves the position and set size values for the badge output.</li>
+        <li id="i-12" style="margin-bottom: 12px;"><strong>ARIA Live Regions:</strong> Uses the CSS selector <code>[aria-live]</code>. The logic retrieves the value of the aria-live attribute for display.</li>
+        <li id="i-13" style="margin-bottom: 12px;"><strong>Required Fields:</strong> Uses the CSS selector <code>[required], [aria-required='true']</code>. The logic distinguishes between HTML required attributes and ARIA required attributes for the output.</li>
+        <li id="i-14" style="margin-bottom: 12px;"><strong>Aria-Expanded State:</strong> Uses the CSS selector <code>[aria-expanded]</code>. The logic categorizes the element based on whether the attribute equals true or false.</li>
+        <li id="i-aria-pressed" style="margin-bottom: 12px;"><strong>Aria-Pressed State:</strong> Uses the CSS selector <code>[aria-pressed]</code>. The logic categorizes the toggle button state based on whether the attribute equals true, false, or mixed.</li>
+        <li id="i-aria-value" style="margin-bottom: 12px;"><strong>Aria-Value Properties:</strong> Uses the CSS selector <code>[aria-valuenow], [aria-valuetext]</code>. Retrieves the active numerical or text value of the slider/progress bar.</li>
+        <li id="i-aria-haspopup" style="margin-bottom: 12px;"><strong>Aria-Haspopup:</strong> Uses the CSS selector <code>[aria-haspopup]</code>. Retrieves the overlay type parameter for display.</li>
     </ul>
 
     <h3 id="disability-simulation-engine-logic--assumptions">Disability Simulation Engine (Logic &amp; Assumptions)</h3>

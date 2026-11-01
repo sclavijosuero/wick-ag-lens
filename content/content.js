@@ -11,7 +11,7 @@ window.addEventListener('message', (event) => {
         if (window.A11Y_FOCUS_PREFIX !== event.data.prefix) {
             window.A11Y_FOCUS_PREFIX = event.data.prefix;
             window.A11Y_FRAME_DEPTH = event.data.depth;
-            
+
             if (lastRunState.has('i-focus-order')) {
                 const state = lastRunState.get('i-focus-order');
                 requestAnimationFrame(() => {
@@ -65,7 +65,7 @@ pulsateStyle.textContent = `
         z-index: 2147483647 !important;
     }
     
-    .a11y-inspector-badge {
+.a11y-inspector-badge {
         position: relative;
         z-index: 1;
         background-color: var(--badge-bg);
@@ -76,13 +76,18 @@ pulsateStyle.textContent = `
         letter-spacing: 0.5px;
         padding: 4px 8px;
         border-radius: 3px;
-        white-space: nowrap;
         line-height: 1;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         opacity: 0.75; 
         pointer-events: auto;
         transform-origin: bottom left;
         transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        
+        /* NEW: Force CSS truncation for the on-page badge */
+        white-space: nowrap;
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .informative-badge {
@@ -272,6 +277,17 @@ pulsateStyle.textContent = `
     .severity-serious  { background-color: #f29900; color: #202124; }
     .severity-moderate { background-color: #fbbc04; color: #202124; }
     .severity-minor    { background-color: #1a73e8; color: #ffffff; }
+
+    .a11y-toast-status-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+        white-space: normal;
+        word-break: break-word;
+        display: inline-block;
+    }
     
     @keyframes a11y-toast-in { 
         from { transform: scale(0.95); opacity: 0; } 
@@ -308,7 +324,7 @@ function cleanupAllHighlights() {
         delete entry.targetEl.dataset.a11yTargetId;
     });
     activeHighlightsMap.clear();
-    lastRunState.clear(); 
+    lastRunState.clear();
 }
 
 // =============================================================================
@@ -395,11 +411,11 @@ function ensureFieldLossMask() {
     if (!maskOverlay) {
         maskOverlay = document.createElement("div");
         maskOverlay.id = "a11y-sim-field-mask";
-        
+
         if (HTMLElement.prototype.hasOwnProperty("popover")) {
             maskOverlay.setAttribute("popover", "manual");
         }
-        
+
         maskOverlay.style.position = "fixed";
         maskOverlay.style.top = "0";
         maskOverlay.style.left = "0";
@@ -416,7 +432,7 @@ function ensureFieldLossMask() {
         document.documentElement.appendChild(maskOverlay);
 
         if (maskOverlay.showPopover) {
-            try { maskOverlay.showPopover(); } catch(e) {}
+            try { maskOverlay.showPopover(); } catch (e) { }
         }
     }
     return maskOverlay;
@@ -475,8 +491,8 @@ function applyDisabilitySimulation(state) {
         if (iv.yellowing > 0) {
             ensureSvgFilterContainer();
             // True nuclear sclerosis biologically absorbs blue light heavily.
-            const blueMultiplier = 1 - (iv.yellowing / 100) * 0.85; 
-            const redMultiplier = 1 - (iv.yellowing / 100) * 0.15; 
+            const blueMultiplier = 1 - (iv.yellowing / 100) * 0.85;
+            const redMultiplier = 1 - (iv.yellowing / 100) * 0.15;
             const yellowEl = document.getElementById("a11y-yellowing-matrix");
             if (yellowEl) {
                 yellowEl.setAttribute("values", `
@@ -588,9 +604,9 @@ function querySelectorAllDeep(selector, root = document) {
     function traverse(node) {
         if (!node) return;
         if (node.nodeType === Node.ELEMENT_NODE) {
-            
+
             if (node.id === 'a11y-inspector-overlay' || node.id === 'a11y-info-toast' || node.id === 'panel-toast' || node.id === 'a11y-sim-field-mask') {
-                return; 
+                return;
             }
 
             if (node.matches && node.matches(selector)) {
@@ -614,7 +630,7 @@ function querySelectorAllDeep(selector, root = document) {
 function isElementVisible(element) {
     if (!element || element.nodeType !== 1) return false;
     let currentElement = element;
-    
+
     while (currentElement && currentElement !== document) {
         if (currentElement.nodeType === Node.ELEMENT_NODE) {
             if (currentElement.hasAttribute('inert') || currentElement.hasAttribute('hidden')) {
@@ -631,7 +647,7 @@ function isElementVisible(element) {
                 return false;
             }
         }
-        
+
         if (currentElement.assignedSlot) {
             currentElement = currentElement.assignedSlot;
         } else if (currentElement.parentNode instanceof ShadowRoot) {
@@ -640,15 +656,15 @@ function isElementVisible(element) {
             const win = currentElement.ownerDocument.defaultView;
             if (win) {
                 try {
-                    currentElement = win.frameElement ? win.frameElement : null; 
-                } catch(e) {
-                    currentElement = null; 
+                    currentElement = win.frameElement ? win.frameElement : null;
+                } catch (e) {
+                    currentElement = null;
                 }
             } else {
                 currentElement = null;
             }
         } else {
-            currentElement = currentElement.parentNode; 
+            currentElement = currentElement.parentNode;
         }
     }
 
@@ -668,9 +684,9 @@ function getContainerClippingBounds(element) {
             const style = win.getComputedStyle(current);
             const overflowY = style.overflowY;
             const overflowX = style.overflowX;
-            
+
             const isScrollable = (
-                overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' || 
+                overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden' ||
                 overflowX === 'auto' || overflowX === 'scroll' || overflowX === 'hidden'
             );
 
@@ -692,11 +708,11 @@ function ensureOverlay() {
     if (!overlay) {
         overlay = document.createElement("div");
         overlay.id = "a11y-inspector-overlay";
-        
+
         if (HTMLElement.prototype.hasOwnProperty("popover")) {
             overlay.setAttribute("popover", "manual");
         }
-        
+
         overlay.style.position = "absolute";
         overlay.style.top = "0";
         overlay.style.left = "0";
@@ -704,19 +720,19 @@ function ensureOverlay() {
         overlay.style.height = "0";
         overlay.style.overflow = "visible";
         overlay.style.pointerEvents = "none";
-        overlay.style.zIndex = "2147483647"; 
-        
+        overlay.style.zIndex = "2147483647";
+
         overlay.style.margin = "0";
         overlay.style.padding = "0";
         overlay.style.border = "none";
         overlay.style.background = "transparent";
-        
-        document.documentElement.appendChild(overlay); 
-        
+
+        document.documentElement.appendChild(overlay);
+
         if (overlay.showPopover) {
-            try { overlay.showPopover(); } catch(e) {}
+            try { overlay.showPopover(); } catch (e) { }
         }
-        
+
         // Add dedicated SVG layer for lines (e.g. Focus Order path)
         let svgLines = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svgLines.id = "a11y-inspector-lines";
@@ -741,7 +757,7 @@ let isRepositioning = false;
 function repositionHighlights() {
     if (isRepositioning) return;
     isRepositioning = true;
-    
+
     requestAnimationFrame(() => {
         const overlay = document.getElementById("a11y-inspector-overlay");
         const svgLines = document.getElementById("a11y-inspector-lines");
@@ -761,7 +777,7 @@ function repositionHighlights() {
         const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
         const updates = [];
         const focusNodes = []; // Storage for Focus Order paths
-        
+
         const focusState = lastRunState.get('i-focus-order');
         const showPath = focusState && focusState.options ? focusState.options['opt-show-path'] !== false : true;
 
@@ -782,9 +798,9 @@ function repositionHighlights() {
 
             const clip = getContainerClippingBounds(targetEl);
             const isClippedOut = (
-                rect.bottom <= clip.minTop || 
-                rect.top >= clip.maxBottom || 
-                rect.right <= clip.minLeft || 
+                rect.bottom <= clip.minTop ||
+                rect.top >= clip.maxBottom ||
+                rect.right <= clip.minLeft ||
                 rect.left >= clip.maxRight
             );
 
@@ -797,7 +813,7 @@ function repositionHighlights() {
             let badgeLeft = left - HIGHLIGHT_PADDING;
 
             updates.push({ entry, uniqueId, isVisible: true, isClippedOut, top, left, width, height, badgeTop, badgeLeft });
-            
+
             // Register coordinates for Focus Order routing
             if (entry.boxes.has('i-focus-order') && showPath) {
                 const box = entry.boxes.get('i-focus-order');
@@ -837,7 +853,7 @@ function repositionHighlights() {
                     const hatchColor = box.dataset.color || '#ffffff';
                     box.style.backgroundImage = `repeating-linear-gradient(45deg, ${hatchColor} 0, ${hatchColor} 2px, transparent 2px, transparent 8px)`;
                 } else {
-                    box.style.opacity = ''; 
+                    box.style.opacity = '';
                     box.style.outlineStyle = box.dataset.originalBorderStyle || 'solid';
                     box.style.backgroundImage = 'none';
                 }
@@ -857,7 +873,7 @@ function repositionHighlights() {
                             b.textContent = `[Hidden] ${origText}`;
                         }
                     } else {
-                        b.style.opacity = ''; 
+                        b.style.opacity = '';
                         if (origText && b.textContent !== origText) {
                             b.textContent = origText;
                         }
@@ -865,7 +881,7 @@ function repositionHighlights() {
                 });
             }
         });
-        
+
         // Re-draw SVG connecting lines for Focus Order
         if (svgLines) {
             // Safely clear existing nodes to avoid innerHTML parsing conflicts
@@ -891,9 +907,9 @@ function repositionHighlights() {
                     }
                     return 0;
                 });
-                
+
                 const pointsStr = focusNodes.map(n => `${n.cx},${n.cy}`).join(' ');
-                
+
                 // 1. Solid background line (white buffer)
                 const bgLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                 bgLine.setAttribute("points", pointsStr);
@@ -905,9 +921,9 @@ function repositionHighlights() {
                 const fgLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                 fgLine.setAttribute("points", pointsStr);
                 fgLine.setAttribute("fill", "none");
-                fgLine.setAttribute("stroke", "#9c27b0"); 
+                fgLine.setAttribute("stroke", "#9c27b0");
                 fgLine.setAttribute("stroke-width", "2.5");
-                
+
                 svgLines.appendChild(bgLine);
                 svgLines.appendChild(fgLine);
 
@@ -916,18 +932,18 @@ function repositionHighlights() {
                     const match = n.label.match(/#(\d+(?:\.\d+)*)/);
                     const stepNum = match ? match[1] : "";
                     const charCount = stepNum.length;
-                    
+
                     // Dynamic width calc: Minimum 24px (for a circle), expanding dynamically for decimals
-                    const rectWidth = Math.max(24, charCount * 7.5 + 10); 
+                    const rectWidth = Math.max(24, charCount * 7.5 + 10);
 
                     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                    
+
                     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     rect.setAttribute("x", n.cx - (rectWidth / 2));
                     rect.setAttribute("y", n.cy - 12);
                     rect.setAttribute("width", rectWidth);
                     rect.setAttribute("height", "24");
-                    rect.setAttribute("rx", "12"); 
+                    rect.setAttribute("rx", "12");
                     rect.setAttribute("ry", "12");
                     rect.setAttribute("fill", n.color);
                     rect.setAttribute("stroke", "#ffffff");
@@ -943,7 +959,7 @@ function repositionHighlights() {
                     t.setAttribute("font-weight", "bold");
                     t.setAttribute("text-anchor", "middle");
                     t.setAttribute("dominant-baseline", "central");
-                    t.setAttribute("dy", "1"); 
+                    t.setAttribute("dy", "1");
                     t.textContent = stepNum;
 
                     g.appendChild(rect);
@@ -979,16 +995,16 @@ const domMutationObserver = new MutationObserver((mutations) => {
         if (m.target && (m.target.id === 'a11y-inspector-overlay' || (m.target.closest && m.target.closest('#a11y-inspector-overlay')))) continue;
         if (m.target && (m.target.id === 'a11y-sim-svg-container' || m.target.id === 'a11y-sim-field-mask')) continue;
         if (m.type === 'attributes' && m.attributeName && m.attributeName.startsWith('data-a11y')) continue;
-        
+
         hasRelevantMutation = true;
-        
+
         if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
-            needsRescan = true; 
+            needsRescan = true;
         } else if (m.type === 'attributes') {
-            needsRescan = true; 
+            needsRescan = true;
         }
     }
-    
+
     if (!hasRelevantMutation) return;
 
     if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
@@ -1001,24 +1017,24 @@ const domMutationObserver = new MutationObserver((mutations) => {
         domSyncDebounceTimer = setTimeout(() => {
             const overlay = document.getElementById("a11y-inspector-overlay");
             if (overlay && overlay.showPopover) {
-                try { overlay.hidePopover(); overlay.showPopover(); } catch(e) {}
+                try { overlay.hidePopover(); overlay.showPopover(); } catch (e) { }
             }
-            
+
             // NEW: Ensure toast is promoted above the overlay during soft resyncs
             const activeToast = document.getElementById('a11y-info-toast');
             if (activeToast && activeToast.showPopover) {
-                try { activeToast.hidePopover(); activeToast.showPopover(); } catch(e) {}
+                try { activeToast.hidePopover(); activeToast.showPopover(); } catch (e) { }
             }
-            
-            try { chrome.runtime.sendMessage({ action: "softResync" }); } catch (e) {}
+
+            try { chrome.runtime.sendMessage({ action: "softResync" }); } catch (e) { }
         }, 750);
     }
 });
 
 if (document.body) {
-    domMutationObserver.observe(document.body, { 
-        attributes: true, 
-        childList: true, 
+    domMutationObserver.observe(document.body, {
+        attributes: true,
+        childList: true,
         subtree: true,
         attributeFilter: ['class', 'style', 'hidden', 'disabled', 'inert', 'aria-hidden', 'aria-expanded', 'open', 'data-state']
     });
@@ -1067,7 +1083,7 @@ function clearHighlights(featureId, preserveToast = false) {
             activeToast.remove();
         }
     }
-    
+
     // Explicitly call to erase any SVG paths or graphics immediately
     requestAnimationFrame(() => repositionHighlights());
 }
@@ -1094,6 +1110,14 @@ function formatLabel(legend, label) {
 }
 
 function drawHighlight(el, color, text, featureId, legendType = "default", borderStyle = "solid") {
+    // 1. GLOBAL UI SAFEGUARD: Catch runaway strings from ANY current or future audit.
+    // CSS handles the visual on-page truncation (250px ellipsis), but this protects the Toast panel
+    // from massive paragraphs (e.g., a 2,000-character aria-label) causing the box to grow off-screen.
+    let safeText = text || "";
+    if (safeText.length > 150) {
+        safeText = safeText.substring(0, 150).trim() + "...";
+    }
+
     const overlay = ensureOverlay();
     const rect = el.getBoundingClientRect();
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -1136,11 +1160,11 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     box.dataset.a11yTargetId = uniqueId;
     box.dataset.ruleId = featureId;
     box.dataset.selector = getCssSelector(el);
-    box.dataset.label = text; 
+    box.dataset.label = safeText; // USE THE SAFE TEXT HERE
     box.dataset.legendLabel = legendLabel;
-    box.dataset.legendType = legendTypeAttr; 
+    box.dataset.legendType = legendTypeAttr;
     box.dataset.color = color;
-    box.dataset.originalBorderStyle = borderStyle; 
+    box.dataset.originalBorderStyle = borderStyle;
 
     box.style.display = "block";
     box.style.margin = "0";
@@ -1150,11 +1174,11 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     box.style.left = `${rect.left + scrollLeft}px`;
     box.style.width = `${rect.width}px`;
     box.style.height = `${rect.height}px`;
-    
+
     box.style.border = `none`;
     box.style.outline = `3px ${borderStyle} ${color}`;
     box.style.outlineOffset = `${HIGHLIGHT_PADDING}px`;
-    
+
     box.style.boxSizing = "border-box";
     box.style.backgroundColor = "transparent";
     box.style.borderRadius = "3px";
@@ -1181,26 +1205,26 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
 
     const badge = document.createElement("div");
     badge.className = "a11y-inspector-badge";
-    
+
     if (configData && configData.tab && configData.tab.id === 'tab-informative') {
         badge.classList.add('informative-badge');
     }
 
-    badge.setAttribute("data-feature", featureId); 
-    badge.dataset.legendLabel = legendLabel; 
-    badge.dataset.originalText = text; 
-    badge.textContent = text; 
-    
-    badge.style.setProperty('--badge-bg', color); 
-    badge.style.setProperty('--badge-text', getTextColor(color)); 
-    
+    badge.setAttribute("data-feature", featureId);
+    badge.dataset.legendLabel = legendLabel;
+    badge.dataset.originalText = safeText; // USE THE SAFE TEXT HERE
+    badge.textContent = safeText; // USE THE SAFE TEXT HERE
+
+    badge.style.setProperty('--badge-bg', color);
+    badge.style.setProperty('--badge-text', getTextColor(color));
+
     // Fix for Popover UA Stylesheet Overrides
     badge.addEventListener('click', (e) => {
         e.stopPropagation();
-        
+
         const existingToast = document.getElementById('a11y-info-toast');
         if (existingToast) existingToast.remove();
-        
+
         document.querySelectorAll('.a11y-badge-active').forEach(b => b.classList.remove('a11y-badge-active'));
         document.querySelectorAll('.a11y-container-active').forEach(c => c.classList.remove('a11y-container-active'));
         document.querySelectorAll('.a11y-box-active').forEach(b => {
@@ -1212,7 +1236,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
 
         badge.classList.add('a11y-badge-active');
         entry.badgeContainer.classList.add('a11y-container-active');
-        
+
         const relatedBox = entry.boxes.get(featureId) || overlay.querySelector(`.a11y-inspector-box[data-a11y-target-id="${uniqueId}"][data-feature="${featureId}"]`);
         if (relatedBox) {
             relatedBox.style.setProperty('--badge-bg', color);
@@ -1222,7 +1246,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         }
 
         const isVoid = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i.test(el.tagName);
-        
+
         let rawTagStr = `<${el.tagName.toLowerCase()}`;
         for (let i = 0; i < el.attributes.length; i++) {
             const attr = el.attributes[i];
@@ -1231,7 +1255,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             }
         }
         rawTagStr += '>';
-        
+
         let htmlSnippet = rawTagStr;
         if (!isVoid) {
             if (el.children.length === 0 && el.textContent.trim().length > 0) {
@@ -1253,7 +1277,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             }
         }
         syntaxHtml += `<span style="color: #808080">&gt;</span>`;
-        
+
         if (!isVoid) {
             if (el.children.length === 0 && el.textContent.trim().length > 0) {
                 let txt = el.textContent;
@@ -1267,11 +1291,11 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
 
         const info = configData.feature.info || { what: 'No information provided.', why: 'No information provided.' };
         const severityHtml = configData.feature.severity ? `<span class="a11y-toast-severity severity-${configData.feature.severity.toLowerCase()}">${configData.feature.severity}</span>` : '';
-        
+
         const rawLabel = formatLabel(badge.dataset.legendLabel, text);
         const safeDisplayLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const statusHtml = `<span class="a11y-toast-severity" style="background-color: ${color}; color: ${getTextColor(color)}; border: 1px solid rgba(255,255,255,0.2);">${safeDisplayLabel}</span>`;
-        
+        const statusHtml = `<span class="a11y-toast-status-badge" style="background-color: ${color}; color: ${getTextColor(color)}; border: 1px solid rgba(255,255,255,0.2);">${safeDisplayLabel}</span>`;
+
         const selectorStr = getCssSelector(el);
 
         const toast = document.createElement('div');
@@ -1280,12 +1304,12 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         toast.dataset.feature = featureId;
         toast.dataset.targetId = uniqueId;
         toast.style.setProperty('--badge-bg', color);
-        
+
         if (HTMLElement.prototype.hasOwnProperty("popover")) {
             toast.setAttribute("popover", "manual");
-            toast.style.margin = "0"; 
+            toast.style.margin = "0";
         }
-        
+
         toast.innerHTML = `
             <h2>
                 <span>${configData.category.label} &rsaquo; ${configData.feature.label}</span>
@@ -1315,11 +1339,11 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
             <span class="a11y-info-toast-section-title">Why it's important</span>
             <p>${info.why}</p>
         `;
-        
+
         document.documentElement.appendChild(toast);
-        
+
         if (toast.showPopover) {
-            try { toast.showPopover(); } catch(e) {}
+            try { toast.showPopover(); } catch (e) { }
         }
 
         toast.querySelector('.selector-copy-btn').addEventListener('click', (btnEvent) => {
@@ -1339,7 +1363,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         });
 
         const badgeRect = badge.getBoundingClientRect();
-        
+
         // Fix for Popover UA Stylesheet Overrides
         toast.style.left = 'auto';
         toast.style.right = 'auto';
@@ -1356,7 +1380,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         } else {
             toast.style.bottom = '24px';
         }
-        
+
         // FIX: Replaced isolated variables with global DOM lookups to prevent closure null crashes
         toast.querySelector('.a11y-toast-close').addEventListener('click', () => {
             document.querySelectorAll('.a11y-badge-active').forEach(b => b.classList.remove('a11y-badge-active'));
@@ -1377,7 +1401,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
     if (activeToast && activeToast.dataset.targetId === uniqueId && activeToast.dataset.feature === featureId) {
         badge.classList.add('a11y-badge-active');
         entry.badgeContainer.classList.add('a11y-container-active');
-        
+
         if (entry.boxes.has(featureId)) {
             const activeBox = entry.boxes.get(featureId);
             activeBox.style.setProperty('--badge-bg', color);
@@ -1389,16 +1413,16 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
 }
 
 function runCheck(featureId, activeLegends, options = {}) {
-    lastRunState.set(featureId, { activeLegends, options }); 
+    lastRunState.set(featureId, { activeLegends, options });
     clearHighlights(featureId, true);
-    
+
     const configData = getFeatureConfig(featureId);
     if (!configData) return;
-    
+
     const feature = configData.feature;
-    
+
     let elements = querySelectorAllDeep(feature.selector).filter(isElementVisible);
-    
+
     if (feature.preprocessElements) {
         elements = feature.preprocessElements(elements);
     }
@@ -1414,7 +1438,7 @@ function runCheck(featureId, activeLegends, options = {}) {
         if (feature.customHighlight) {
             feature.customHighlight(el, (target, color, text, legendType, borderStyle) => {
                 if (activeLegends && activeLegends.length > 0 && !activeLegends.includes(legendType) && activeLegends[0] !== "default") return;
-                
+
                 drawHighlight(target, color, text, featureId, legendType, borderStyle);
                 counts[legendType] = (counts[legendType] || 0) + 1;
             }, state);
@@ -1428,8 +1452,8 @@ function runCheck(featureId, activeLegends, options = {}) {
 
     try {
         chrome.runtime.sendMessage({ action: "updateCounts", featureId, totals: counts });
-    } catch (e) {}
-    
+    } catch (e) { }
+
     // Explicitly call to render SVG paths or graphics immediately after batch processing
     requestAnimationFrame(() => repositionHighlights());
 }
@@ -1438,7 +1462,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'highlight') {
         runCheck(request.featureId, request.activeLegends, request.options);
     } else if (request.action === 'clear') {
-        lastRunState.delete(request.featureId); 
+        lastRunState.delete(request.featureId);
         clearHighlights(request.featureId);
     } else if (request.action === 'clearAllAudits') {
         cleanupAllHighlights();
@@ -1482,7 +1506,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else if (request.action === 'highlightAndScroll') {
         const entry = activeHighlightsMap.get(request.targetId);
         const targetEl = entry ? entry.targetEl : querySelectorAllDeep(`[data-a11y-target-id="${request.targetId}"]:not(.a11y-inspector-box, .a11y-badge-container)`)[0];
-        
+
         let overlayEl = null;
         if (entry && entry.boxes && request.featureId) {
             overlayEl = entry.boxes.get(request.featureId);
@@ -1495,18 +1519,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (overlayEl) {
             const color = request.color || overlayEl.dataset.color || '#e67e22';
-            
+
             document.querySelectorAll('.a11y-box-active').forEach(b => {
                 b.classList.remove('a11y-box-active');
                 b.style.backgroundColor = "transparent";
             });
-            
+
             overlayEl.style.setProperty('--badge-bg', color);
             overlayEl.classList.add('a11y-box-active');
-            
+
             const tintedBgColor = color.length === 7 && color.startsWith('#') ? color + '33' : 'rgba(128, 128, 128, 0.2)';
             overlayEl.style.backgroundColor = tintedBgColor;
-            
+
             setTimeout(() => {
                 overlayEl.classList.remove('a11y-box-active');
                 overlayEl.style.backgroundColor = "transparent";
@@ -1522,10 +1546,10 @@ function requestStateSync() {
     cleanupAllHighlights();
     clearSimulationFilters();
     if (syncTimeout) clearTimeout(syncTimeout);
-    
+
     syncTimeout = setTimeout(() => {
-        try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
-    }, 500); 
+        try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) { }
+    }, 500);
 }
 
 window.addEventListener('pageshow', (event) => { if (event.persisted) requestStateSync(); });
@@ -1533,5 +1557,5 @@ window.addEventListener('popstate', requestStateSync);
 window.addEventListener('hashchange', requestStateSync);
 
 setTimeout(() => {
-    try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) {}
+    try { chrome.runtime.sendMessage({ action: "contentScriptReady" }); } catch (e) { }
 }, 50);
