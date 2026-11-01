@@ -28,6 +28,28 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => toast.classList.remove('show'), 4000);
     }
 
+    // 7. DevTools Lifecycle Management (Moved up for scope access to safeSendMessage)
+    let panelPort = null;
+    function connectToContentScript() {
+        if (panelPort) {
+            panelPort.disconnect();
+        }
+        panelPort = chrome.tabs.connect(tabId, { name: "a11y-panel" });
+        
+        // Catch bfcache/navigation disconnects to prevent the runtime error
+        panelPort.onDisconnect.addListener(() => {
+            const err = chrome.runtime.lastError; // Reading this clears the "unchecked" flag
+            panelPort = null;
+        });
+    }
+
+    // Helper to prevent "unchecked runtime.lastError" on fire-and-forget messages
+    function safeSendMessage(message, options = {}) {
+        chrome.tabs.sendMessage(tabId, message, options, () => {
+            const err = chrome.runtime.lastError; // Swallows bfcache navigation errors
+        });
+    }
+
     // 2. Mode Switching Logic (Inspect vs Simulate)
     const modeBtnInspect = document.getElementById("mode-btn-inspect");
     const modeBtnSimulate = document.getElementById("mode-btn-simulate");
@@ -53,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (footerSimulateContent) footerSimulateContent.style.display = "block";
 
             // Clear all audit highlights on host page
-            chrome.tabs.sendMessage(tabId, { action: "clearAllAudits" });
+            safeSendMessage({ action: "clearAllAudits" });
 
             // Apply current active simulator state
             sendSimulateStateToContent();
@@ -70,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (footerSimulateContent) footerSimulateContent.style.display = "none";
 
             // Clear simulation filters on host page
-            chrome.tabs.sendMessage(tabId, { action: "clearSimulation" });
+            safeSendMessage({ action: "clearSimulation" });
 
             // Restore active Inspector highlights
             restoreActiveAuditHighlights();
@@ -249,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (toggle && toggle.checked && modeBtnInspect.classList.contains("active")) {
-                    chrome.tabs.sendMessage(tabId, {
+                    safeSendMessage({
                         action: 'highlight',
                         featureId: featureId,
                         activeLegends: activeLegends,
@@ -341,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activeFeatures.forEach(featureId => {
             const feature = getFeatureConfigById(featureId);
-            chrome.tabs.sendMessage(tabId, { 
+            safeSendMessage({ 
                 action: 'highlight', 
                 featureId, 
                 activeLegends: getActiveLegends(feature),
@@ -368,7 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function sendSimulateStateToContent() {
         if (!modeBtnSimulate.classList.contains("active")) return;
-        chrome.tabs.sendMessage(tabId, { action: "applySimulation", state: simState });
+        safeSendMessage({ action: "applySimulation", state: simState });
         chrome.storage.local.set({ [STORAGE_KEY_SIM]: simState });
     }
     
@@ -830,9 +852,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     color: elementData ? elementData.color : null 
                 };
                 if (elementData && elementData.frameId !== undefined) {
-                    chrome.tabs.sendMessage(tabId, message, { frameId: elementData.frameId });
+                    safeSendMessage(message, { frameId: elementData.frameId });
                 } else {
-                    chrome.tabs.sendMessage(tabId, message);
+                    safeSendMessage(message);
                 }
             });
         });
@@ -997,7 +1019,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const activeLegends = getActiveLegends(feature);
 
             if (modeBtnInspect.classList.contains("active")) {
-                chrome.tabs.sendMessage(tabId, { action, featureId, activeLegends, options: getActiveOptions(featureId) });
+                safeSendMessage({ action, featureId, activeLegends, options: getActiveOptions(featureId) });
             }
 
             if (!e.target.checked) resetBadges(featureId);
@@ -1014,7 +1036,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (featureToggle && featureToggle.checked && modeBtnInspect.classList.contains("active")) {
                 const feature = getFeatureConfigById(featureId);
                 const activeLegends = getActiveLegends(feature);
-                chrome.tabs.sendMessage(tabId, { action: 'highlight', featureId, activeLegends, options: getActiveOptions(featureId) });
+                safeSendMessage({ action: 'highlight', featureId, activeLegends, options: getActiveOptions(featureId) });
             }
         });
     });
@@ -1065,13 +1087,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     handleMasterToggle("master-toggle-violations", "tab-violations");
     handleMasterToggle("master-toggle-informative", "tab-informative");
-
-    // 7. DevTools Lifecycle Management
-    let panelPort = null;
-    function connectToContentScript() {
-        if (panelPort) panelPort.disconnect();
-        panelPort = chrome.tabs.connect(tabId, { name: "a11y-panel" });
-    }
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (sender.tab && sender.tab.id === tabId) {
@@ -1359,9 +1374,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
                 
                 if (elementData && elementData.frameId !== undefined) {
-                    chrome.tabs.sendMessage(tabId, message, { frameId: elementData.frameId });
+                    safeSendMessage(message, { frameId: elementData.frameId });
                 } else {
-                    chrome.tabs.sendMessage(tabId, message);
+                    safeSendMessage(message);
                 }
             });
         });
