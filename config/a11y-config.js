@@ -115,13 +115,13 @@ window.A11Y_CONFIG = {
                                 const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
                                 const hasTitle = el.querySelector("title") && el.querySelector("title").textContent.trim() !== "";
                                 const parentInteractive = el.closest('button, a[href], [role="button"], [role="link"]');
-                                
+
                                 if (parentInteractive) {
                                     const parentText = parentInteractive.innerText || parentInteractive.textContent;
                                     const parentHasAria = parentInteractive.hasAttribute("aria-label") || parentInteractive.hasAttribute("aria-labelledby");
                                     if (parentText.trim() !== "" || parentHasAria) return false;
                                 }
-                    
+
                                 if (!hasAria && !hasTitle) {
                                     drawHighlight(el, "#d93025", "Inaccessible SVG", "bad");
                                     return true;
@@ -352,19 +352,19 @@ window.A11Y_CONFIG = {
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const val = el.getAttribute("autocomplete");
-                                if (val === "on" || val === "off") return false; 
+                                if (val === "on" || val === "off") return false;
                                 const validTokens = new Set(["name", "honorific-prefix", "given-name", "additional-name", "family-name", "honorific-suffix", "nickname", "email", "username", "new-password", "current-password", "one-time-code", "organization-title", "organization", "street-address", "address-line1", "address-line2", "address-line3", "address-level4", "address-level3", "address-level2", "address-level1", "country", "country-name", "postal-code", "cc-name", "cc-given-name", "cc-additional-name", "cc-family-name", "cc-number", "cc-exp", "cc-exp-month", "cc-exp-year", "cc-csc", "cc-type", "transaction-currency", "transaction-amount", "language", "bday", "bday-day", "bday-month", "bday-year", "sex", "tel", "tel-country-code", "tel-national", "tel-area-code", "tel-local", "tel-extension", "impp", "url", "photo", "webauthn"]);
-                                
+
                                 const tokens = val.toLowerCase().split(/\s+/);
                                 let isInvalid = false;
-                                for(let token of tokens) {
+                                for (let token of tokens) {
                                     if (token.startsWith('section-') || token === 'shipping' || token === 'billing' || token === 'home' || token === 'work' || token === 'mobile' || token === 'fax' || token === 'pager') continue;
                                     if (!validTokens.has(token)) {
                                         isInvalid = true;
                                         break;
                                     }
                                 }
-                    
+
                                 if (isInvalid) {
                                     drawHighlight(el, "#fbbc04", `Invalid autocomplete="${val}"`, "bad");
                                     return true;
@@ -477,6 +477,77 @@ window.A11Y_CONFIG = {
                     label: "ARIA Names (Errors)",
                     features: [
                         {
+                            id: "v-duplicate-id",
+                            label: "Duplicate ID Attributes",
+                            desc: "Multiple elements sharing the exact same <code>id</code>",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[id]",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Scans the DOM to find multiple elements sharing the identical <code>id</code> attribute.",
+                                why: "<strong>Screen readers and label mappings will only find the first ID.</strong> If multiple elements share an ID, <code>&lt;label for&gt;</code> and ARIA reference attributes will fail to connect to the subsequent elements. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
+                            },
+                            customHighlight: (el, drawHighlight, state) => {
+                                state.idCounts = state.idCounts || {};
+                                const id = el.id.trim();
+                                if (!id) return false;
+
+                                if (state.idCounts[id] === undefined) {
+                                    try {
+                                        // CSS.escape prevents crashes on dynamically generated IDs with invalid characters
+                                        state.idCounts[id] = document.querySelectorAll(`[id="${CSS.escape(id)}"]`).length;
+                                    } catch (e) {
+                                        state.idCounts[id] = 1;
+                                    }
+                                }
+
+                                if (state.idCounts[id] > 1) {
+                                    drawHighlight(el, "#d93025", `Duplicate ID: "${id}"`, "bad");
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-broken-aria-ref",
+                            label: "Broken ARIA References",
+                            desc: "ARIA relationship attributes pointing to non-existent DOM IDs",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Validates that any ID referenced by an ARIA relationship attribute actually exists in the DOM.",
+                                why: "<strong>A broken reference means the relationship is completely lost.</strong> The screen reader will not announce the label, description, or target widget if the ID does not physically exist. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const attrs = [
+                                    "aria-labelledby", "aria-describedby", "aria-controls",
+                                    "aria-owns", "aria-errormessage", "aria-details", "aria-activedescendant"
+                                ];
+
+                                let brokenRefs = [];
+
+                                attrs.forEach(attr => {
+                                    if (el.hasAttribute(attr)) {
+                                        const ids = el.getAttribute(attr).split(/\s+/).filter(Boolean);
+                                        ids.forEach(id => {
+                                            if (!document.getElementById(id)) {
+                                                brokenRefs.push(`${attr}="${id}"`);
+                                            }
+                                        });
+                                    }
+                                });
+
+                                if (brokenRefs.length > 0) {
+                                    drawHighlight(el, "#d93025", `Broken Ref: ${brokenRefs.join(", ")}`, "bad");
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
                             id: "v-prohibited-names",
                             label: "Prohibited Author Names",
                             desc: "Structural roles containing <code>aria-label</code>",
@@ -509,15 +580,15 @@ window.A11Y_CONFIG = {
                             customHighlight: (el, drawHighlight) => {
                                 const rawVisible = (el.innerText || "").trim();
                                 const rawAria = el.getAttribute("aria-label").trim();
-                                
+
                                 const visibleText = rawVisible.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
                                 const ariaLabel = rawAria.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
-                                
+
                                 if (visibleText.length > 0 && ariaLabel.length > 0) {
                                     if (!ariaLabel.includes(visibleText)) {
                                         const cleanVis = rawVisible.replace(/\s+/g, " ").trim();
                                         const cleanAria = rawAria.replace(/\s+/g, " ").trim();
-                                        
+
                                         drawHighlight(el, "#f29900", `Mismatch: "${cleanVis}" != "${cleanAria}"`, "bad");
                                         return true;
                                     }
@@ -679,7 +750,7 @@ window.A11Y_CONFIG = {
                                     return true;
                                 }
 
-                                return false; 
+                                return false;
                             }
                         }]
                 }
@@ -811,13 +882,13 @@ window.A11Y_CONFIG = {
                                 why: "<strong>Allows rapid visual auditing of alternative text descriptions</strong> without needing to inspect the DOM manually. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>"
                             },
                             customHighlight: (el, drawHighlight) => {
-                                if (!el.hasAttribute("alt")) { 
-                                    drawHighlight(el, "#d93025", "Missing alt", "miss"); 
-                                } else if (el.getAttribute("alt").trim() === "") { 
-                                    drawHighlight(el, "#5f6368", 'alt=""', "dec"); 
-                                } else { 
+                                if (!el.hasAttribute("alt")) {
+                                    drawHighlight(el, "#d93025", "Missing alt", "miss");
+                                } else if (el.getAttribute("alt").trim() === "") {
+                                    drawHighlight(el, "#5f6368", 'alt=""', "dec");
+                                } else {
                                     const cleanAlt = el.getAttribute("alt").replace(/\s+/g, " ").trim();
-                                    drawHighlight(el, "#1a73e8", `alt="${cleanAlt}"`, "has"); 
+                                    drawHighlight(el, "#1a73e8", `alt="${cleanAlt}"`, "has");
                                 }
                                 return true;
                             }
@@ -857,14 +928,14 @@ window.A11Y_CONFIG = {
                             customHighlight: (el, drawHighlight) => {
                                 const title = el.getAttribute("title");
                                 const isHidden = el.getAttribute("aria-hidden") === "true" || el.getAttribute("tabindex") === "-1";
-                                
-                                if (isHidden) { 
-                                    drawHighlight(el, "#5f6368", "Hidden Iframe", "hidden"); 
-                                } else if (!title || title.trim() === "") { 
-                                    drawHighlight(el, "#d93025", "Missing Title", "missing"); 
-                                } else { 
+
+                                if (isHidden) {
+                                    drawHighlight(el, "#5f6368", "Hidden Iframe", "hidden");
+                                } else if (!title || title.trim() === "") {
+                                    drawHighlight(el, "#d93025", "Missing Title", "missing");
+                                } else {
                                     const cleanTitle = title.replace(/\s+/g, " ").trim();
-                                    drawHighlight(el, "#1a73e8", `title="${cleanTitle}"`, "titled"); 
+                                    drawHighlight(el, "#1a73e8", `title="${cleanTitle}"`, "titled");
                                 }
                                 return true;
                             }
@@ -956,7 +1027,7 @@ window.A11Y_CONFIG = {
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const txt = el.hasAttribute("readonly") ? "readonly" : 'aria-readonly="true"';
-                                drawHighlight(el, "#607d8b", txt, "info"); 
+                                drawHighlight(el, "#607d8b", txt, "info");
                                 return true;
                             }
                         }
@@ -1022,9 +1093,9 @@ window.A11Y_CONFIG = {
                                         else currentElement = null;
                                     } else { currentElement = currentElement.parentNode; }
                                 }
-                                
+
                                 state.counter = state.counter || 1;
-                                
+
                                 const prefix = window.A11Y_FOCUS_PREFIX || "";
                                 const depth = window.A11Y_FRAME_DEPTH || 0;
                                 const tagName = el.tagName.toLowerCase();
@@ -1038,7 +1109,7 @@ window.A11Y_CONFIG = {
                                                 depth: depth + 1
                                             }, '*');
                                         }
-                                    } catch (e) {}
+                                    } catch (e) { }
                                 }
 
                                 let depthTag = "";
@@ -1047,12 +1118,12 @@ window.A11Y_CONFIG = {
 
                                 const displayNum = `${depthTag}#${prefix}${state.counter}`;
 
-                                if (isHiddenFromAT) { 
-                                    drawHighlight(el, "#d93025", `${displayNum}: <${tagName}> (Hidden from AT)`, "hidden-at"); 
-                                } else { 
-                                    drawHighlight(el, "#9c27b0", `${displayNum}: <${tagName}>`, "path"); 
+                                if (isHiddenFromAT) {
+                                    drawHighlight(el, "#d93025", `${displayNum}: <${tagName}> (Hidden from AT)`, "hidden-at");
+                                } else {
+                                    drawHighlight(el, "#9c27b0", `${displayNum}: <${tagName}>`, "path");
                                 }
-                                state.counter++; 
+                                state.counter++;
                                 return true;
                             },
                             preprocessElements: (elements) => {
@@ -1108,9 +1179,9 @@ window.A11Y_CONFIG = {
                                 what: "Highlights elements utilizing <code>aria-roledescription</code> to override how the role is announced.",
                                 why: "<strong>Should be used sparingly.</strong> It overrides the native role announcement (e.g., turning 'button' into 'slide'), which can confuse users if overused. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
                             },
-                            customHighlight: (el, drawHighlight) => { 
-                                drawHighlight(el, "#009688", `roledescription="${el.getAttribute('aria-roledescription')}"`, "info"); 
-                                return true; 
+                            customHighlight: (el, drawHighlight) => {
+                                drawHighlight(el, "#009688", `roledescription="${el.getAttribute('aria-roledescription')}"`, "info");
+                                return true;
                             }
                         }
                     ]
@@ -1229,9 +1300,9 @@ window.A11Y_CONFIG = {
                                 what: "Highlights elements utilizing <code>aria-details</code>.",
                                 why: "<strong>Links complex, rich explanations to an element.</strong> Similar to describedby, but allows for structured HTML (like a table or list) in the target description. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
                             },
-                            customHighlight: (el, drawHighlight) => { 
-                                drawHighlight(el, "#673ab7", `aria-details`, "info"); 
-                                return true; 
+                            customHighlight: (el, drawHighlight) => {
+                                drawHighlight(el, "#673ab7", `aria-details`, "info");
+                                return true;
                             }
                         },
                         {
@@ -1271,11 +1342,11 @@ window.A11Y_CONFIG = {
                                 what: "Highlights elements utilizing <code>aria-setsize</code> and <code>aria-posinset</code>.",
                                 why: "<strong>Crucial for infinite scroll or virtualized lists.</strong> Tells screen readers the total size of a list and the element's position, even if all items aren't in the DOM. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
                             },
-                            customHighlight: (el, drawHighlight) => { 
+                            customHighlight: (el, drawHighlight) => {
                                 const pos = el.getAttribute("aria-posinset") || "?";
                                 const size = el.getAttribute("aria-setsize") || "?";
-                                drawHighlight(el, "#3f51b5", `Item ${pos} of ${size}`, "info"); 
-                                return true; 
+                                drawHighlight(el, "#3f51b5", `Item ${pos} of ${size}`, "info");
+                                return true;
                             }
                         }
                     ]
@@ -1370,7 +1441,7 @@ window.A11Y_CONFIG = {
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const val = el.getAttribute("aria-valuetext") || el.getAttribute("aria-valuenow");
-                                drawHighlight(el, "#00acc1", `value="${val}"`, "info"); 
+                                drawHighlight(el, "#00acc1", `value="${val}"`, "info");
                                 return true;
                             }
                         },
@@ -1387,7 +1458,7 @@ window.A11Y_CONFIG = {
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const val = el.getAttribute("aria-haspopup");
-                                drawHighlight(el, "#9c27b0", `haspopup="${val}"`, "info"); 
+                                drawHighlight(el, "#9c27b0", `haspopup="${val}"`, "info");
                                 return true;
                             }
                         }

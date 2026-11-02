@@ -201,9 +201,13 @@ The following details the complete list of heuristic evaluations performed by th
 | :--- | :--- | :--- | :--- | :--- |
 | **Prohibited Author Names** | Serious | `Prohibited name on role="{role}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-17) |
 | **Label in Name Mismatch** | Serious | `"Mismatch: "{txt}" != "{aria}""` | [2.5.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html) | [View](#v-label-in-name) |
+| **Duplicate ID Attributes** | Critical | `Duplicate ID: "{id}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-duplicate-id) |
+| **Broken ARIA References** | Critical | `Broken Ref: {attr}="{id}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-broken-aria-ref) |
 
 *   **Prohibited Author Names:** Flags structural roles (like `presentation`) containing `aria-label` or `aria-labelledby`. **Adding a name to a transparent structural role breaks its semantics.**
 *   **Label in Name Mismatch:** Flags interactive elements where the visible text is completely overridden by an `aria-label` that does not include the visible text. **Voice dictation users rely on visible text commands.**
+*   **Duplicate ID Attributes:** Flags multiple elements sharing the identical `id` attribute. **Screen readers and label mappings will only find the first ID.**
+*   **Broken ARIA References:** Flags ARIA relationship attributes pointing to non-existent DOM IDs. **A broken reference means the relationship is completely lost.**
 
 #### ARIA States (Errors)
 
@@ -306,7 +310,7 @@ The following details the complete list of heuristic evaluations performed by th
 | **Aria-Owns** | Informative | `"aria-owns"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-16) |
 | **List Set & Position** | Informative | `"Item X of Y"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-aria-setsize) |
 
-*   **Accessible Name Resolution:** Computes the final accessible name by simulating the browser's fallback calculation sequence: `aria-labelledby`, then `aria-label`, then native linked labels/text, and finally `title`. **Reveals exactly what a screen reader will announce.** 
+*   **Accessible Name Resolution:** Computes the final accessible name by simulating the browser's fallback calculation sequence: `aria-labelledby`, then `aria-label`, then native associated labels/text, and finally `title`. **Reveals exactly what a screen reader will announce.** 
 *   **Form Field Descriptions:** Supplemental instructional text (`aria-describedby`). **Ensures extended hints or error messages are programmatically tied to inputs.** 
 *   **Aria-Details:** Highlights elements utilizing `aria-details`. **Links complex, rich explanations to an element** (allows structured HTML in the description).
 *   **Aria-Controls:** Remote DOM visibility targets (`aria-controls`). **Links trigger mechanisms to their targets.** 
@@ -363,6 +367,8 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="v-2"></a>**Disabled Focus Outlines:** Uses the base CSS selector `a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])`. The Javascript logic iterates through `document.styleSheets` and checks each `CSSRule.STYLE_RULE` to see if the selector includes `:focus` or `:focus-visible`. It reads the `outline`, `outlineWidth`, `boxShadow`, and `border` properties. If outline rules contain `none` or `0px` and no fallback border or shadow is provided, the selector is recorded. Any interactive element matching that recorded selector is flagged.
 *   <a id="v-17"></a>**Prohibited Author Names:** Uses the CSS selector `[role='presentation'], [role='none'], [role='generic']`. The logic triggers a violation if the matched element has an `aria-label` or `aria-labelledby` attribute.
 *   <a id="v-label-in-name"></a>**Label in Name Mismatch:** Uses the CSS selector `button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]`. The logic normalizes whitespace, strips punctuation, and lowercases both the visible `innerText` and the computed `aria-label`. If the visible text is not found as a substring within the `aria-label`, it throws a violation.
+*   <a id="v-duplicate-id"></a>**Duplicate ID Attributes:** Uses the CSS selector `[id]`. A state object maps every ID string found in the DOM and uses `document.querySelectorAll` with `CSS.escape()` to count occurrences. If an ID appears more than once, all elements sharing it are flagged.
+*   <a id="v-broken-aria-ref"></a>**Broken ARIA References:** Targets elements using `[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]`. The logic splits the attribute values by whitespace into individual ID strings and checks if `document.getElementById()` returns null. Flags the element if any referenced ID is missing from the DOM.
 *   <a id="v-15"></a>**Focusable in Aria-Hidden:** Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses `aria-hidden='true'`. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.
 *   <a id="v-16"></a>**Invalid ARIA State:** Uses the CSS selector `[aria-invalid='true']`. Elements matching the selector are flagged.
 *   <a id="v-20"></a>**Text Color Contrast:** Uses the CSS selector targeting standard text elements like `h1`, `p`, `span`, `button`. The logic verifies child text nodes exist. It uses `window.getComputedStyle` to retrieve the foreground color and background color, dynamically factoring in `font-size` and `font-weight` against WCAG large-text thresholds. It applies the WCAG relative luminance formula and categorizes failures as AA Fail or AAA Fail. Elements over background images or CSS gradients are automatically flagged for manual review.
@@ -470,11 +476,14 @@ The following deliberately inaccessible and accessible demonstration websites we
 
 ## Changelog
 
-### v2.5.0: The Structural Expansion
-* Added 12 new high-value audits across both the Violations and Informative tabs.
+### v2.5.0: The Structural Expansion & DOM Integrity Update
+* Added 14 new high-value audits across both the Violations and Informative tabs.
 * Introduced comprehensive ARIA state mapping including `aria-pressed`, `aria-valuenow`, `aria-haspopup`, `aria-roledescription`, and `aria-setsize`.
 * Added highly requested `Inaccessible SVGs` check that smartly ignores properly nested or purely decorative vector images while flagging true failures.
+* Re-introduced and completely rebuilt the `Duplicate ID Attributes` audit using modern `CSS.escape()` parsing to avoid crashes on dynamically generated framework IDs.
+* Added the `Broken ARIA References` audit to strictly validate relationship graphs (`aria-labelledby`, `describedby`, `controls`, `owns`, etc.) against the physical DOM.
 * Implemented new error boundary checks including `Document Title`, `Page Encoding`, and `Invalid Autocomplete` tokens.
+* Fixed `Unchecked runtime.lastError` warnings triggered by back/forward cache (bfcache) tab navigation by wrapping DevTools messages in a safe evaluation helper.
 * Reordered all DevTools tabs and audit groups to strictly follow a manual accessibility tester's cognitive flow (Identity > Properties > State).
 * Scaled up "Toggle All" master switch UI sizes for better UX visibility.
 

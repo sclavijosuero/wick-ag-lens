@@ -168,6 +168,12 @@ window.A11Y_DOCS_HTML = `
         
         <li><strong>Label in Name Mismatch:</strong> Flags interactive elements where the visible text is completely overridden by an <code>aria-label</code> that does not include the visible text. <strong>Voice dictation users rely on visible text commands.</strong><br>
         <span class="severity-badge severity-serious">SERIOUS</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html" target="_blank">WCAG 2.5.3</a> (2.1 A) &bull; <a href="#v-label-in-name">View Logic</a></li>
+        
+        <li><strong>Duplicate ID Attributes:</strong> Flags multiple elements sharing the identical <code>id</code> attribute. <strong>Screen readers and label mappings will only find the first ID.</strong><br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#v-duplicate-id">View Logic</a></li>
+        
+        <li><strong>Broken ARIA References:</strong> Flags ARIA relationship attributes pointing to non-existent DOM IDs. <strong>A broken reference means the relationship is completely lost.</strong><br>
+        <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html" target="_blank">WCAG 1.3.1</a> (2.0 A) &bull; <a href="#v-broken-aria-ref">View Logic</a></li>
     </ul>
 
     <h4>ARIA States (Errors)</h4>
@@ -332,6 +338,8 @@ window.A11Y_DOCS_HTML = `
         <li id="v-2" style="margin-bottom: 12px;"><strong>Disabled Focus Outlines:</strong> Uses the base CSS selector <code>a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])</code>. The Javascript logic iterates through <code>document.styleSheets</code> and checks each <code>CSSRule.STYLE_RULE</code> to see if the selector includes <code>:focus</code> or <code>:focus-visible</code>. It reads the <code>outline</code>, <code>outlineWidth</code>, <code>boxShadow</code>, and <code>border</code> properties. If outline rules contain <code>none</code> or <code>0px</code> and no fallback border or shadow is provided, the selector is recorded. Any interactive element matching that recorded selector is flagged.</li>
         <li id="v-17" style="margin-bottom: 12px;"><strong>Prohibited Author Names:</strong> Uses the CSS selector <code>[role='presentation'], [role='none'], [role='generic']</code>. The logic triggers a violation if the matched element has an <code>aria-label</code> or <code>aria-labelledby</code> attribute.</li>
         <li id="v-label-in-name" style="margin-bottom: 12px;"><strong>Label in Name Mismatch:</strong> Uses the CSS selector <code>button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]</code>. The logic normalizes whitespace, strips punctuation, and lowercases both the visible <code>innerText</code> and the computed <code>aria-label</code>. If the visible text is not found as a substring within the <code>aria-label</code>, it throws a violation.</li>
+        <li id="v-duplicate-id" style="margin-bottom: 12px;"><strong>Duplicate ID Attributes:</strong> Uses the CSS selector <code>[id]</code>. A state object maps every ID string found in the DOM and uses <code>document.querySelectorAll</code> with <code>CSS.escape()</code> to count occurrences. If an ID appears more than once, all elements sharing it are flagged.</li>
+        <li id="v-broken-aria-ref" style="margin-bottom: 12px;"><strong>Broken ARIA References:</strong> Targets elements using <code>[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]</code>. The logic splits the attribute values by whitespace into individual ID strings and checks if <code>document.getElementById()</code> returns null. Flags the element if any referenced ID is missing from the DOM.</li>
         <li id="v-15" style="margin-bottom: 12px;"><strong>Focusable in Aria-Hidden:</strong> Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses <code>aria-hidden='true'</code>. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.</li>
         <li id="v-16" style="margin-bottom: 12px;"><strong>Invalid ARIA State:</strong> Uses the CSS selector <code>[aria-invalid='true']</code>. Elements matching the selector are flagged.</li>
         <li id="v-20" style="margin-bottom: 12px;"><strong>Text Color Contrast:</strong> Uses the CSS selector targeting standard text elements like <code>h1</code>, <code>p</code>, <code>span</code>, <code>button</code>. The logic verifies child text nodes exist. It uses <code>window.getComputedStyle</code> to retrieve the foreground color and background color, dynamically factoring in <code>font-size</code> and <code>font-weight</code> against WCAG large-text thresholds. It applies the WCAG relative luminance formula and categorizes failures as AA Fail or AAA Fail. Elements over background images or CSS gradients are automatically flagged for manual review.</li>
@@ -411,5 +419,17 @@ window.A11Y_DOCS_HTML = `
 
     <h3 id="compatibility">Compatibility &amp; License</h3>
     <p>Compatible with Google Chrome version 100.0 or higher. Operates on all URLs permitted by the user using the <code>activeTab</code> and <code>storage</code> permissions. Available under the MIT License.</p>
+
+    <h3 id="open-source-reference">Open Source &amp; Implementation Details</h3>
+    <div style="display: flex; align-items: center; background-color: rgba(26, 115, 232, 0.1); border-left: 4px solid #1a73e8; border-radius: 4px; padding: 16px; margin: 24px 0;">
+        <svg style="min-width: 32px; margin-right: 16px;" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+        </svg>
+        <div>
+            <div style="font-size: 16px; font-weight: bold; color: #1a73e8; margin-bottom: 4px;">Proudly Open Source</div>
+            <p style="margin: 0; line-height: 1.5;">WICK-AG-Lens is driven by the community. Explore the source code, contribute, or report issues on our <a href="https://github.com/sclavijosuero/wick-ag-lens" target="_blank" rel="noopener noreferrer" style="color: #1a73e8; font-weight: 600; text-decoration: underline;">GitHub Repository &rarr;</a></p>
+        </div>
+    </div>
+    <p>For more detailed information regarding the exact logic, CSS selectors, and mathematical models used to build the heuristic checks and rendering engine, please refer to the <a href="#search-predicates-and-logic-definitions">Search Predicates and Logic Definitions</a> and <a href="#disability-simulation-engine-logic--assumptions">Disability Simulation Engine (Logic &amp; Assumptions)</a> sections above.</p>
 </div>
 `;
