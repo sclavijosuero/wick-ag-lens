@@ -485,7 +485,7 @@ window.A11Y_CONFIG = {
                             selector: "[id]",
                             legends: [
                                 { label: "Visible Duplicate", color: "#d93025", type: "bad" },
-                                { label: "Hidden Duplicate", color: "#e67c73", type: "hidden-dup" } // Lighter red for modal pill
+                                { label: "Hidden Duplicate", color: "#f6aea9", type: "hidden-dup" }
                             ],
                             info: {
                                 what: "Scans the DOM for multiple elements sharing the identical <code>id</code> attribute. It uniquely tracks and categorizes hidden vs. visible duplicates in the DevTools list.",
@@ -515,7 +515,8 @@ window.A11Y_CONFIG = {
                                         nodes.forEach(node => {
                                             const isVisible = (node.offsetWidth > 0 || node.offsetHeight > 0);
                                             const legendType = isVisible ? "bad" : "hidden-dup";
-                                            const hexColor = isVisible ? "#d93025" : "#e67c73";
+                                            const hexColor = isVisible ? "#d93025" : "#f6aea9"; // Updated middle-ground color
+                                            
                                             const labelText = isVisible
                                                 ? `Duplicate ID: "${id}" (${visibleCount} vis, ${hiddenCount} hid)`
                                                 : `[Hidden] Duplicate ID: "${id}"`;
