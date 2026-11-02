@@ -830,33 +830,37 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span class="a11y-pill-label" style="background-color: ${pillBg}; color:${pillTxt}; text-shadow: ${pillShadow};">${safeLabel}</span>
                         <span class="a11y-selector-path">${el.selector}</span>
                     </div>
+                    ${el.legendType === 'hidden-dup' ? '' : `
                     <button class="a11y-scroll-btn" aria-label="Scroll element into view">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
                         </svg>
                     </button>
+                    `}
                 </div>
             `;
         }).join('');
 
         modalList.querySelectorAll('.a11y-modal-list-item').forEach(item => {
             const scrollBtn = item.querySelector('.a11y-scroll-btn');
-            scrollBtn.addEventListener('click', () => {
-                const targetId = item.dataset.targetId;
-                const elementData = filteredElements.find(e => e.id === targetId);
-                const message = { 
-                    action: 'highlightAndScroll', 
-                    targetId: targetId,
-                    featureId: activeModalRule.id, 
-                    color: elementData ? elementData.color : null 
-                };
-                if (elementData && elementData.frameId !== undefined) {
-                    safeSendMessage(message, { frameId: elementData.frameId });
-                } else {
-                    safeSendMessage(message);
-                }
-            });
+            if (scrollBtn) {
+                scrollBtn.addEventListener('click', () => {
+                    const targetId = item.dataset.targetId;
+                    const elementData = filteredElements.find(e => e.id === targetId);
+                    const message = { 
+                        action: 'highlightAndScroll', 
+                        targetId: targetId,
+                        featureId: activeModalRule.id, 
+                        color: elementData ? elementData.color : null 
+                    };
+                    if (elementData && elementData.frameId !== undefined) {
+                        safeSendMessage(message, { frameId: elementData.frameId });
+                    } else {
+                        safeSendMessage(message);
+                    }
+                });
+            }
         });
     }
 
@@ -1284,12 +1288,14 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <span class="a11y-pill-label" style="background-color: ${pillBg}; color:${pillTxt}; text-shadow: ${pillShadow};">${safeLabel}</span>
                                     <span class="a11y-selector-path">${el.selector}</span>
                                 </div>
+                                ${el.legendType === 'hidden-dup' ? '' : `
                                 <button class="a11y-scroll-btn" aria-label="Scroll element into view">
                                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="12" cy="12" r="3"></circle>
                                         <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
                                     </svg>
                                 </button>
+                                `}
                             </div>
                         `;
         }).join('')}
@@ -1362,23 +1368,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         modal.querySelectorAll('.a11y-modal-list-item').forEach(item => {
             const scrollBtn = item.querySelector('.a11y-scroll-btn');
-            scrollBtn.addEventListener('click', () => {
-                const targetId = item.dataset.targetId;
-                const elementData = activeModalElements.find(e => e.id === targetId);
-                
-                const message = { 
-                    action: 'highlightAndScroll', 
-                    targetId: targetId,
-                    featureId: rule.id, 
-                    color: elementData ? elementData.color : null 
-                };
-                
-                if (elementData && elementData.frameId !== undefined) {
-                    safeSendMessage(message, { frameId: elementData.frameId });
-                } else {
-                    safeSendMessage(message);
-                }
-            });
+            if (scrollBtn) {
+                scrollBtn.addEventListener('click', () => {
+                    const targetId = item.dataset.targetId;
+                    const elementData = activeModalElements.find(e => e.id === targetId);
+                    
+                    const message = { 
+                        action: 'highlightAndScroll', 
+                        targetId: targetId,
+                        featureId: rule.id, 
+                        color: elementData ? elementData.color : null 
+                    };
+                    
+                    if (elementData && elementData.frameId !== undefined) {
+                        safeSendMessage(message, { frameId: elementData.frameId });
+                    } else {
+                        safeSendMessage(message);
+                    }
+                });
+            }
         });
     }
 

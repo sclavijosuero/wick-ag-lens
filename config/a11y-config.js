@@ -483,28 +483,52 @@ window.A11Y_CONFIG = {
                             severity: "Critical",
                             wcag: [{ version: "2.0", level: "A" }],
                             selector: "[id]",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            legends: [
+                                { label: "Visible Duplicate", color: "#d93025", type: "bad" },
+                                { label: "Hidden Duplicate", color: "#e67c73", type: "hidden-dup" } // Lighter red for modal pill
+                            ],
                             info: {
-                                what: "Scans the DOM to find multiple elements sharing the identical <code>id</code> attribute.",
-                                why: "<strong>Screen readers and label mappings will only find the first ID.</strong> If multiple elements share an ID, <code>&lt;label for&gt;</code> and ARIA reference attributes will fail to connect to the subsequent elements. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
+                                what: "Scans the DOM for multiple elements sharing the identical <code>id</code> attribute. It uniquely tracks and categorizes hidden vs. visible duplicates in the DevTools list.",
+                                why: "<strong>Screen readers and label mappings will only find the first ID.</strong> If multiple elements share an ID (even if one is hidden for mobile/desktop layouts), <code>&lt;label for&gt;</code> and ARIA reference attributes will fail to connect to the subsequent elements. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
                             },
                             customHighlight: (el, drawHighlight, state) => {
-                                state.idCounts = state.idCounts || {};
+                                state.processedIds = state.processedIds || new Set();
                                 const id = el.id.trim();
-                                if (!id) return false;
 
-                                if (state.idCounts[id] === undefined) {
-                                    try {
-                                        // CSS.escape prevents crashes on dynamically generated IDs with invalid characters
-                                        state.idCounts[id] = document.querySelectorAll(`[id="${CSS.escape(id)}"]`).length;
-                                    } catch (e) {
-                                        state.idCounts[id] = 1;
+                                // Skip empty IDs or IDs we have already fully mapped
+                                if (!id || state.processedIds.has(id)) return false;
+
+                                try {
+                                    const nodes = document.querySelectorAll(`[id="${CSS.escape(id)}"]`);
+                                    if (nodes.length > 1) {
+                                        state.processedIds.add(id);
+
+                                        let visibleCount = 0;
+                                        let hiddenCount = 0;
+
+                                        nodes.forEach(node => {
+                                            if (node.offsetWidth > 0 || node.offsetHeight > 0) visibleCount++;
+                                            else hiddenCount++;
+                                        });
+
+                                        // Register every node (visible and hidden) directly into the reporting engine
+                                        nodes.forEach(node => {
+                                            const isVisible = (node.offsetWidth > 0 || node.offsetHeight > 0);
+                                            const legendType = isVisible ? "bad" : "hidden-dup";
+                                            const hexColor = isVisible ? "#d93025" : "#e67c73";
+                                            const labelText = isVisible
+                                                ? `Duplicate ID: "${id}" (${visibleCount} vis, ${hiddenCount} hid)`
+                                                : `[Hidden] Duplicate ID: "${id}"`;
+
+                                            // Passing 'node' registers the hidden elements into the modal array without drawing 0x0 boxes
+                                            drawHighlight(node, hexColor, labelText, legendType);
+                                        });
+
+                                        // Return false because we already manually called drawHighlight for the group
+                                        return false;
                                     }
-                                }
-
-                                if (state.idCounts[id] > 1) {
-                                    drawHighlight(el, "#d93025", `Duplicate ID: "${id}"`, "bad");
-                                    return true;
+                                } catch (e) {
+                                    // Failsafe for invalid characters
                                 }
                                 return false;
                             }
