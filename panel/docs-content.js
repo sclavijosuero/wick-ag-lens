@@ -1,6 +1,18 @@
 window.A11Y_DOCS_HTML = `
 <div class="a11y-docs-container">
-    <p>WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a Chrome browser extension that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh.</p>
+    <!-- Compact Hero Banner -->
+    <div style="border-radius: 8px; overflow: hidden; margin-bottom: 16px; border: 1px solid rgba(128, 128, 128, 0.2); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); background: #0c0d0e; text-align: center;">
+        <img src="../images/wick-ag-lens-promotile.png" alt="WICK-AG-Lens Accessibility Inspector" style="width: 100%; max-height: 110px; object-fit: contain; display: block; margin: 0 auto;">
+    </div>
+
+    <!-- Intro Paragraphs -->
+    <p style="margin-top: 0; margin-bottom: 12px; line-height: 1.55;">
+        WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a Chrome browser extension that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout.
+    </p>
+
+    <p style="margin-bottom: 24px; line-height: 1.55;">
+        Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh.
+    </p>
 
     <h3 id="features-overview">Features Overview</h3>
     <p>WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions.</p>
