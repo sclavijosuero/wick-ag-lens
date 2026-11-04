@@ -19,6 +19,10 @@
                     <input type="radio" name="app-mode" value="simulate">
                     <span>Simulate Mode</span>
                 </label>
+                <label class="mode-radio-btn" id="mode-btn-pdf">
+                    <input type="radio" name="app-mode" value="pdf">
+                    <span>PDF Mode</span>
+                </label>
             </div>
         </div>
         <button id="btn-open-docs" class="header-icon-btn" aria-label="Open Documentation">
@@ -134,7 +138,13 @@
                                     <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                         <span class="sim-card-title">Achromatopsia (Monochromacy)</span>
                                         <span class="sim-accuracy-tag accuracy-high" title="WCAG luminance monochrome calculation">Strict Simulation</span>
-                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                        <button type="button" class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                                 <span class="sim-card-desc">Complete absence of color perception. Entirely greyscale.</span>
@@ -151,7 +161,13 @@
                                     <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                         <span class="sim-card-title">Protanopia (Red-Blind)</span>
                                         <span class="sim-accuracy-tag accuracy-high" title="LinearRGB FeColorMatrix physiological model">Strict Simulation</span>
-                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                        <button type="button" class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                                 <span class="sim-card-desc">Inability to perceive red light. Red appears dark or brown.</span>
@@ -168,7 +184,13 @@
                                     <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                         <span class="sim-card-title">Deuteranopia (Green-Blind)</span>
                                         <span class="sim-accuracy-tag accuracy-high" title="LinearRGB FeColorMatrix physiological model">Strict Simulation</span>
-                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                        <button type="button" class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                                 <span class="sim-card-desc">Inability to perceive green light. Greens look brownish/yellowish.</span>
@@ -185,7 +207,13 @@
                                     <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                         <span class="sim-card-title">Tritanopia (Blue-Blind)</span>
                                         <span class="sim-accuracy-tag accuracy-approx" title="Linear approximation via matrix transformation">Approximate</span>
-                                        <button type="button" class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                        <button type="button" class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                                 <span class="sim-card-desc">Inability to perceive blue light. Blues look greenish, yellow looks pink.</span>
@@ -208,7 +236,13 @@
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                     <label for="sim-diplopia-range" class="sim-control-title">Double Vision (Diplopia)</label>
                                     <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
-                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    <button class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                    </button>
                                 </div>
                                 <span class="sim-slider-val" id="sim-diplopia-val">0%</span>
                             </div>
@@ -225,7 +259,13 @@
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                     <label for="sim-contrast-range" class="sim-control-title">Loss of Contrast</label>
                                     <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
-                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    <button class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                    </button>
                                 </div>
                                 <span class="sim-slider-val" id="sim-contrast-val">0%</span>
                             </div>
@@ -242,7 +282,13 @@
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                     <label for="sim-yellowing-range" class="sim-control-title">Yellowing (Aging Lens)</label>
                                     <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
-                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    <button class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                    </button>
                                 </div>
                                 <span class="sim-slider-val" id="sim-yellowing-val">0%</span>
                             </div>
@@ -259,7 +305,13 @@
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                     <label for="sim-cataracts-range" class="sim-control-title">Cataracts</label>
                                     <span class="sim-accuracy-tag accuracy-approx">Approximate</span>
-                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    <button class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                    </button>
                                 </div>
                                 <span class="sim-slider-val" id="sim-cataracts-val">0%</span>
                             </div>
@@ -276,7 +328,13 @@
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
                                     <span class="sim-control-title">Field of Vision Loss</span>
                                     <span class="sim-accuracy-tag accuracy-high">Strict Simulation</span>
-                                    <button class="icon-btn info-btn-sim" aria-label="More Info" style="min-width: 24px; min-height: 24px; font-size:11px;">ℹ️</button>
+                                    <button class="icon-btn info-btn-sim" title="Why is this important?" aria-label="More Info">
+                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                             <p class="sim-control-desc">Choose one type of visual field restriction and adjust the percentage slider.</p>
@@ -309,6 +367,51 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             PDF MODE VIEWS
+             =================================================================== -->
+        <div id="view-pdf-mode" class="mode-view" style="display: none;">
+            <div class="main-container">
+                <div class="tab-content active" id="tab-pdf" role="tabpanel" style="padding-bottom: 32px;">
+                    <p class="tab-description">Programmatic structural verification of essential PDF/UA and WCAG gatekeeper indicators on the active document.</p>
+                    
+                    <div class="tab-global-actions">
+                        <div class="master-toggle-container">
+                            <label class="toggle-switch" for="pdf-auto-scan-toggle">
+                                <input type="checkbox" id="pdf-auto-scan-toggle">
+                                <span class="slider"></span>
+                            </label>
+                            <label class="master-toggle-label" for="pdf-auto-scan-toggle">Scan Active PDF</label>
+                            <span class="master-count-info" id="pdf-status-badge"></span>
+                        </div>
+                        <button class="action-icon-btn" id="pdf-rescan-btn" title="Re-scan Active PDF">🔄</button>
+                    </div>
+
+                    <!-- Active Document Card -->
+                    <div class="sim-card" style="margin: 14px 0 12px; padding: 12px 14px; background: var(--hover-bg, #f8f9fa); border-radius: 6px; border: 1px solid var(--border-light, #dadce0);">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary, #5f6368); margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Active Document</span>
+                            <span id="pdf-doc-pages" style="font-weight: 600; color: #1a73e8;"></span>
+                        </div>
+                        <div id="pdf-doc-url" style="font-size: 13px; font-weight: 500; color: var(--text-color, #202124); word-break: break-all; overflow-wrap: anywhere; line-height: 1.45;">No PDF document detected in tab</div>
+                    </div>
+
+                    <!-- Noticeable Status Notification Banner -->
+                    <div id="pdf-status-msg" style="display: none; margin-bottom: 12px;"></div>
+
+                    <!-- Hierarchical Gatekeeper Audit List (Tree UI) -->
+                    <div id="pdf-results-list">
+                        <div style="font-size: 13px; color: var(--text-secondary, #5f6368); text-align: center; padding: 28px 16px; line-height: 1.5; border: 1px solid var(--border-light); border-radius: 6px;">
+                            Navigate to a direct PDF URL in the tab to run the gatekeeper audit.
+                        </div>
+                    </div>
+
+                    <!-- Summary Status Footer -->
+                    <div id="pdf-summary-footer" style="margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: none;"></div>
                 </div>
             </div>
         </div>
@@ -357,11 +460,26 @@
                 </div>
             </div>
 
+            <!-- PDF Mode Content -->
+            <div id="footer-pdf-content" style="display: none;">
+                <ul>
+                    <li><strong>Native PDF Viewer Sandbox:</strong> Chrome isolates PDF rendering inside an internal, inaccessible plugin layer. The DOM cannot be directly traversed or highlighted with visual overlays.</li>
+                    <li><strong>Binary Stream Analysis:</strong> Checks are performed programmatically via static byte inspection of the raw PDF Document Catalog, MarkInfo dictionaries, and security handler bits.</li>
+                    <li><strong>Structural Gatekeepers:</strong> Evaluates essential WCAG/PDF-UA prerequisites: Tagged PDF (<code>/Marked true</code>), Document Title metadata, Root Language (<code>/Lang</code>), and Accessibility Extraction permissions (Security Bit 10).</li>
+                    <li><strong>Scope & Coverage:</strong> Programmatic validation verifies critical structural prerequisites with zero false positives. Deep layout semantics (e.g. table header associations, reading order, alternative text on individual vector figures) still require manual screen reader or PDF/UA inspection (e.g., PAC).</li>
+                </ul>
+                <div class="footer-disclaimer">
+                    <p><strong>Disclaimer:</strong> WICK-AG-Lens is an automated heuristic tool implemented to the best knowledge of its author. It does not cover all possible accessibility barriers that may exist on a page, and existing audits may occasionally yield false positives or false negatives. Passing these checks does not guarantee full WCAG compliance. Automated testing should always be combined with manual testing and assistive technology validation.</p>
+                    <p>Copyright &copy; <span class="copyright-year"></span> Sebastian Clavijo Suero.</p>
+                </div>
+            </div>
+
         </div>
     </footer>
 
     <script src="../config/a11y-config.js"></script>
     <script src="docs-content.js"></script>
+    <script src="pdf-scanner.js"></script>
     <script src="panel.js"></script>
 </body>
 </html>
