@@ -1,6 +1,6 @@
 # WICK-AG-Lens: Accessibility Inspector
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh.
+WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a simlation Mode and a PDF Gatekeeper Auditing.
 
 You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
 
@@ -15,19 +15,21 @@ You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https:/
 4. [Audit Library & Ruleset](#audit-library--ruleset)
 5. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
 6. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
-7. [Limitations & Technical Bounds](#limitations--technical-bounds)
-8. [Compatibility](#compatibility)
-9. [License](#license)
-10. [Contributing](#contributing)
-11. [Development & Testing Sites](#development--testing-sites)
-12. [Changelog](#changelog)
+7. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
+8. [Limitations & Technical Bounds](#limitations--technical-bounds)
+9. [Compatibility](#compatibility)
+10. [License](#license)
+11. [Contributing](#contributing)
+12. [Development & Testing Sites](#development--testing-sites)
+13. [Changelog](#changelog)
 
 ## Features Overview
-WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions.
+WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
 
 *   **Real-Time SPA & DOM Sync:** Automatically detects Single Page Application (SPA) client-side routing and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time without requiring a manual refresh.
 *   **Comprehensive Audits:** Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.
 *   **Disability Simulation Engine:** Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout.
+*   **PDF Gatekeeper Auditing:** Zero-dependency binary scanner to evaluate critical structural WCAG and PDF/UA prerequisites (Tags, Title, Language, Extraction Permissions) directly from the active tab.
 *   **WCAG Criteria Filtering:** Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).
 *   **Visual Highlighting & Focus Tracing:** Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.
 *   **X-Ray Vision for Clipped Elements:** Renders hidden or off-screen interactive elements (like carousel slides) with a ghosted hatched pattern so you can visualize hidden focus traps without breaking the layout.
@@ -52,7 +54,7 @@ Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Sto
 ## Core Features & Usage
 
 ### 1. WCAG Filtering & Audit Controls (Inspect Mode)
-The inspector categorizes heuristic rulesets across two primary tabs: **Violations & Warnings** (actionable failures) and **Informative & Structure** (valid page architecture and semantic patterns). 
+The inspector categorizes 55 heuristic rulesets across two primary tabs: **Violations & Warnings** (actionable failures) and **Informative & Structure** (valid page architecture and semantic patterns). 
 
 *   **Version & Level Filters:** Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.
 *   **Master Toggles & Clean UI:** Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.
@@ -74,14 +76,29 @@ Impaired Vision:
 
 ![Disability Simulation Engine](images/disability-simulation-impaired.png)
 
-### 3. Interactive Info Panels & Code Previews
+### 3. PDF Gatekeeper Auditing (PDF Mode)
+Analyze raw PDF binary streams directly in the browser. Since Chrome's native PDF viewer is securely isolated and cannot be visually overlaid, this mode programmatically inspects the Document Catalog and Metadata dictionaries via an ArrayBuffer stream.
+*   **Auto-Scan Verification:** Navigate to any direct PDF URL and toggle "Scan Active PDF" to execute an instant structural audit covering Tags, Titles, Language, and Extraction Permissions.
+*   **View Technical Details Modal:** Click the details icon on any gatekeeper check to open a comprehensive modal. This displays the explicit Evaluation Finding (Pass/Fail), the precise Technical Stream Inspection output (e.g., `/MarkInfo << /Marked true >>`), Scope Guidance, and specific Remediation steps across Adobe Acrobat, Microsoft Word, and InDesign.
+*   **Accuracy Identifiers:** Checks are clearly labeled with their confidence interval (e.g., *High Confidence* for strict catalog validation vs. *Moderate Confidence* for heuristic metadata scanning).
+
+PDF Gatekeeper Auditing:
+
+![PDF Analysis Engine](images/pdf-analysis-engine.png)
+
+Impaired Vision:
+
+![Technical Details and Remediation](images/pdf-analysis-details.png)
+
+
+### 4. Interactive Info Panels & Code Previews
 Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining *what* was flagged and *why* it creates a barrier for users.
 
 Crucially, the panel extracts a clean, extension-sanitized **HTML Snippet** of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise **CSS Selector**. Dedicated "Copy" buttons (📋) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.
 
 ![Interactive Info Panel with HTML Snippet Preview](images/info-panel-preview.png)
 
-### 4. View Elements List & Precision Locator
+### 5. View Elements List & Precision Locator
 For audits that return multiple findings, clicking the "View Elements" (list icon) button inside the DevTools panel opens a comprehensive details modal displaying a hierarchically sorted list of every flagged element.
 
 *   **Precision Locator:** Clicking the target crosshair button next to any item will smoothly scroll the browser directly to that specific element on the page, flashing a bright pulsating focus ring to help you locate it instantly—even if it is deeply nested inside a complex UI or an embedded iframe.
@@ -89,31 +106,31 @@ For audits that return multiple findings, clicking the "View Elements" (list ico
 
 ![View Elements List and Locator Modal](images/elements-locator.png)
 
-### 5. Comprehensive Tab Reporting
+### 6. Comprehensive Tab Reporting
 To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (📋) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.
 *   The report only exports data for **actively toggled audits** that pass your current WCAG filters.
 *   It organizes the output by Category and Rule, explicitly logging `(No matching elements found)` for active audits that currently pass, providing definitive proof of compliance for your audit trails.
 
 ![One-Click Clipboard Reporting Output](images/clipboard-report.png)
 
-### 6. Real-Time SPA & Dynamic DOM Sync
+### 7. Real-Time SPA & Dynamic DOM Sync
 WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly. 
 *   **SPA Navigation (Hard Wipe):** Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.
 *   **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling `display: none` or `aria-hidden` on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.
 
 ![Real-Time SPA Sync automatically highlighting a newly opened dropdown](images/spa-sync.gif)
 
-### 7. X-Ray Vision for Clipped Elements
+### 8. X-Ray Vision for Clipped Elements
 When elements are pushed off-screen or hidden inside `overflow: hidden` containers (like carousel slides or scrollable panels), the extension detects their clipping bounds. Instead of ignoring them or drawing misleading boxes, WICK-AG-Lens renders these hidden elements using a specialized "X-Ray" ghosted hatched pattern. This allows auditors to visualize the exact footprint of hidden interactive elements and invisible focus traps without breaking the page layout.
 
 ![X-Ray Vision highlighting clipped carousel elements](images/xray-vision.png)
 
-### 8. Embedded Offline Documentation
+### 9. Embedded Offline Documentation
 Accessibility auditing shouldn't require constantly hunting for internet resources. WICK-AG-Lens includes a fully embedded, offline-ready reference guide. Clicking the book icon in the extension header opens a comprehensive modal detailing every single rule, its WCAG mapping, technical limitations, and precise heuristic logic, ensuring your QA team always has context at their fingertips.
 
 ![Embedded Offline Documentation](images/embedded-doc.png)
 
-### 9. Native Dark Mode Support
+### 10. Native Dark Mode Support
 The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
 
 
@@ -420,6 +437,15 @@ The Simulate Mode provides an empathetic heuristic overlay to help developers id
 *   **Cataracts:** Simulates the progressive clouding of the eye lens. It employs an approximate combinatorial filter simulating light scattering and opacity by mathematically intertwining a Gaussian blur function alongside a proportional drop in visual contrast and minor short-wavelength light absorption.
 *   **Field of Vision Loss:** Simulates both Central Loss (Macular Degeneration) and Peripheral Loss (Glaucoma/Tunnel Vision). It employs a non-interactive overlay bounded by a static CSS radial gradient. Central Loss creates a localized central scotoma constrained correctly to a 20% limit of the visual angle, while Peripheral Loss aggressively restricts outer inputs, shrinking the clear tunnel down to 5%.
 
+## PDF Accessibility Engine (Logic & Assumptions)
+
+The PDF Mode provides a programmatic structural verification of essential PDF/UA and WCAG gatekeeper indicators directly from the active binary stream. 
+
+*   **Tagged PDF (Structure Tree):** Scans the Document Catalog for the `/MarkInfo` dictionary. Ensures `/Marked true` is present and `/Marked false` is not. A missing tag tree prevents screen readers from understanding reading order and semantics (WCAG 1.3.1 & ISO 14289-1).
+*   **Document Title:** Uses a heuristic metadata scanner to search the Info dictionary for literal or hex-encoded `/Title` metadata, and verifies if `/DisplayDocTitle` is enforced (WCAG 2.4.2). 
+*   **Primary Language:** Strict Catalog property validation. Scans for the root `/Lang` ISO language code identifier to ensure speech synthesizers load the correct phonetic dictionary (WCAG 3.1.1).
+*   **Accessibility Extraction Permission:** Strict bitmask calculation. Evaluates User Security Access Permissions (`/P`). Evaluates Bit 10 (value 512, `0x200`) to ensure assistive technologies are mathematically permitted to extract text contents if the document is encrypted (Robust Principle).
+
 ## Limitations & Technical Bounds
 
 ### Inspect Mode
@@ -436,6 +462,11 @@ The Simulate Mode provides an empathetic heuristic overlay to help developers id
 *   **Color Blindness Models:** Protanopia and Deuteranopia use strict linearRGB Viénot physiological matrices, while Tritanopia utilizes an optimized linear least-squares approximation. Achromatopsia strictly follows the WCAG relative luminance formula rather than modeling biological rod-monochromacy.
 *   **Impaired Vision Approximations:** Conditions like Cataracts and Loss of Contrast are generated using mathematical CSS filter combinations. They mimic the optical experience to identify severe contrast issues but do not perfectly replicate the physiological deterioration of the human eye.
 *   **Field Loss Topography:** Central (Macular) and Peripheral (Glaucoma) visual field losses are simulated using CSS radial gradients bounded by static angles/percentages. These are 2D geometric approximations and do not account for physical biological blind-spot mapping, head movement, or dynamic pupil dilation.
+
+### PDF Mode
+*   **Native PDF Viewer Sandbox:** Chrome strictly isolates PDF rendering inside an internal plugin layer. The DOM cannot be directly traversed or highlighted with visual overlays.
+*   **Binary Stream Analysis:** Checks are performed programmatically via static byte inspection of the raw PDF Document Catalog, which may skip deeply compressed object streams (`/ObjStm`).
+*   **Scope & Coverage:** Programmatic validation verifies critical structural prerequisites with zero false positives. However, deep layout semantics (e.g., table header associations, correct reading order, context-accurate alternative text on vector figures) still require manual screen reader testing or PDF/UA inspection (e.g., using PAC).
 
 
 ## Compatibility
@@ -472,11 +503,16 @@ The following deliberately inaccessible and accessible demonstration websites we
 * **[AccessComputing: Accessible University (AU) Demo Site](https://projects.accesscomputing.uw.edu/au/)**
 * **[Deque University Demo Sites](https://dequeuniversity.com/demo/)**
 * **[Intopia Accessibility Testing Playground](https://intopia.github.io/exercise/testing.html)**
-
+* **[Desjardins](https://www.desjardins.com/qc/fr.html)**
+* **[https://www.sfgov.org/sites/default/files/Documents/accessible_sampledoc1.pdf](https://www.sfgov.org/sites/default/files/Documents/accessible_sampledoc1.pdf)**
+* **[https://www.w3.org/WAI/WCAG21/working-examples/pdf-headers-footers/headers-footers-word.pdf](https://www.w3.org/WAI/WCAG21/working-examples/pdf-headers-footers/headers-footers-word.pdf)**
+* **[https://www.w3.org/WAI/WCAG20/Techniques/working-examples/PDF4/decorative-image.pdf](https://www.w3.org/WAI/WCAG20/Techniques/working-examples/PDF4/decorative-image.pdf)**
 
 ## Changelog
 
-### v2.5.0: The Structural Expansion & DOM Integrity Update
+### v2.5.0: The Structural Expansion, DOM Integrity, & PDF Update
+* **Introduced PDF Gatekeeper Auditing Engine (PDF Mode):** Analyzes raw PDF binary streams directly in the browser to evaluate structural WCAG and PDF/UA prerequisites (Tags, Title, Language, Extraction Permissions).
+* **Added PDF Technical Details Modal:** Provides explicit evaluation findings, raw technical stream inspection outputs, scope guidance, and software-specific remediation instructions.
 * Added 14 new high-value audits across both the Violations and Informative tabs.
 * Introduced comprehensive ARIA state mapping including `aria-pressed`, `aria-valuenow`, `aria-haspopup`, `aria-roledescription`, and `aria-setsize`.
 * Added highly requested `Inaccessible SVGs` check that smartly ignores properly nested or purely decorative vector images while flagging true failures.
