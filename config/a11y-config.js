@@ -72,23 +72,50 @@ window.A11Y_CONFIG = {
                             severity: "Moderate",
                             wcag: [{ version: "2.0", level: "A" }],
                             selector: "h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']",
-                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            legends: [
+                                { label: "Skipped Level", color: "#f29900", type: "skipped" }, // Orange
+                                { label: "Fake Heading", color: "#1a73e8", type: "fake" }      // Distinct Blue
+                            ],
                             info: {
-                                what: "Flags skipped sequential levels (e.g., jumping from <code>H1</code> directly to <code>H3</code>) or fake structural classes imitating headings.",
+                                what: "Flags skipped sequential levels (e.g., jumping from <code>H1</code> directly to <code>H3</code>) or fake structural classes imitating headings. <strong>Note:</strong> Starting a page directly with an <code>H2</code> is not flagged as a skipped level.",
                                 why: "<strong>Headings map the document's structure.</strong> Skipping levels breaks the outline and deeply confuses screen reader navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
                             },
                             customHighlight: (el, drawHighlight, state) => {
+                                let activeLegs = [];
+                                if (typeof lastRunState !== 'undefined' && lastRunState.has("v-heading-errors")) {
+                                    activeLegs = lastRunState.get("v-heading-errors").activeLegends || [];
+                                }
+                                
+                                const checkSkipped = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("skipped");
+                                const checkFake = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("fake");
+
                                 state.lastLevel = state.lastLevel || 0;
                                 const tag = el.tagName.toLowerCase();
+                                
                                 if (tag.match(/^h[1-6]$/)) {
                                     const level = parseInt(tag.substring(1));
                                     if (level > state.lastLevel + 1 && state.lastLevel !== 0) {
-                                        drawHighlight(el, "#fbbc04", `${tag.toUpperCase()} (Skipped)`, "bad");
-                                        state.lastLevel = level; return true;
+                                        if (checkSkipped) {
+                                            drawHighlight(el, "#f29900", `${tag.toUpperCase()} (Skipped)`, "skipped");
+                                        }
+                                        state.lastLevel = level; 
+                                        return true;
                                     }
                                     state.lastLevel = level;
                                 } else if (!el.hasAttribute('role')) {
-                                    if (el.innerText.length < 80) { drawHighlight(el, "#fbbc04", `Fake Heading`, "bad"); return true; }
+                                    const hasHeadingChild = el.querySelector('h1, h2, h3, h4, h5, h6, [role="heading"]');
+                                    const isInsideHeading = el.closest('h1, h2, h3, h4, h5, h6, [role="heading"]');
+                                    
+                                    if (!hasHeadingChild && !isInsideHeading) {
+                                        const textLen = el.innerText.trim().length;
+                                        if (textLen > 0 && textLen < 80) { 
+                                            if (checkFake) {
+                                                // Updated to match the new blue legend color
+                                                drawHighlight(el, "#1a73e8", `Fake Heading`, "fake"); 
+                                            }
+                                            return true; 
+                                        }
+                                    }
                                 }
                                 return false;
                             }
@@ -684,18 +711,45 @@ window.A11Y_CONFIG = {
                             label: "Text Color Contrast",
                             desc: "Evaluates effective contrast ratio between text and its background.",
                             severity: "CRITICAL",
+                            // Base feature applies to all versions and both levels
                             wcag: [
-                                { version: "2.1", level: "AA" },
-                                { version: "2.1", level: "AAA" }
+                                { version: "2.0", level: "AA" }, { version: "2.0", level: "AAA" },
+                                { version: "2.1", level: "AA" }, { version: "2.1", level: "AAA" },
+                                { version: "2.2", level: "AA" }, { version: "2.2", level: "AAA" }
                             ],
                             selector: "p, h1, h2, h3, h4, h5, h6, span, a, button, label, li, td, th, div, b, strong, i, em, mark, small, del, ins, sub, sup",
                             legends: [
-                                { label: "AA Fail", color: "#d93025", type: "aa-fail" },
-                                { label: "AAA Fail", color: "#f29900", type: "aaa-fail" },
-                                { label: "Manual", color: "#00bcd4", type: "manual" }
+                                { 
+                                    label: "AA Fail", 
+                                    color: "#d93025", 
+                                    type: "aa-fail",
+                                    // Restrict this legend to strictly AA filters
+                                    wcag: [
+                                        { version: "2.0", level: "AA" },
+                                        { version: "2.1", level: "AA" },
+                                        { version: "2.2", level: "AA" }
+                                    ]
+                                },
+                                { 
+                                    label: "AAA Fail", 
+                                    color: "#f29900", 
+                                    type: "aaa-fail",
+                                    // Restrict this legend to strictly AAA filters
+                                    wcag: [
+                                        { version: "2.0", level: "AAA" },
+                                        { version: "2.1", level: "AAA" },
+                                        { version: "2.2", level: "AAA" }
+                                    ]
+                                },
+                                { 
+                                    label: "Manual", 
+                                    color: "#00bcd4", 
+                                    type: "manual" 
+                                    // Omitting wcag lets it inherit the base feature's array
+                                }
                             ],
                             info: {
-                                what: "Traverses the DOM to calculate the effective mathematical contrast ratio between visible text and its solid backing container. Dynamically evaluates <code>font-size</code> and <code>font-weight</code> against WCAG large-text targets.",
+                                what: "Traverses the DOM to calculate the effective mathematical contrast ratio between visible text and its solid backing container. Dynamically evaluates <code>font-size</code> and <code>font-weight</code> against WCAG large-text thresholds.",
                                 why: "<strong>Low contrast prevents users with visual impairments from reading content.</strong> Background images, complex gradients, or transparent floats are safely flagged for Manual Review to prevent false automated calculations.<br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum' target='_blank'>WCAG 1.4.3: Contrast (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced' target='_blank'>WCAG 1.4.6: Contrast (Enhanced)</a>"
                             },
                             customHighlight: (el, drawHighlight) => {
@@ -767,17 +821,30 @@ window.A11Y_CONFIG = {
                                 const aaTarget = isLargeText ? 3.0 : 4.5;
                                 const aaaTarget = isLargeText ? 4.5 : 7.0;
 
-                                if (ratio < aaTarget) {
+                                // 1. Safely fetch the currently active legends from content.js state
+                                let activeLegs = [];
+                                if (typeof lastRunState !== 'undefined' && lastRunState.has("v-text-contrast")) {
+                                    activeLegs = lastRunState.get("v-text-contrast").activeLegends || [];
+                                }
+
+                                // 2. Determine which levels the user is currently filtering for
+                                // Including length === 0 or "default" ensures they render on initial load
+                                const checkingAA = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("aa-fail");
+                                const checkingAAA = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("aaa-fail");
+
+                                // 3. Evaluate failures dynamically based on active filters
+                                if (ratio < aaTarget && checkingAA) {
                                     drawHighlight(el, "#d93025", `AA Fail (${displayRatio}:1)`, "aa-fail");
                                     return true;
-                                } else if (ratio < aaaTarget) {
+                                } else if (ratio < aaaTarget && checkingAAA) {
                                     drawHighlight(el, "#f29900", `AAA Fail (${displayRatio}:1)`, "aaa-fail");
                                     return true;
                                 }
 
                                 return false;
                             }
-                        }]
+                        }
+                    ]
                 }
             ]
         },
@@ -1016,9 +1083,9 @@ window.A11Y_CONFIG = {
                             wcag: [{ version: "2.2", level: "AA" }, { version: "2.1", level: "AAA" }],
                             selector: "button, a[href], input:not([type='hidden']), select, textarea, summary, [role='button'], [role='link'], [role='menuitem'], [role='tab'], [role='checkbox'], [role='radio'], [role='switch'], [role='slider'], [tabindex]:not([tabindex='-1'])",
                             legends: [
-                                { label: "< 24px (Fail)", color: "#d93025", type: "small", wcag: [{ version: "2.2", level: "AA" }] },
-                                { label: "24-43px (AA Min)", color: "#fbbc04", type: "medium", wcag: [{ version: "2.1", level: "AAA" }] },
-                                { label: "44px+ (AAA)", color: "#1e8e3e", type: "large", wcag: [{ version: "2.1", level: "AAA" }] }
+                                { label: "< 24px (Fail AA)", color: "#d93025", type: "small", wcag: [{ version: "2.2", level: "AA" }] },
+                                { label: "24-43px (Pass AA / Fail AAA)", color: "#fbbc04", type: "medium", wcag: [{ version: "2.2", level: "AA" }, { version: "2.1", level: "AAA" }] },
+                                { label: "44px+ (Pass AAA)", color: "#1e8e3e", type: "large", wcag: [{ version: "2.1", level: "AAA" }] }
                             ],
                             info: {
                                 what: "Computes the exact <code>width</code> and <code>height</code> pixel boundaries of interactive elements, color-coding thresholds.",
