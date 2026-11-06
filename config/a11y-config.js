@@ -1163,7 +1163,7 @@ window.A11Y_CONFIG = {
                             ],
                             legends: [
                                 { label: "Valid Focus", color: "#9c27b0", type: "path" },
-                                { label: "Hidden from AT (aria-hidden)", color: "#d93025", type: "hidden-at" }
+                                { label: "Focusable in Aria-Hidden", color: "#d93025", type: "hidden-at" }
                             ],
                             info: {
                                 what: "Traces the sequential path of focusable elements and flags traps. Main page elements are numbered sequentially (<code>#1</code>, <code>#2</code>). When focus enters an iframe, elements are marked with an <code>[Iframe]</code> tag and a hierarchical decimal (e.g., <code>#4.1</code> indicates the 1st focusable element inside the 4th tab stop). Nested iframes add further decimals (e.g., <code>[Nested] #4.2.1</code>).",
