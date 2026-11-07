@@ -73,8 +73,8 @@ window.A11Y_CONFIG = {
                             wcag: [{ version: "2.0", level: "A" }],
                             selector: "h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']",
                             legends: [
-                                { label: "Skipped Level", color: "#f29900", type: "skipped" }, // Orange
-                                { label: "Fake Heading", color: "#1a73e8", type: "fake" }      // Distinct Blue
+                                { label: "Skipped Level", color: "#f29900", type: "skipped" }, 
+                                { label: "Fake Heading", color: "#1a73e8", type: "fake" }      
                             ],
                             info: {
                                 what: "Flags skipped sequential levels (e.g., jumping from <code>H1</code> directly to <code>H3</code>) or fake structural classes imitating headings. <strong>Note:</strong> Starting a page directly with an <code>H2</code> is not flagged as a skipped level.",
@@ -110,7 +110,6 @@ window.A11Y_CONFIG = {
                                         const textLen = el.innerText.trim().length;
                                         if (textLen > 0 && textLen < 80) { 
                                             if (checkFake) {
-                                                // Updated to match the new blue legend color
                                                 drawHighlight(el, "#1a73e8", `Fake Heading`, "fake"); 
                                             }
                                             return true; 
@@ -459,15 +458,15 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-disabled-focus",
-                            label: "Disabled Focus Outlines",
+                            label: "Disabled Focus Outlines (Heuristic)",
                             desc: "Interactive elements hiding <code>:focus</code> rings without fallbacks",
-                            severity: "Critical",
+                            severity: "Manual",
                             wcag: [{ version: "2.0", level: "AA" }],
                             selector: "a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            legends: [{ label: "Manual Check", color: "#00bcd4", type: "manual" }],
                             info: {
-                                what: "Parses page CSS via heuristic evaluation to find focusable elements where <code>outline: none</code> or <code>0</code> is applied on the <code>:focus</code> state without a fallback <code>box-shadow</code> or <code>border</code>.",
-                                why: "<strong>Sighted keyboard users rely entirely on focus rings</strong> to know which element they are interacting with on the page. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html' target='_blank'>WCAG 2.4.7: Focus Visible</a>"
+                                what: "Parses page CSS via heuristic evaluation to find focusable elements where <code>outline: none</code> or <code>0</code> is applied on the <code>:focus</code> state without a fallback <code>box-shadow</code> or <code>border</code> in the same rule. <strong>Note: This is a static heuristic.</strong>",
+                                why: "<strong>Sighted keyboard users rely entirely on focus rings.</strong> Because browsers cannot reliably compute pseudo-classes like <code>:focus</code> without forcing physical interaction, this tool identifies <em>potential</em> risks. You must manually verify if a custom focus ring is applied via other CSS cascade rules.<br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html' target='_blank'>WCAG 2.4.7: Focus Visible</a>"
                             },
                             customHighlight: (el, drawHighlight, state) => {
                                 if (!state.parsedSelectors) {
@@ -491,7 +490,7 @@ window.A11Y_CONFIG = {
                                 }
                                 for (let sel of state.parsedSelectors) {
                                     try {
-                                        if (el.matches(sel)) { drawHighlight(el, "#d93025", "Disabled Focus Ring (Heuristic)", "bad"); return true; }
+                                        if (el.matches(sel)) { drawHighlight(el, "#00bcd4", "Manual Check: Focus Ring", "manual"); return true; }
                                     } catch (e) { }
                                 }
                                 return false;
@@ -522,7 +521,6 @@ window.A11Y_CONFIG = {
                                 state.processedIds = state.processedIds || new Set();
                                 const id = el.id.trim();
 
-                                // Skip empty IDs or IDs we have already fully mapped
                                 if (!id || state.processedIds.has(id)) return false;
 
                                 try {
@@ -538,25 +536,21 @@ window.A11Y_CONFIG = {
                                             else hiddenCount++;
                                         });
 
-                                        // Register every node (visible and hidden) directly into the reporting engine
                                         nodes.forEach(node => {
                                             const isVisible = (node.offsetWidth > 0 || node.offsetHeight > 0);
                                             const legendType = isVisible ? "bad" : "hidden-dup";
-                                            const hexColor = isVisible ? "#d93025" : "#f6aea9"; // Updated middle-ground color
+                                            const hexColor = isVisible ? "#d93025" : "#f6aea9"; 
                                             
                                             const labelText = isVisible
                                                 ? `Duplicate ID: "${id}" (${visibleCount} vis, ${hiddenCount} hid)`
                                                 : `[Hidden] Duplicate ID: "${id}"`;
 
-                                            // Passing 'node' registers the hidden elements into the modal array without drawing 0x0 boxes
                                             drawHighlight(node, hexColor, labelText, legendType);
                                         });
 
-                                        // Return false because we already manually called drawHighlight for the group
                                         return false;
                                     }
                                 } catch (e) {
-                                    // Failsafe for invalid characters
                                 }
                                 return false;
                             }
@@ -711,7 +705,6 @@ window.A11Y_CONFIG = {
                             label: "Text Color Contrast",
                             desc: "Evaluates effective contrast ratio between text and its background.",
                             severity: "CRITICAL",
-                            // Base feature applies to all versions and both levels
                             wcag: [
                                 { version: "2.0", level: "AA" }, { version: "2.0", level: "AAA" },
                                 { version: "2.1", level: "AA" }, { version: "2.1", level: "AAA" },
@@ -723,7 +716,6 @@ window.A11Y_CONFIG = {
                                     label: "AA Fail", 
                                     color: "#d93025", 
                                     type: "aa-fail",
-                                    // Restrict this legend to strictly AA filters
                                     wcag: [
                                         { version: "2.0", level: "AA" },
                                         { version: "2.1", level: "AA" },
@@ -734,7 +726,6 @@ window.A11Y_CONFIG = {
                                     label: "AAA Fail", 
                                     color: "#f29900", 
                                     type: "aaa-fail",
-                                    // Restrict this legend to strictly AAA filters
                                     wcag: [
                                         { version: "2.0", level: "AAA" },
                                         { version: "2.1", level: "AAA" },
@@ -745,7 +736,6 @@ window.A11Y_CONFIG = {
                                     label: "Manual", 
                                     color: "#00bcd4", 
                                     type: "manual" 
-                                    // Omitting wcag lets it inherit the base feature's array
                                 }
                             ],
                             info: {
@@ -821,18 +811,14 @@ window.A11Y_CONFIG = {
                                 const aaTarget = isLargeText ? 3.0 : 4.5;
                                 const aaaTarget = isLargeText ? 4.5 : 7.0;
 
-                                // 1. Safely fetch the currently active legends from content.js state
                                 let activeLegs = [];
                                 if (typeof lastRunState !== 'undefined' && lastRunState.has("v-text-contrast")) {
                                     activeLegs = lastRunState.get("v-text-contrast").activeLegends || [];
                                 }
 
-                                // 2. Determine which levels the user is currently filtering for
-                                // Including length === 0 or "default" ensures they render on initial load
                                 const checkingAA = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("aa-fail");
                                 const checkingAAA = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("aaa-fail");
 
-                                // 3. Evaluate failures dynamically based on active filters
                                 if (ratio < aaTarget && checkingAA) {
                                     drawHighlight(el, "#d93025", `AA Fail (${displayRatio}:1)`, "aa-fail");
                                     return true;

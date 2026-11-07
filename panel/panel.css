@@ -350,6 +350,8 @@ input:indeterminate + .slider:before { transform: translateX(8px); width: 10px; 
 .severity-serious  { background-color: #f29900; color: #202124; }
 .severity-moderate { background-color: #fbbc04; color: #202124; }
 .severity-minor    { background-color: #1a73e8; color: #ffffff; }
+.severity-manual   { background-color: #00bcd4; color: #202124; }
+
 .count-badge { display: none; background-color: var(--border-color); color: var(--bg-color); font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 700; margin-left: 8px; }
 .count-badge.visible { display: inline-block; }
 
