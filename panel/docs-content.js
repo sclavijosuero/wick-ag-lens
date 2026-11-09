@@ -24,9 +24,9 @@ window.A11Y_DOCS_HTML = `
         <li><strong>WCAG Criteria Filtering:</strong> Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).</li>
         <li><strong>Visual Highlighting & Focus Tracing:</strong> Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.</li>
         <li><strong>X-Ray Vision for Clipped Elements:</strong> Renders hidden or off-screen interactive elements (like carousel slides) with a ghosted hatched pattern so you can visualize hidden focus traps without breaking the layout.</li>
-        <li><strong>Interactive Info Panels &amp; Code Previews:</strong> Clicking any on-page badge opens a detailed panel explaining the issue, providing the CSS selector, and displaying a sanitized, syntax-highlighted HTML snippet.</li>
+        <li><strong>Interactive Info Panels &amp; Code Previews:</strong> Clicking any on-page badge opens a detailed panel explaining the issue, displaying a sanitized HTML snippet of the target element, and providing actionable remediation steps.</li>
         <li><strong>Precision Element Locator:</strong> Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.</li>
-        <li><strong>One-Click Reporting:</strong> Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking.</li>
+        <li><strong>One-Click Reporting:</strong> Copy formatted text reports of all active audits, their findings, and direct remediation instructions to your clipboard for easy ticket creation or bug tracking.</li>
         <li><strong>Shadow DOM &amp; Iframe Support:</strong> Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.</li>
     </ul>
 
@@ -37,7 +37,7 @@ window.A11Y_DOCS_HTML = `
     <ul>
         <li><strong>Version &amp; Level Filters:</strong> Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.</li>
         <li><strong>Master Toggles &amp; Clean UI:</strong> Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.</li>
-        <li><strong>Inline Information:</strong> Clicking the <code>[ i ]</code> icon next to any audit expands an inline panel detailing exactly <em>What it highlights</em> and <em>Why it's important</em>, complete with links directly to the official W3C WCAG documentation.</li>
+        <li><strong>Inline Information:</strong> Clicking the <code>[ i ]</code> icon next to any audit expands an inline panel detailing exactly <em>What it highlights</em>, <em>Why it's important</em>, and <em>How to fix it</em>, complete with links directly to the official W3C WCAG documentation.</li>
     </ul>
     <p><img src="../images/wcag-filtering.png" alt="WCAG Criteria Filtering and Audit Tabs" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
     
@@ -56,13 +56,14 @@ window.A11Y_DOCS_HTML = `
     <ul>
         <li><strong>Auto-Scan Verification:</strong> Navigate to any direct PDF URL and toggle "Scan Active PDF" to execute an instant structural audit covering Tags, Titles, Language, and Extraction Permissions.</li>
         <li><strong>View Technical Details Modal:</strong> Click the details icon on any gatekeeper check to open a comprehensive modal. This displays the explicit Evaluation Finding (Pass/Fail), the precise Technical Stream Inspection output (e.g., <code>/MarkInfo &lt;&lt; /Marked true &gt;&gt;</code>), Scope Guidance, and specific Remediation steps across Adobe Acrobat, Microsoft Word, and InDesign.</li>
+        <li><strong>Global Clipboard Export:</strong> A dedicated <code>Copy Tab Report</code> (&#128203;) button allows you to instantly export all 4 PDF gatekeeper checks, their statuses, technical outputs, and software-specific remediation instructions directly to your clipboard.</li>
         <li><strong>Accuracy Identifiers:</strong> Checks are clearly labeled with their confidence interval (e.g., <em>High Confidence</em> for strict catalog validation vs. <em>Moderate Confidence</em> for heuristic metadata scanning).</li>
     </ul>
     <p><img src="../images/pdf-analysis-engine.png" alt="PDF Analysis Engine" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
     <p><img src="../images/pdf-analysis-details.png" alt="Technical Details and Remediation" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
 
     <h4 style="margin-top: 24px;">4. Interactive Info Panels &amp; Code Previews</h4>
-    <p>Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining <em>what</em> was flagged and <em>why</em> it creates a barrier for users.</p>
+    <p>Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining <em>what</em> was flagged, <em>why</em> it creates a barrier for users, and <strong>how to fix it</strong> (utilizing clean, collapsible native HTML accordions to keep the UI compact and prevent screen clutter).</p>
     <p>Crucially, the panel extracts a clean, extension-sanitized <strong>HTML Snippet</strong> of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise <strong>CSS Selector</strong>. Dedicated "Copy" buttons (&#128203;) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.</p>
     <p><img src="../images/info-panel-preview.png" alt="Interactive Info Panel with HTML Snippet Preview" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
 
@@ -78,7 +79,8 @@ window.A11Y_DOCS_HTML = `
     <p>To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (&#128203;) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.</p>
     <ul>
         <li>The report only exports data for <strong>actively toggled audits</strong> that pass your current WCAG filters.</li>
-        <li>It organizes the output by Category and Rule, explicitly logging <code>(No matching elements found)</code> for active audits that currently pass, providing definitive proof of compliance for your audit trails.</li>
+        <li>It organizes the output by Category and Rule, explicitly logging <code>(No matching elements found)</code> for active audits that currently pass.</li>
+        <li>Crucially, the exported report <strong>automatically includes explicit, actionable Remediation steps</strong> for every flagged rule, making it effortless to paste direct solutions into Jira or bug tracking tickets for your developers.</li>
     </ul>
     <p><img src="../images/clipboard-report.png" alt="One-Click Clipboard Reporting Output" style="max-width: 100%; border: 1px solid #5f6368; border-radius: 4px; margin-top: 8px;"></p>
 
@@ -126,9 +128,9 @@ window.A11Y_DOCS_HTML = `
         <li style="margin-bottom: 12px;"><strong>Inaccessible SVGs:</strong> Flags inline <code>&lt;svg&gt;</code> elements exposed to screen readers lacking an accessible name. <strong>Screen readers will read out raw SVG code nodes.</strong><br>
         <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#v-svg-accessible">View Logic</a></li>
         
-        <li style="margin-bottom: 12px;"><strong>Missing Alt Text:</strong> Flags <code>&lt;img&gt;</code> elements completely lacking an <code>alt</code> attribute. <strong>Screen readers will read the raw filename</strong> if the attribute is missing.<br>
+        <li style="margin-bottom: 12px;"><strong>Missing Alt Text:</strong> Flags <code>&lt;img&gt;</code> elements completely lacking an <code>alt</code> attribute, explicitly separating 1x1 tracking pixels. <strong>Screen readers will read the raw image filename or URL</strong> if the attribute is missing, which is highly disruptive for hidden tracking pixels.<br>
         <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#v-5">View Logic</a></li>
-        
+
         <li style="margin-bottom: 12px;"><strong>Uncaptioned Video:</strong> Flags <code>&lt;video&gt;</code> elements missing nested <code>&lt;track&gt;</code> elements. <strong>Deaf or hard of hearing users require captions</strong> for video content.<br>
         <span class="severity-badge severity-critical">CRITICAL</span> &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html" target="_blank">WCAG 1.2.2</a> (2.0 A) &bull; <a href="#v-6">View Logic</a></li>
         
@@ -243,9 +245,9 @@ window.A11Y_DOCS_HTML = `
 
     <h4>Images & Media</h4>
     <ul>
-        <li style="margin-bottom: 12px;"><strong>Display Image Alternatives:</strong> Prints <code>alt</code> text for all images. <strong>Allows rapid visual auditing of alternative text descriptions.</strong><br>
+        <li style="margin-bottom: 12px;"><strong>Display Image Alternatives:</strong> Extracts and visually prints the <code>alt</code> text directly over all <code>&lt;img&gt;</code> elements, explicitly segregating 1x1 tracking pixels. <strong>Allows rapid visual auditing of alternative text descriptions.</strong><br>
         <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" target="_blank">WCAG 1.1.1</a> (2.0 A) &bull; <a href="#i-3">View Logic</a></li>
-        
+
         <li style="margin-bottom: 12px;"><strong>Captioned Video:</strong> Videos containing <code>&lt;track&gt;</code> elements. <strong>Confirms proper multimedia accessibility setup.</strong><br>
         <em>Classification:</em> Informative &bull; <a href="https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html" target="_blank">WCAG 1.2.2</a> (2.0 A) &bull; <a href="#i-4">View Logic</a></li>
         
@@ -345,7 +347,7 @@ window.A11Y_DOCS_HTML = `
         <li id="v-18" style="margin-bottom: 12px;"><strong>Auto-playing Media:</strong> Uses the CSS selector <code>audio[autoplay], video[autoplay]</code>. Elements matching the selector are flagged.</li>
         <li id="v-19" style="margin-bottom: 12px;"><strong>Heading Hierarchy Errors:</strong> Uses the CSS selector <code>h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']</code>. The logic tracks the integer level of headings, intentionally ignoring missing H1s at the start of the document. It flags an element if the current heading level skips sequentially past the previous tracked level. It also flags elements without a role attribute if the text length is under 80 characters, utilizing a heuristic wrapper safeguard to actively ignore generic containers that correctly wrap valid native headings to prevent false positives. Outputs are separated into distinct "Skipped Level" and "Fake Heading" legends.</li>        
         <li id="v-svg-accessible" style="margin-bottom: 12px;"><strong>Inaccessible SVGs:</strong> Uses the CSS selector <code>svg:not([aria-hidden='true']):not([aria-hidden='1'])</code>. The logic ignores SVGs explicitly hidden from screen readers. For exposed SVGs, it checks if it lacks an <code>aria-label</code>, lacks a nested <code>&lt;title&gt;</code>, and is not nested within an interactive parent (like a <code>&lt;button&gt;</code>) that already provides an accessible name.</li>
-        <li id="v-5" style="margin-bottom: 12px;"><strong>Missing Alt Text:</strong> Uses the CSS selector <code>img:not([alt])</code>. All elements matching this selector are flagged.</li>
+        <li id="i-3" style="margin-bottom: 12px;"><strong>Display Image Alternatives:</strong> Uses the CSS selector <code>img</code>. The logic evaluates bounding dimensions to isolate 1x1 tracking pixels, and assigns distinct legends depending on whether the <code>alt</code> attribute is missing, empty, or populated.</li>
         <li id="v-6" style="margin-bottom: 12px;"><strong>Uncaptioned Video:</strong> Uses the CSS selector <code>video</code>. The logic queries descendants for <code>track[kind="captions"], track[kind="subtitles"]</code>. If the result length is 0, the video is flagged.</li>
         <li id="v-7" style="margin-bottom: 12px;"><strong>Redundant Alt Text:</strong> Uses the CSS selector <code>img[alt]</code>. The logic reads the alt attribute and uses the regular expression <code>/\\b(image|img|photo|picture|graphic)\\b/i</code> to identify redundant terms before flagging.</li>
         <li id="v-11" style="margin-bottom: 12px;"><strong>Empty Links:</strong> Uses the CSS selector <code>a[href]</code>. The logic evaluates the text content, ARIA labels, and child image alt text. If all sources of accessible names are empty, it triggers a violation.</li>

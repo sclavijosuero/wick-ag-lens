@@ -17,6 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // PDF Mode State
     let pdfAutoScanEnabled = false;
     let lastAuditedPdfUrl = null;
+    let currentPdfChecks = [];
+    let currentPdfFailCount = 0;
 
     // Custom UI Notification Utility
     function showPanelToast(message) {
@@ -206,6 +208,18 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
     }
 
+    function getFeatureConfig(featureId) {
+        if (!window.A11Y_CONFIG) return null;
+        for (let tab of window.A11Y_CONFIG.tabs) {
+            for (let cat of tab.categories) {
+                for (let f of cat.features) {
+                    if (f.id === featureId) return { feature: f, category: cat, tab: tab };
+                }
+            }
+        }
+        return null;
+    }
+
     function sortElementsHierarchically(elements) {
         return elements.sort((a, b) => {
             const regex = /#(\d+(?:\.\d+)*):/;
@@ -292,7 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
 
-                // Prevent race conditions during mass initialization by respecting suppressHighlight flag
                 if (!suppressHighlight && toggle && toggle.checked && modeBtnInspect && modeBtnInspect.classList.contains("active")) {
                     safeSendMessage({
                         action: 'highlight',
@@ -648,9 +661,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const l2 = (label || '').trim();
         if (l1 && l2) {
             if (l1.toLowerCase() === l2.toLowerCase()) return l1;
+            // Prevent repeating "Tracking Pixel: Tracking Pixel (Missing alt)"
+            if (l2.toLowerCase().startsWith(l1.toLowerCase())) return l2;
             return `${l1}: ${l2}`;
         }
         return l1 || l2 || 'INFO';
+    }
+
+    function getTextColor(hexColor) {
+        if (!hexColor) return '#ffffff';
+        const hex = hexColor.replace('#', '');
+        if (hex.length !== 6) return '#ffffff';
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return (yiq >= 128) ? '#202124' : '#ffffff';
     }
 
     async function copyTabReport(tabName, btnEl) {
@@ -738,7 +764,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         activeElements = sortElementsHierarchically(activeElements);
 
                         auditText += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${activeElements.length} displayed elements)\n`;
-                        auditText += `Description: ${feature.desc}\n`;
+                        
+                        if (feature.desc) auditText += `Description: ${feature.desc.replace(/<[^>]*>?/gm, '')}\n`;
+                        if (feature.info && feature.info.fix) auditText += `Remediation: ${feature.info.fix.replace(/<[^>]*>?/gm, '')}\n`;
+
                         auditText += `------------------------------------------------------------\n`;
 
                         if (activeElements.length > 0) {
@@ -776,6 +805,123 @@ document.addEventListener("DOMContentLoaded", () => {
     if (copyInformativeBtn) copyInformativeBtn.addEventListener("click", () => copyTabReport("tab-informative", copyInformativeBtn));
 
     // --- MODAL ELEMENT FETCHING & REFRESH LOGIC ---
+    function openDetailsModal(ruleMapping, filteredElements) {
+        activeModalRule = ruleMapping;
+        activeModalElements = filteredElements;
+        
+        const existing = document.getElementById('a11y-details-modal');
+        if (existing) existing.remove();
+
+        const previousActiveElement = document.activeElement;
+
+        const modal = document.createElement('div');
+        modal.id = 'a11y-details-modal';
+        modal.className = 'a11y-modal-overlay';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'details-modal-title');
+
+        modal.innerHTML = `
+            <div class="a11y-modal-content" style="height: 80vh;">
+                <div class="a11y-modal-header">
+                    <div class="a11y-modal-title-area">
+                        <h2 id="details-modal-title" style="margin: 0; font-size: 16px; font-weight: 700;">Elements</h2>
+                    </div>
+                    <div class="a11y-modal-actions">
+                        <button id="modal-copy-all-btn" class="a11y-btn-secondary">📋 Copy All</button>
+                        <button id="modal-close-btn" class="a11y-btn-icon" aria-label="Close dialog">✖</button>
+                    </div>
+                </div>
+                <div class="a11y-modal-list" tabindex="0">
+                    <!-- Elements will be injected here by refreshDetailsModal -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        const closeModal = () => {
+            activeModalRule = null;
+            activeModalElements = [];
+            modal.remove();
+            document.removeEventListener('keydown', trapFocus);
+            if (previousActiveElement) previousActiveElement.focus();
+        };
+
+        document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+
+        const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1] || firstElement;
+
+        const trapFocus = (e) => {
+            if (e.key === 'Escape') closeModal();
+            else if (e.key === 'Tab') {
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) { e.preventDefault(); lastElement.focus(); }
+                } else {
+                    if (document.activeElement === lastElement) { e.preventDefault(); firstElement.focus(); }
+                }
+            }
+        };
+        
+        document.addEventListener('keydown', trapFocus);
+        
+        document.getElementById('modal-copy-all-btn').addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            if (activeModalElements.length === 0) return;
+            
+            const configData = getFeatureConfig(activeModalRule.id);
+            if (!configData) return;
+            
+            const { feature, category, tab: configTab } = configData;
+            
+            const tabTitle = configTab.id === 'tab-violations' ? 'VIOLATIONS & WARNINGS' : 'INFORMATIVE & STRUCTURE';
+            const now = new Date();
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const dateStr = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+
+            chrome.tabs.get(tabId, (currentTab) => {
+                const topUrl = currentTab && currentTab.url ? currentTab.url : 'Unknown';
+                const topTitle = currentTab && currentTab.title ? currentTab.title : 'Unknown';
+
+                let text = `************************************************************\n`;
+                text += `WICK-AG-LENS REPORT: ${tabTitle}\n`;
+                text += `************************************************************\n`;
+                text += `• Generated:  ${dateStr} (${timeZone})\n`;
+                text += `• Page URL:   ${topUrl}\n`;
+                text += `• Page Title: ${topTitle}\n`;
+                text += `• Summary:    1 Active Audit | ${activeModalElements.length} Total Findings\n`;
+                text += `============================================================\n\n\n`;
+
+                text += `============================================================\n`;
+                text += `GROUP: ${category.label.toUpperCase()}\n`;
+                text += `============================================================\n\n`;
+                
+                text += `------------------------------------------------------------\n`;
+                const severityMarker = feature.severity ? ` [SEVERITY: ${feature.severity.toUpperCase()}]` : '';
+                text += `AUDIT: ${feature.label.toUpperCase()}${severityMarker} (${activeModalElements.length} displayed elements)\n`;
+                
+                if (feature.desc) text += `Description: ${feature.desc.replace(/<[^>]*>?/gm, '')}\n`;
+                if (feature.info && feature.info.fix) text += `Remediation: ${feature.info.fix.replace(/<[^>]*>?/gm, '')}\n`;
+                text += `------------------------------------------------------------\n`;
+                
+                activeModalElements.forEach(el => {
+                    const label = formatLabel(el.legendLabel, el.label);
+                    text += `[${label}] ${el.selector}\n`;
+                });
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    const origText = btn.textContent;
+                    btn.textContent = '✔ Copied!';
+                    setTimeout(() => { btn.textContent = origText; }, 2000);
+                });
+            });
+        });
+
+        refreshDetailsModal();
+        document.getElementById('modal-close-btn').focus();
+    }
+
     async function fetchModalElements(ruleMapping) {
         const featureId = ruleMapping.id;
         const feature = getFeatureConfigById(featureId);
@@ -815,8 +961,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const filteredElements = await fetchModalElements(activeModalRule);
         activeModalElements = filteredElements;
         
-        const modalList = document.querySelector('.a11y-modal-list');
-        const modalTitleArea = document.querySelector('.a11y-modal-title-area h2');
+        const modalList = document.querySelector('#a11y-details-modal .a11y-modal-list');
+        const modalTitleArea = document.getElementById('details-modal-title');
         
         if (!modalList || !modalTitleArea) return;
 
@@ -830,13 +976,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const rawLabel = formatLabel(el.legendLabel, el.label);
             const safeLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+            // Remove the Locate button for tracking pixels since they cannot be visually highlighted
             return `
                 <div class="a11y-modal-list-item" data-target-id="${el.id}">
                     <div class="a11y-modal-item-info">
                         <span class="a11y-pill-label" style="background-color: ${pillBg}; color:${pillTxt}; text-shadow: ${pillShadow};">${safeLabel}</span>
                         <span class="a11y-selector-path">${el.selector}</span>
                     </div>
-                    ${el.legendType === 'hidden-dup' ? '' : `
+                    ${(el.legendType === 'hidden-dup' || el.legendType === 'tracking') ? '' : `
                     <button class="a11y-scroll-btn" aria-label="Scroll element into view">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"></circle>
@@ -911,7 +1058,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
             const firstElement = focusableElements[0];
-            const lastElement = focusableElements[focusableElements.length - 1];
+            const lastElement = focusableElements[focusableElements.length - 1] || firstElement;
 
             const trapDocsFocus = (e) => {
                 if (e.key === 'Escape') closeModal();
@@ -1030,7 +1177,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
         const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+        const lastElement = focusableElements[focusableElements.length - 1] || firstElement;
 
         const trapFocus = (e) => {
             if (e.key === 'Escape') {
@@ -1047,19 +1194,37 @@ document.addEventListener("DOMContentLoaded", () => {
         document.addEventListener('keydown', trapFocus);
         document.getElementById('modal-close-btn').focus();
 
-        document.getElementById('modal-copy-btn').addEventListener('click', () => {
-            let copyText = `------------------------------------------------------------\n`;
-            copyText += `PDF GATEKEEPER AUDIT: ${check.title.toUpperCase()} [${badgeText}]\n`;
-            copyText += `Standard: ${check.wcag}\n`;
-            copyText += `Status: ${check.pass ? check.passMsg : check.failMsg}\n`;
-            copyText += `Technical Detail: ${check.technicalDetail}\n`;
-            copyText += `Remediation: ${check.remediation}\n`;
-            copyText += `------------------------------------------------------------\n`;
+        document.getElementById('modal-copy-btn').addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            chrome.tabs.get(tabId, (currentTab) => {
+                const topUrl = currentTab && currentTab.url ? currentTab.url : 'Unknown';
+                const topTitle = currentTab && currentTab.title ? currentTab.title : 'Unknown';
+                const now = new Date();
+                const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const dateStr = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 
-            navigator.clipboard.writeText(copyText.trim());
-            const copyBtn = document.getElementById('modal-copy-btn');
-            copyBtn.textContent = '✔ Copied!';
-            setTimeout(() => copyBtn.textContent = '📋 Copy Details', 2000);
+                let copyText = `************************************************************\n`;
+                copyText += `WICK-AG-LENS REPORT: PDF GATEKEEPER AUDIT\n`;
+                copyText += `************************************************************\n`;
+                copyText += `• Generated:  ${dateStr} (${timeZone})\n`;
+                copyText += `• Document:   ${topTitle}\n`;
+                copyText += `• Source URL: ${topUrl}\n`;
+                copyText += `============================================================\n\n`;
+
+                copyText += `------------------------------------------------------------\n`;
+                copyText += `AUDIT: ${check.title.toUpperCase()} [${badgeText}]\n`;
+                copyText += `Standard: ${check.wcag}\n`;
+                copyText += `Status: ${check.pass ? check.passMsg : check.failMsg}\n`;
+                copyText += `Technical Detail: ${check.technicalDetail}\n`;
+                copyText += `Remediation: ${check.remediation}\n`;
+                copyText += `------------------------------------------------------------\n`;
+
+                navigator.clipboard.writeText(copyText.trim()).then(() => {
+                    const origText = btn.textContent;
+                    btn.textContent = '✔ Copied!';
+                    setTimeout(() => btn.textContent = origText, 2000);
+                });
+            });
         });
     }
 
@@ -1113,10 +1278,16 @@ document.addEventListener("DOMContentLoaded", () => {
         closeActiveModal(); 
         hidePdfStatus();
         
+        currentPdfChecks = [];
+        currentPdfFailCount = 0;
+
         const listEl = document.getElementById("pdf-results-list");
         const footerEl = document.getElementById("pdf-summary-footer");
         const badgeEl = document.getElementById("pdf-status-badge");
         const pagesEl = document.getElementById("pdf-doc-pages");
+        const copyPdfBtn = document.getElementById("copy-report-pdf");
+
+        if (copyPdfBtn) copyPdfBtn.classList.remove("visible");
 
         if (pagesEl) {
             pagesEl.textContent = "";
@@ -1148,6 +1319,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const footerEl = document.getElementById("pdf-summary-footer");
         const badgeEl = document.getElementById("pdf-status-badge");
         const pagesEl = document.getElementById("pdf-doc-pages");
+        const copyPdfBtn = document.getElementById("copy-report-pdf");
 
         if (!listEl) return;
         
@@ -1241,6 +1413,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="info-panel pdf-info-panel" id="pdf-info-panel-${idx}" style="display: none; margin-top: 10px;">
                                 <div class="info-section"><strong>Standard:</strong> ${c.wcag}</div>
                                 <div class="info-section"><strong>Logic & Bounds:</strong> ${c.info}</div>
+                                <div class="info-section"><strong>How to fix:</strong> ${c.remediation}</div>
                             </div>
                         </div>
                         <div class="actions-area" style="display:flex; flex-direction:column; gap:6px;">
@@ -1326,6 +1499,58 @@ document.addEventListener("DOMContentLoaded", () => {
                 footerEl.textContent = `✖ Found ${failCount} critical gatekeeper barrier${failCount > 1 ? 's' : ''}. Document is not accessible.`;
             }
         }
+
+        currentPdfChecks = checks;
+        currentPdfFailCount = failCount;
+        if (copyPdfBtn) copyPdfBtn.classList.add("visible");
+    }
+
+    const copyPdfBtn = document.getElementById("copy-report-pdf");
+    if (copyPdfBtn) {
+        copyPdfBtn.addEventListener("click", (e) => {
+            const btnEl = e.currentTarget;
+            if (!currentPdfChecks || currentPdfChecks.length === 0) return;
+
+            chrome.tabs.get(tabId, (currentTab) => {
+                const topUrl = currentTab && currentTab.url ? currentTab.url : 'Unknown';
+                const topTitle = currentTab && currentTab.title ? currentTab.title : 'Unknown';
+                const now = new Date();
+                const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const dateStr = now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+
+                const passedCount = currentPdfChecks.length - currentPdfFailCount;
+
+                let report = `************************************************************\n`;
+                report += `WICK-AG-LENS REPORT: PDF GATEKEEPER AUDIT\n`;
+                report += `************************************************************\n`;
+                report += `• Generated:  ${dateStr} (${timeZone})\n`;
+                report += `• Document:   ${topTitle}\n`;
+                report += `• Source URL: ${topUrl}\n`;
+                report += `• Summary:    ${passedCount} Passed | ${currentPdfFailCount} Failed\n`;
+                report += `============================================================\n\n\n`;
+
+                currentPdfChecks.forEach(check => {
+                    const badgeText = check.pass ? "PASS" : "FAIL";
+                    report += `------------------------------------------------------------\n`;
+                    report += `AUDIT: ${check.title.toUpperCase()} [${badgeText}]\n`;
+                    report += `Standard: ${check.wcag}\n`;
+                    report += `Status: ${check.pass ? check.passMsg : check.failMsg}\n`;
+                    report += `Technical Detail: ${check.technicalDetail}\n`;
+                    report += `Remediation: ${check.remediation}\n`;
+                    report += `------------------------------------------------------------\n\n`;
+                });
+
+                navigator.clipboard.writeText(report.trim()).then(() => {
+                    const originalText = btnEl.textContent;
+                    btnEl.textContent = '✔';
+                    btnEl.title = 'Report Copied!';
+                    setTimeout(() => {
+                        btnEl.textContent = originalText;
+                        btnEl.title = 'Copy Tab Report to Clipboard';
+                    }, 2000);
+                });
+            });
+        });
     }
 
     async function auditPdfUrl(url) {
@@ -1374,7 +1599,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else {
                     if (!isSameAuditedDoc) {
                         lastAuditedPdfUrl = null;
-                        resetPdfResultsUI("PDF analysis is paused. Toggle 'Scan Active PDF' ON or click 🔄 to analyze this document.");
+                        resetPdfResultsUI("PDF analysis is paused. Toggle 'Scan Active PDF' ON to analyze this document.");
                         showPdfStatus("PDF detected. Toggle 'Scan Active PDF' ON to enable automatic auditing.", "info");
                     }
                 }
@@ -1410,16 +1635,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 inspectPdfTabIfActive(true);
             } else {
                 lastAuditedPdfUrl = null;
-                resetPdfResultsUI("PDF analysis is paused. Toggle 'Scan Active PDF' ON or click 🔄 to analyze this document.");
+                resetPdfResultsUI("PDF analysis is paused. Toggle 'Scan Active PDF' ON to analyze this document.");
                 showPdfStatus("PDF analysis is paused. Previous results cleared.", "info");
             }
-        });
-    }
-
-    const pdfRescanBtn = document.getElementById("pdf-rescan-btn");
-    if (pdfRescanBtn) {
-        pdfRescanBtn.addEventListener("click", () => {
-            inspectPdfTabIfActive(true);
         });
     }
 
@@ -1568,6 +1786,11 @@ document.addEventListener("DOMContentLoaded", () => {
                                         <strong>Why it's important:</strong>
                                         ${feature.info ? feature.info.why : 'No data'}
                                     </div>
+                                    ${feature.info && feature.info.fix ? `
+                                    <div class="info-section">
+                                        <strong>How to fix:</strong>
+                                        ${feature.info.fix}
+                                    </div>` : ''}
                                 </div>
                             </div>
                             <div class="actions-area">

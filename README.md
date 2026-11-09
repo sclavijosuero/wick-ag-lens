@@ -1,6 +1,6 @@
 # WICK-AG-Lens: Accessibility Inspector
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a simlation Mode and a PDF Gatekeeper Auditing.
+WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a simulation Mode and a PDF Gatekeeper Auditing engine.
 
 You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
 
@@ -33,9 +33,9 @@ WICK-AG-Lens is built for developers and QA engineers. It runs static analysis a
 *   **WCAG Criteria Filtering:** Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).
 *   **Visual Highlighting & Focus Tracing:** Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.
 *   **X-Ray Vision for Clipped Elements:** Renders hidden or off-screen interactive elements (like carousel slides) with a ghosted hatched pattern so you can visualize hidden focus traps without breaking the layout.
-*   **Interactive Info Panels & Code Previews:** Clicking any on-page badge opens a detailed panel explaining the issue, providing the CSS selector, and displaying a sanitized, syntax-highlighted HTML snippet of the target element.
+*   **Interactive Info Panels & Code Previews:** Clicking any on-page badge opens a detailed panel explaining the issue, displaying a sanitized HTML snippet of the target element, and providing actionable remediation steps.
 *   **Precision Element Locator:** Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.
-*   **One-Click Reporting:** Copy formatted text reports of all active audits and their findings directly to your clipboard for easy ticket creation or bug tracking.
+*   **One-Click Reporting:** Copy formatted text reports of all active audits, their findings, and direct remediation instructions to your clipboard for easy ticket creation or bug tracking.
 *   **Shadow DOM & Iframe Support:** Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.
 
 
@@ -58,7 +58,7 @@ The inspector categorizes 55 heuristic rulesets across two primary tabs: **Viola
 
 *   **Version & Level Filters:** Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.
 *   **Master Toggles & Clean UI:** Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.
-*   **Inline Information:** Clicking the `[ i ]` icon next to any audit expands an inline panel detailing exactly *What it highlights* and *Why it's important*, complete with links directly to the official W3C WCAG documentation.
+*   **Inline Information:** Clicking the `[ i ]` icon next to any audit expands an inline panel detailing exactly *What it highlights*, *Why it's important*, and *How to fix it*, complete with links directly to the official W3C WCAG documentation.
 
 ![WCAG Criteria Filtering, Master Toggles, and Inline Info](images/wcag-filtering.png)
 
@@ -80,6 +80,7 @@ Impaired Vision:
 Analyze raw PDF binary streams directly in the browser. Since Chrome's native PDF viewer is securely isolated and cannot be visually overlaid, this mode programmatically inspects the Document Catalog and Metadata dictionaries via an ArrayBuffer stream.
 *   **Auto-Scan Verification:** Navigate to any direct PDF URL and toggle "Scan Active PDF" to execute an instant structural audit covering Tags, Titles, Language, and Extraction Permissions.
 *   **View Technical Details Modal:** Click the details icon on any gatekeeper check to open a comprehensive modal. This displays the explicit Evaluation Finding (Pass/Fail), the precise Technical Stream Inspection output (e.g., `/MarkInfo << /Marked true >>`), Scope Guidance, and specific Remediation steps across Adobe Acrobat, Microsoft Word, and InDesign.
+*   **Global Clipboard Export:** A dedicated `Copy Tab Report` (📋) button allows you to instantly export all 4 PDF gatekeeper checks, their statuses, technical outputs, and software-specific remediation instructions directly to your clipboard.
 *   **Accuracy Identifiers:** Checks are clearly labeled with their confidence interval (e.g., *High Confidence* for strict catalog validation vs. *Moderate Confidence* for heuristic metadata scanning).
 
 PDF Gatekeeper Auditing:
@@ -92,7 +93,7 @@ Impaired Vision:
 
 
 ### 4. Interactive Info Panels & Code Previews
-Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining *what* was flagged and *why* it creates a barrier for users.
+Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining *what* was flagged, *why* it creates a barrier for users, and **how to fix it** (utilizing clean, collapsible native HTML accordions to keep the UI compact and prevent screen clutter).
 
 Crucially, the panel extracts a clean, extension-sanitized **HTML Snippet** of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise **CSS Selector**. Dedicated "Copy" buttons (📋) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.
 
@@ -109,7 +110,8 @@ For audits that return multiple findings, clicking the "View Elements" (list ico
 ### 6. Comprehensive Tab Reporting
 To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (📋) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.
 *   The report only exports data for **actively toggled audits** that pass your current WCAG filters.
-*   It organizes the output by Category and Rule, explicitly logging `(No matching elements found)` for active audits that currently pass, providing definitive proof of compliance for your audit trails.
+*   It organizes the output by Category and Rule, explicitly logging `(No matching elements found)` for active audits that currently pass.
+*   Crucially, the exported report **automatically includes explicit, actionable Remediation steps** for every flagged rule, making it effortless to paste direct solutions into Jira or bug tracking tickets for your developers.
 
 ![One-Click Clipboard Reporting Output](images/clipboard-report.png)
 
@@ -161,12 +163,12 @@ The following details the complete list of heuristic evaluations performed by th
 | Audit | Classification | Badge Output | WCAG Criteria | Logic |
 | :--- | :--- | :--- | :--- | :--- |
 | **Inaccessible SVGs** | Critical | `"Inaccessible SVG"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-svg-accessible) |
-| **Missing Alt Text** | Critical | `"Missing alt"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-5) |
+| **Missing Alt Text** | Critical | `"Missing alt"` or `"Tracking Pixel"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-5) |
 | **Uncaptioned Video** | Critical | `"<video> (No Captions)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#v-6) |
 | **Redundant Alt Text** | Minor | `Redundant alt: "{text}"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-7) |
 
 *   **Inaccessible SVGs:** Flags inline `<svg>` elements exposed to screen readers lacking an accessible name. **Screen readers will read out raw SVG code nodes.**
-*   **Missing Alt Text:** Flags `<img>` elements completely lacking an `alt` attribute. **Screen readers will read the raw image filename** if the attribute is missing.
+*   **Missing Alt Text:** Flags `<img>` elements completely lacking an `alt` attribute. Explicitly segregates 1x1 tracking pixels. **Screen readers will read the raw image filename or URL** if the attribute is missing, which is highly disruptive for hidden tracking pixels.
 *   **Uncaptioned Video:** Flags `<video>` elements missing nested `<track>` elements. **Deaf or hard of hearing users require captions** for video content.
 *   **Redundant Alt Text:** Flags `alt` attributes containing words like *'image of'* or *'photo of'*. **Screen readers automatically announce images**, making these prefixes redundant.
 
@@ -268,11 +270,11 @@ The following details the complete list of heuristic evaluations performed by th
 
 | Audit | Classification | Badge Output | WCAG Criteria | Logic |
 | :--- | :--- | :--- | :--- | :--- |
-| **Display Image Alternatives** | Informative | `alt="{val}"`, `alt=""`, or `"Missing alt"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#i-3) |
+| **Display Image Alternatives** | Informative | `alt="{val}"`, `alt=""`, `"Missing alt"`, or `"[Pixel] ..."` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#i-3) |
 | **Captioned Video** | Informative | `"<video> (Captioned)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#i-4) |
 | **Iframe Context & Titles** | Informative | `title="{title}"`, `"Hidden Iframe"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-5) |
 
-*   **Display Image Alternatives:** Prints `alt` text for all images. **Allows rapid visual auditing of alternative text descriptions.** 
+*   **Display Image Alternatives:** Extracts and visually prints the `alt` text directly over all `<img>` elements, explicitly segregating 1x1 tracking pixels. **Allows rapid visual auditing of alternative text descriptions.**
 *   **Captioned Video:** Videos containing `<track>` elements. **Confirms proper multimedia accessibility setup.** 
 *   **Iframe Context & Titles:** Analyzes third-party embed context and `title` attributes. **Screen readers announce the title to inform the user** what the sub-document contains. 
 
@@ -367,7 +369,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="v-18"></a>**Auto-playing Media:** Uses the CSS selector `audio[autoplay], video[autoplay]`. Elements matching the selector are flagged.
 *   <a id="v-19"></a>**Heading Hierarchy Errors:** Uses the CSS selector `h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']`. The logic tracks the integer level of headings, intentionally ignoring missing H1s at the start of the document. It flags an element if the current heading level skips sequentially past the previous tracked level. It also flags generic elements without a role attribute if the text length is under 80 characters, utilizing a heuristic wrapper safeguard to actively ignore generic containers that correctly wrap (or are wrapped by) valid native headings to prevent false positives. Outputs are separated into distinct "Skipped Level" and "Fake Heading" legends.
 *   <a id="v-svg-accessible"></a>**Inaccessible SVGs:** Uses the CSS selector `svg:not([aria-hidden='true']):not([aria-hidden='1'])`. The logic ignores SVGs explicitly hidden from screen readers. For exposed SVGs, it checks if it lacks an `aria-label`, lacks a nested `<title>`, and is not nested within an interactive parent (like a `<button>`) that already provides an accessible name.
-*   <a id="v-5"></a>**Missing Alt Text:** Uses the CSS selector `img:not([alt])`. All elements matching this selector are flagged.
+*   <a id="v-5"></a>**Missing Alt Text:** Uses the CSS selector `img:not([alt])`. Evaluates `getBoundingClientRect()` to distinctly categorize sub-2px tracking pixels apart from standard image violations to reduce UI noise.
 *   <a id="v-6"></a>**Uncaptioned Video:** Uses the CSS selector `video`. The logic queries descendants for `track[kind="captions"], track[kind="subtitles"]`. If the result length is 0, the video is flagged.
 *   <a id="v-7"></a>**Redundant Alt Text:** Uses the CSS selector `img[alt]`. The logic reads the alt attribute and uses the regular expression `/\b(image|img|photo|picture|graphic)\b/i` to identify redundant terms before flagging.
 *   <a id="v-11"></a>**Empty Links:** Uses the CSS selector `a[href]`. The logic evaluates the text content, ARIA labels, and child image alt text. If all sources of accessible names are empty, it triggers a violation.
@@ -381,10 +383,10 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="v-1"></a>**Unfocusable Clickables:** Uses the CSS selector `div[onclick], span[onclick], section[onclick]`. The Javascript logic evaluates each element to ensure it lacks a `role` attribute or lacks a `tabindex` attribute before flagging a violation.
 *   <a id="v-3"></a>**Tabindex Violations:** Uses the CSS selector `[tabindex]`. The logic parses the attribute value as a base 10 integer and triggers a violation if the value is strictly greater than 0.
 *   <a id="v-4"></a>**Accesskey Attributes:** Uses the CSS selector `[accesskey]`. All elements matching this selector are flagged.
-*   <a id="v-2"></a>**Disabled Focus Outlines (Heuristic):** Uses the base CSS selector `a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])`. The Javascript logic iterates through `document.styleSheets` and checks each `CSSRule.STYLE_RULE` to see if the selector includes `:focus` or `:focus-visible`. It reads the `outline`, `outlineWidth`, `boxShadow`, and `border` properties. If outline rules contain `none` or `0px` and no fallback border or shadow is provided, the selector is recorded. Any interactive element matching that recorded selector is flagged for manual review, as the script cannot natively account for subsequent CSS cascade overrides.
+*   <a id="v-2"></a>**Disabled Focus Outlines (Heuristic):** Uses the base CSS selector `a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])`. The Javascript logic iterates through `document.styleSheets` and checks each `CSSRule.STYLE_RULE` to see if the selector includes `:focus` or `:focus-visible`. It reads the `outline`, `outlineWidth`, `boxShadow`, and `border` properties. If outline rules contain `none` or `0px` and no fallback border or shadow is provided in the same rule, the selector is recorded. Any interactive element matching that recorded selector is flagged for manual review, as the script cannot natively account for subsequent CSS cascade overrides.
 *   <a id="v-17"></a>**Prohibited Author Names:** Uses the CSS selector `[role='presentation'], [role='none'], [role='generic']`. The logic triggers a violation if the matched element has an `aria-label` or `aria-labelledby` attribute.
 *   <a id="v-label-in-name"></a>**Label in Name Mismatch:** Uses the CSS selector `button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]`. The logic normalizes whitespace, strips punctuation, and lowercases both the visible `innerText` and the computed `aria-label`. If the visible text is not found as a substring within the `aria-label`, it throws a violation.
-*   <a id="v-duplicate-id"></a>**Duplicate ID Attributes:** Uses the CSS selector `[id]`. A state object maps every ID string found in the DOM and uses `document.querySelectorAll` with `CSS.escape()` to count occurrences. If an ID appears more than once, all elements sharing it are flagged.
+*   <a id="v-duplicate-id"></a>**Duplicate ID Attributes:** Uses the CSS selector `[id]`. The logic tracks processed IDs to prevent redundant processing. When a duplicate is found, it uses `document.querySelectorAll` with `CSS.escape()` to fetch all colliding nodes. It evaluates `offsetWidth/offsetHeight` to categorize each node as visible or hidden, explicitly registering hidden duplicates with a lighter-colored legend so they appear distinctly in the Details Modal without rendering layout-breaking zero-pixel boxes on the screen.
 *   <a id="v-broken-aria-ref"></a>**Broken ARIA References:** Targets elements using `[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]`. The logic splits the attribute values by whitespace into individual ID strings and checks if `document.getElementById()` returns null. Flags the element if any referenced ID is missing from the DOM.
 *   <a id="v-15"></a>**Focusable in Aria-Hidden:** Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses `aria-hidden='true'`. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.
 *   <a id="v-16"></a>**Invalid ARIA State:** Uses the CSS selector `[aria-invalid='true']`. Elements matching the selector are flagged.
@@ -397,7 +399,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 *   <a id="i-19"></a>**Table & Grid Structure:** Uses the CSS selector `table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']`. The logic applies a dashed style to header roles and tags, and applies a solid style for grid and table containers.
 *   <a id="i-20"></a>**Lists and List Items:** Uses the CSS selector `ul, ol, li, dl, dt, dd`. Elements matching the selector are highlighted.
 *   <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
-*   <a id="i-3"></a>**Display Image Alternatives:** Uses the CSS selector `img`. The logic assigns distinct legends depending on whether the `alt` attribute is completely missing, present but empty, or populated.
+*   <a id="i-3"></a>**Display Image Alternatives:** Uses the CSS selector `img`. The logic calculates bounding box dimensions to isolate tracking pixels, and assigns distinct legends based on whether the `alt` attribute is completely missing, present but empty, or populated.
 *   <a id="i-4"></a>**Captioned Video:** Uses the CSS selector `video`. The logic checks for child `track[kind="captions"]` or `track[kind="subtitles"]` elements to highlight the video.
 *   <a id="i-5"></a>**Iframe Context & Titles:** Uses the CSS selector `iframe`. The logic checks if the iframe has `aria-hidden` set to true or `tabindex` set to -1. It flags missing titles if the `title` attribute is missing or empty, otherwise, it outputs the title text.
 *   <a id="i-9"></a>**Warned New Window Links:** Uses the CSS selector `a[target='_blank']`. The logic combines the text content and `aria-label` to test against the regular expression `/new (window|tab)/`. Matches are highlighted.
