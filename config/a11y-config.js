@@ -4,6 +4,431 @@ window.A11Y_CONFIG = {
             id: "tab-violations",
             categories: [
                 {
+                    id: "cat-structure-1",
+                    label: "Structure & Document",
+                    features: [
+                        {
+                            id: "v-doc-title",
+                            label: "Document Title",
+                            desc: "Missing or empty <code>&lt;title&gt;</code> element",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "html",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Checks if the document is missing a <code>&lt;title&gt;</code> tag or if it is completely empty.",
+                                why: "<strong>Screen readers announce the page title first.</strong> Without it, users don't know what page they've landed on. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html' target='_blank'>WCAG 2.4.2: Page Titled</a>",
+                                fix: "Add a concise and descriptive <code>&lt;title&gt;</code> element inside the document's <code>&lt;head&gt;</code> that identifies the current page."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                if (el.tagName.toLowerCase() === 'html') {
+                                    if (!document.title || document.title.trim() === '') {
+                                        drawHighlight(el, "#d93025", "Missing Document Title", "bad");
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-page-encoding",
+                            label: "Page Encoding",
+                            desc: "Missing <code>UTF-8</code> character encoding",
+                            severity: "Moderate",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "html",
+                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            info: {
+                                what: "Checks if the document character set is defined.",
+                                why: "<strong>Ensures text is parsed and pronounced correctly.</strong> Missing encoding can cause assistive technologies to misinterpret special characters. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Add <code>&lt;meta charset=\"UTF-8\"&gt;</code> as the first child of the <code>&lt;head&gt;</code> element."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                if (el.tagName.toLowerCase() === 'html') {
+                                    if (!document.characterSet || document.characterSet.toLowerCase() !== 'utf-8') {
+                                        drawHighlight(el, "#fbbc04", `Encoding: ${document.characterSet || 'Missing'}`, "bad");
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-autoplay-media",
+                            label: "Auto-playing Media",
+                            desc: "Audio/Video elements set to <code>autoplay</code>",
+                            severity: "Serious",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "audio[autoplay], video[autoplay]",
+                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
+                            info: {
+                                what: "Flags <code>&lt;audio&gt;</code> or <code>&lt;video&gt;</code> elements with <code>autoplay</code> enabled.",
+                                why: "<strong>Unexpected audio conflicts with screen reader announcements</strong>, drowning out the speech engine and making it impossible for the user to hear page navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html' target='_blank'>WCAG 1.4.2: Audio Control</a>",
+                                fix: "Remove the <code>autoplay</code> attribute. Allow the user to start playback manually, or ensure it lasts under 3 seconds and provides a mechanism to pause or mute it."
+                            },
+                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#f29900", "Autoplay Media", "bad"); return true; }
+                        },
+                        {
+                            id: "v-heading-errors",
+                            label: "Heading Hierarchy Errors",
+                            desc: "Skipped levels (e.g., <code>H1</code> to <code>H3</code>) or fake non-semantic headings",
+                            severity: "Moderate",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']",
+                            legends: [
+                                { label: "Skipped Level", color: "#f29900", type: "skipped" }, 
+                                { label: "Fake Heading", color: "#1a73e8", type: "fake" }      
+                            ],
+                            info: {
+                                what: "Flags skipped sequential levels (e.g., jumping from <code>H1</code> directly to <code>H3</code>) or fake structural classes imitating headings. <strong>Note:</strong> Starting a page directly with an <code>H2</code> is not flagged as a skipped level.",
+                                why: "<strong>Headings map the document's structure.</strong> Skipping levels breaks the outline and deeply confuses screen reader navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Ensure headings increment by only one level at a time (e.g., an H2 should only be followed by an H2 or H3). Use proper native heading tags (<code>&lt;h1&gt;</code> - <code>&lt;h6&gt;</code>) instead of styling generic <code>&lt;div&gt;</code> elements to look like headings."
+                            },
+                            customHighlight: (el, drawHighlight, state) => {
+                                let activeLegs = [];
+                                if (typeof lastRunState !== 'undefined' && lastRunState.has("v-heading-errors")) {
+                                    activeLegs = lastRunState.get("v-heading-errors").activeLegends || [];
+                                }
+                                
+                                const checkSkipped = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("skipped");
+                                const checkFake = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("fake");
+
+                                state.lastLevel = state.lastLevel || 0;
+                                const tag = el.tagName.toLowerCase();
+                                
+                                if (tag.match(/^h[1-6]$/)) {
+                                    const level = parseInt(tag.substring(1));
+                                    if (level > state.lastLevel + 1 && state.lastLevel !== 0) {
+                                        if (checkSkipped) {
+                                            drawHighlight(el, "#f29900", `${tag.toUpperCase()} (Skipped)`, "skipped");
+                                        }
+                                        state.lastLevel = level; 
+                                        return true;
+                                    }
+                                    state.lastLevel = level;
+                                } else if (!el.hasAttribute('role')) {
+                                    const hasHeadingChild = el.querySelector('h1, h2, h3, h4, h5, h6, [role="heading"]');
+                                    const isInsideHeading = el.closest('h1, h2, h3, h4, h5, h6, [role="heading"]');
+                                    
+                                    if (!hasHeadingChild && !isInsideHeading) {
+                                        const textLen = el.innerText.trim().length;
+                                        if (textLen > 0 && textLen < 80) { 
+                                            if (checkFake) {
+                                                drawHighlight(el, "#1a73e8", `Fake Heading`, "fake"); 
+                                            }
+                                            return true; 
+                                        }
+                                    }
+                                }
+                                return false;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-media-1",
+                    label: "Images & Media",
+                    features: [
+                        {
+                            id: "v-svg-accessible",
+                            label: "Inaccessible SVGs",
+                            desc: "Inline <code>&lt;svg&gt;</code> elements missing accessible names or <code>aria-hidden</code>",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "svg:not([aria-hidden='true']):not([aria-hidden='1'])",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Flags inline <code>&lt;svg&gt;</code> elements that are exposed to screen readers but lack an accessible name.",
+                                why: "<strong>Screen readers will read out raw SVG code nodes</strong> or ignore the graphic entirely. If it's decorative, it must be explicitly hidden. If it's informative, it must be named. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>",
+                                fix: "If the SVG conveys meaning, add <code>aria-label=\"description\"</code> or a nested <code>&lt;title id=\"desc\"&gt;</code> referenced by <code>aria-labelledby=\"desc\"</code>. If the SVG is purely decorative, add <code>aria-hidden=\"true\"</code> to hide it from screen readers."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
+                                const hasTitle = el.querySelector("title") && el.querySelector("title").textContent.trim() !== "";
+                                const parentInteractive = el.closest('button, a[href], [role="button"], [role="link"]');
+
+                                if (parentInteractive) {
+                                    const parentText = parentInteractive.innerText || parentInteractive.textContent;
+                                    const parentHasAria = parentInteractive.hasAttribute("aria-label") || parentInteractive.hasAttribute("aria-labelledby");
+                                    if (parentText.trim() !== "" || parentHasAria) return false;
+                                }
+
+                                if (!hasAria && !hasTitle) {
+                                    drawHighlight(el, "#d93025", "Inaccessible SVG", "bad");
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-missing-alt",
+                            label: "Missing Alt Text",
+                            desc: "Images lacking an <code>alt</code> attribute",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "img:not([alt])",
+                            legends: [
+                                { label: "Violation", color: "#d93025", type: "bad" },
+                                { label: "Tracking Pixel", color: "#9c27b0", type: "tracking" } // Unified Purple Color
+                            ],
+                            info: {
+                                what: "Flags <code>&lt;img&gt;</code> elements completely lacking an <code>alt</code> attribute, and explicitly separates 1x1 tracking pixels.",
+                                why: "<strong>Screen readers will read the raw image filename or URL</strong> if the <code>alt</code> attribute is missing. For hidden tracking pixels, this results in a highly disruptive announcement of a massive tracking URL. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>",
+                                fix: "Add an <code>alt</code> attribute. For content images, provide a brief description. For tracking pixels and decorative images, provide an empty <code>alt=\"\"</code> attribute or add <code>aria-hidden=\"true\"</code> to the container."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const rect = el.getBoundingClientRect();
+                                const isTrackingPixel = rect.width <= 2 && rect.height <= 2;
+                                
+                                if (isTrackingPixel) {
+                                    drawHighlight(el, "#9c27b0", "Tracking Pixel (Missing alt)", "tracking");
+                                } else {
+                                    drawHighlight(el, "#d93025", "Missing alt", "bad");
+                                }
+                                return true;
+                            }
+                        },                        {
+                            id: "v-uncaptioned-video",
+                            label: "Uncaptioned Video",
+                            desc: "Video elements missing <code>&lt;track&gt;</code> elements",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "video",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Flags <code>&lt;video&gt;</code> elements lacking nested <code>&lt;track&gt;</code> elements.",
+                                why: "<strong>Deaf or hard of hearing users require captions</strong> to understand audio tracks and dialogue in video content. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html' target='_blank'>WCAG 1.2.2: Captions (Prerecorded)</a>",
+                                fix: "Add a <code>&lt;track kind=\"captions\" src=\"captions.vtt\" srclang=\"en\" label=\"English\"&gt;</code> child element to the video pointing to a valid WebVTT file."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const tracks = el.querySelectorAll('track[kind="captions"], track[kind="subtitles"]');
+                                if (tracks.length === 0) { drawHighlight(el, "#d93025", "<video> (No Captions)", "bad"); return true; }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-redundant-alt",
+                            label: "Redundant Alt Text",
+                            desc: "<code>alt</code> text containing <em>'image of'</em> or <em>'photo of'</em>",
+                            severity: "Minor",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "img[alt]",
+                            legends: [{ label: "Violation", color: "#1a73e8", type: "bad" }],
+                            info: {
+                                what: "Flags <code>alt</code> attributes containing unnecessary prefixes like <em>'image of'</em> or <em>'photo of'</em>.",
+                                why: "<strong>Screen readers automatically announce the element as an image.</strong> Including these words forces the user to hear <em>'Image, image of...'</em> redundantly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>",
+                                fix: "Remove the words 'image of', 'picture of', or 'photo of' from the <code>alt</code> attribute. Just describe the subject directly."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const alt = el.getAttribute("alt");
+                                if (/\b(image|img|photo|picture|graphic)\b/i.test(alt)) {
+                                    const cleanAlt = alt.replace(/\s+/g, " ").trim();
+                                    drawHighlight(el, "#1a73e8", `Redundant alt: "${cleanAlt}"`, "bad"); return true;
+                                } return false;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-links-1",
+                    label: "Links & Navigation",
+                    features: [
+                        {
+                            id: "v-empty-links",
+                            label: "Empty Links",
+                            desc: "Links without readable text or an <code>aria-label</code>",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "a[href]",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Flags <code>&lt;a&gt;</code> tags lacking readable text or accessible ARIA names.",
+                                why: "<strong>Screen readers will default to reading the raw URL path</strong> out loud, which is often confusing and excessively long. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html' target='_blank'>WCAG 2.4.4: Link Purpose (In Context)</a>",
+                                fix: "Provide visible inner text for the link. If the link only contains an icon, add an <code>aria-label</code> or visually hidden text (e.g., <code>&lt;span class=\"sr-only\"&gt;</code>) describing the destination."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const text = el.innerText || el.textContent;
+                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
+                                const hasImgAlt = el.querySelector("img[alt]");
+                                if (text.trim() === "" && !hasAria && !hasImgAlt) { drawHighlight(el, "#d93025", "Empty Link", "bad"); return true; }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-suspicious-links",
+                            label: "Suspicious Link Targets",
+                            desc: "Links missing routing context acting as buttons (missing <code>role='button'</code>)",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "a[href='#'], a[href^='javascript:']",
+                            legends: [
+                                { label: "javascript: (Critical)", color: "#d93025", type: "js" },
+                                { label: "href='#' (Serious)", color: "#f29900", type: "hash" }
+                            ],
+                            info: {
+                                what: "Flags anchor tags that lack actual routing destinations and are missing <code>role='button'</code>.",
+                                why: "<strong>Using links to trigger JS actions confuses screen readers.</strong> A user expects a link to navigate them to a new page. If it executes a script or toggles a menu, it should be a Button. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "If the element performs an on-page action (like opening a modal or submitting data), convert it to a <code>&lt;button&gt;</code> element. If you must use an anchor tag, add <code>role=\"button\"</code>."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                if (el.getAttribute("role") === "button") return false;
+                                const href = el.getAttribute("href");
+                                if (href && href.startsWith("javascript:")) {
+                                    drawHighlight(el, "#d93025", "Fake Button (JS)", "js");
+                                } else {
+                                    drawHighlight(el, "#f29900", "Fake Button (#)", "hash");
+                                }
+                                return true;
+                            }
+                        },
+                        {
+                            id: "v-generic-link",
+                            label: "Generic Link Text",
+                            desc: "Ambiguous text like <em>'Click Here'</em>",
+                            severity: "Moderate",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "a[href]",
+                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            info: {
+                                what: "Flags ambiguous link text (e.g., <em>'Click Here'</em>, <em>'Read More'</em>) using exact word boundaries.",
+                                why: "<strong>Users navigating via an isolated 'Links List' will lack context</strong> for where the destination actually leads. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html' target='_blank'>WCAG 2.4.4: Link Purpose</a>",
+                                fix: "Rewrite the link text to clearly describe the destination. Instead of 'Click here', use 'Read our annual report' or 'View full article'."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const text = (el.innerText || el.textContent).replace(/\s+/g, " ").trim();
+                                if (/\b(click here|read more|learn more|more|link|here)\b/i.test(text)) {
+                                    drawHighlight(el, "#fbbc04", `Generic link: "${text}"`, "bad"); return true;
+                                } return false;
+                            }
+                        },
+                        {
+                            id: "v-unwarned-window",
+                            label: "Unwarned New Window Links",
+                            desc: "<code>target='_blank'</code> links without an accessible warning",
+                            severity: "Moderate",
+                            wcag: [{ version: "2.0", level: "AAA" }],
+                            selector: "a[target='_blank']",
+                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            info: {
+                                what: "Flags <code>target='_blank'</code> links lacking text or ARIA warnings that the context will shift.",
+                                why: "<strong>Unexpectedly opening new tabs disorients cognitive and screen reader users</strong> by suddenly hijacking their context and changing their window environment. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html' target='_blank'>WCAG 3.2.5: Change on Request</a>",
+                                fix: "Add visual text or visually hidden text (e.g., <code>&lt;span class=\"sr-only\"&gt;(opens in a new tab)&lt;/span&gt;</code>) inside the link indicating the behavior."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const txt = (el.innerText + " " + (el.getAttribute("aria-label") || "")).toLowerCase();
+                                if (!/new (window|tab)/.test(txt)) {
+                                    drawHighlight(el, "#fbbc04", 'target="_blank" (No Warning)', "bad"); return true;
+                                } return false;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-forms-1",
+                    label: "Forms & Controls",
+                    features: [
+                        {
+                            id: "v-unlabeled-inputs",
+                            label: "Unlabeled Form Inputs",
+                            desc: "Inputs missing programmatic names (e.g., <code>aria-label</code>)",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "input:not([type='hidden']):not([type='submit']):not([type='button']), select, textarea",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Flags form controls missing a linked <code>&lt;label for&gt;</code>, an <code>aria-label</code>, or a direct <code>&lt;label&gt;</code> wrapper.",
+                                why: "<strong>Screen readers cannot announce what the input is for.</strong> The user will focus the field and only hear <em>'Edit text'</em>, with no context. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html' target='_blank'>WCAG 3.3.2: Labels or Instructions</a>",
+                                fix: "Add a <code>&lt;label for=\"input-id\"&gt;</code> that targets the input's ID, nest the input directly inside a <code>&lt;label&gt;</code>, or provide a descriptive <code>aria-label</code>."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const id = el.id;
+                                const hasLabelFor = id ? document.querySelector(`label[for="${id}"]`) : false;
+                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
+                                const hasWrapper = el.closest("label");
+                                if (!hasLabelFor && !hasAria && !hasWrapper) { drawHighlight(el, "#d93025", "Unlabeled Input", "bad"); return true; }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-empty-buttons",
+                            label: "Empty Buttons",
+                            desc: "Buttons without readable text or an <code>aria-label</code>",
+                            severity: "Critical",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "button, [role='button']",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            info: {
+                                what: "Flags buttons with no internal text, missing an <code>aria-label</code>, or lacking a child image with an <code>alt</code> attribute.",
+                                why: "<strong>Screen readers will only announce 'Button'</strong>, providing zero context about what clicking the button will actually do. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Provide visible text inside the button. If the button only uses an icon, add an <code>aria-label=\"Action Description\"</code>."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const text = el.innerText || el.textContent;
+                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
+                                const hasImgAlt = el.querySelector("img[alt]");
+                                if (text.trim() === "" && !hasAria && !hasImgAlt) { drawHighlight(el, "#d93025", "Empty Button", "bad"); return true; }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-placeholder-label",
+                            label: "Placeholder as Label",
+                            desc: "Inputs relying solely on the <code>placeholder</code> attribute",
+                            severity: "Serious",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "input[placeholder], textarea[placeholder]",
+                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
+                            info: {
+                                what: "Flags inputs relying solely on the <code>placeholder</code> attribute for their accessible name.",
+                                why: "<strong>Placeholders disappear when a user begins typing</strong>, removing the instructions. Furthermore, default placeholder colors frequently fail text contrast minimums. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Provide a persistent, programmatic label (like a <code>&lt;label for=\"id\"&gt;</code> or <code>aria-label</code>) instead of relying solely on the placeholder."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const id = el.id;
+                                const hasLabelFor = id ? document.querySelector(`label[for="${id}"]`) : false;
+                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
+                                if (!hasLabelFor && !hasAria) { drawHighlight(el, "#f29900", "Placeholder as Label", "bad"); return true; }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-autocomplete-invalid",
+                            label: "Invalid Autocomplete",
+                            desc: "Inputs with invalid or conflicting <code>autocomplete</code> tokens",
+                            severity: "Moderate",
+                            wcag: [{ version: "2.1", level: "AA" }],
+                            selector: "input[autocomplete], select[autocomplete], textarea[autocomplete]",
+                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            info: {
+                                what: "Flags form fields where the <code>autocomplete</code> attribute contains unrecognized HTML5 tokens.",
+                                why: "<strong>Cognitive accessibility relies on browsers auto-filling data.</strong> Invalid tokens prevent browsers and password managers from functioning correctly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html' target='_blank'>WCAG 1.3.5: Identify Input Purpose</a>",
+                                fix: "Use a valid HTML5 autocomplete token (e.g., 'email', 'given-name', 'street-address'). Ensure spelling is correct."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const val = el.getAttribute("autocomplete");
+                                if (val === "on" || val === "off") return false;
+                                const validTokens = new Set(["name", "honorific-prefix", "given-name", "additional-name", "family-name", "honorific-suffix", "nickname", "email", "username", "new-password", "current-password", "one-time-code", "organization-title", "organization", "street-address", "address-line1", "address-line2", "address-line3", "address-level4", "address-level3", "address-level2", "address-level1", "country", "country-name", "postal-code", "cc-name", "cc-given-name", "cc-additional-name", "cc-family-name", "cc-number", "cc-exp", "cc-exp-month", "cc-exp-year", "cc-csc", "cc-type", "transaction-currency", "transaction-amount", "language", "bday", "bday-day", "bday-month", "bday-year", "sex", "tel", "tel-country-code", "tel-national", "tel-area-code", "tel-local", "tel-extension", "impp", "url", "photo", "webauthn"]);
+
+                                const tokens = val.toLowerCase().split(/\s+/);
+                                let isInvalid = false;
+                                for (let token of tokens) {
+                                    if (token.startsWith('section-') || token === 'shipping' || token === 'billing' || token === 'home' || token === 'work' || token === 'mobile' || token === 'fax' || token === 'pager') continue;
+                                    if (!validTokens.has(token)) {
+                                        isInvalid = true;
+                                        break;
+                                    }
+                                }
+
+                                if (isInvalid) {
+                                    drawHighlight(el, "#fbbc04", `Invalid autocomplete="${val}"`, "bad");
+                                    return true;
+                                }
+                                return false;
+                            }
+                        }
+                    ]
+                },
+                {
                     id: "cat-keyboard-1",
                     label: "Keyboard Navigation",
                     features: [
@@ -17,7 +442,8 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
                             info: {
                                 what: "Flags generic elements with <code>onclick</code> handlers lacking a <code>tabindex</code> and a valid semantic <code>role</code>.",
-                                why: "<strong>Keyboard users cannot tab to or activate these elements.</strong> If an element behaves like a button, it must be programmatically focusable. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html' target='_blank'>WCAG 2.1.1: Keyboard</a>"
+                                why: "<strong>Keyboard users cannot tab to or activate these elements.</strong> If an element behaves like a button, it must be programmatically focusable. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html' target='_blank'>WCAG 2.1.1: Keyboard</a>",
+                                fix: "Change the element to a native <code>&lt;button&gt;</code>. If a custom element is strictly required, add <code>tabindex=\"0\"</code>, a valid ARIA role like <code>role=\"button\"</code>, and ensure you handle standard keyboard events (Enter/Space)."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 if (!el.hasAttribute("role") || !el.hasAttribute("tabindex")) {
@@ -35,7 +461,8 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "tabindex > 0", color: "#f29900", type: "bad" }],
                             info: {
                                 what: "Flags elements dynamically injected with a <code>tabindex &gt; 0</code>.",
-                                why: "<strong>Overrides natural DOM focus order</strong>, creating unpredictable and confusing navigation paths for screen readers and keyboard users. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>"
+                                why: "<strong>Overrides natural DOM focus order</strong>, creating unpredictable and confusing navigation paths for screen readers and keyboard users. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>",
+                                fix: "Remove the positive tabindex value. Rely on the natural DOM order by physically rearranging HTML elements, or use <code>tabindex=\"0\"</code> to safely add custom elements to the focus flow."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const val = parseInt(el.getAttribute("tabindex"), 10);
@@ -53,7 +480,8 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "Warning", color: "#fbbc04", type: "warn" }],
                             info: {
                                 what: "Flags explicit <code>accesskey</code> usage on elements.",
-                                why: "<strong>Often conflicts with native browser or screen reader shortcuts</strong>, overriding commands that users heavily rely on for navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html' target='_blank'>WCAG 2.1.4: Character Key Shortcuts</a>"
+                                why: "<strong>Often conflicts with native browser or screen reader shortcuts</strong>, overriding commands that users heavily rely on for navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html' target='_blank'>WCAG 2.1.4: Character Key Shortcuts</a>",
+                                fix: "Remove the <code>accesskey</code> attribute entirely to avoid conflicts with assistive technologies and browser defaults."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 drawHighlight(el, "#fbbc04", `accesskey="${el.getAttribute("accesskey")}"`, "warn"); return true;
@@ -61,15 +489,16 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-disabled-focus",
-                            label: "Disabled Focus Outlines",
+                            label: "Disabled Focus Outlines (Heuristic)",
                             desc: "Interactive elements hiding <code>:focus</code> rings without fallbacks",
-                            severity: "Critical",
+                            severity: "Manual",
                             wcag: [{ version: "2.0", level: "AA" }],
                             selector: "a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
+                            legends: [{ label: "Manual Check", color: "#00bcd4", type: "manual" }],
                             info: {
-                                what: "Parses page CSS via heuristic evaluation to find focusable elements where <code>outline: none</code> is applied on the <code>:focus</code> state without a border or shadow fallback.",
-                                why: "<strong>Sighted keyboard users rely entirely on focus rings</strong> to know which element they are currently interacting with on the page. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html' target='_blank'>WCAG 2.4.7: Focus Visible</a>"
+                                what: "Parses page CSS via heuristic evaluation to find focusable elements where <code>outline: none</code> or <code>0</code> is applied on the <code>:focus</code> state without a fallback <code>box-shadow</code> or <code>border</code> in the same rule. <strong>Note: This is a static heuristic.</strong>",
+                                why: "<strong>Sighted keyboard users rely entirely on focus rings.</strong> Because browsers cannot reliably compute pseudo-classes like <code>:focus</code> without forcing physical interaction, this tool identifies <em>potential</em> risks. You must manually verify if a custom focus ring is applied via other CSS cascade rules.<br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html' target='_blank'>WCAG 2.4.7: Focus Visible</a>",
+                                fix: "If no focus ring exists, ensure a visible focus indicator (like <code>border</code>, <code>box-shadow</code>, or <code>outline</code>) is applied on the <code>:focus</code> or <code>:focus-visible</code> pseudo-class."
                             },
                             customHighlight: (el, drawHighlight, state) => {
                                 if (!state.parsedSelectors) {
@@ -93,7 +522,7 @@ window.A11Y_CONFIG = {
                                 }
                                 for (let sel of state.parsedSelectors) {
                                     try {
-                                        if (el.matches(sel)) { drawHighlight(el, "#d93025", "Disabled Focus Ring (Heuristic)", "bad"); return true; }
+                                        if (el.matches(sel)) { drawHighlight(el, "#00bcd4", "Manual Check: Focus Ring", "manual"); return true; }
                                     } catch (e) { }
                                 }
                                 return false;
@@ -102,222 +531,158 @@ window.A11Y_CONFIG = {
                     ]
                 },
                 {
-                    id: "cat-media-1",
-                    label: "Images & Media",
+                    id: "cat-aria-names-errors",
+                    label: "ARIA Names (Errors)",
                     features: [
                         {
-                            id: "v-missing-alt",
-                            label: "Missing Alt Text",
-                            desc: "Images lacking an <code>alt</code> attribute",
+                            id: "v-duplicate-id",
+                            label: "Duplicate ID Attributes",
+                            desc: "Multiple elements sharing the exact same <code>id</code>",
                             severity: "Critical",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "img:not([alt])",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
-                            info: {
-                                what: "Flags <code>&lt;img&gt;</code> elements completely lacking an <code>alt</code> attribute.",
-                                why: "<strong>Screen readers will read the raw image filename</strong> if the <code>alt</code> attribute is entirely missing, creating severe confusion for the user. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#d93025", "Missing alt", "bad"); return true; }
-                        },
-                        {
-                            id: "v-uncaptioned-video",
-                            label: "Uncaptioned Video",
-                            desc: "Video elements missing <code>&lt;track&gt;</code> elements",
-                            severity: "Critical",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "video",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
-                            info: {
-                                what: "Flags <code>&lt;video&gt;</code> elements lacking nested <code>&lt;track&gt;</code> elements.",
-                                why: "<strong>Deaf or hard of hearing users require captions</strong> to understand audio tracks and dialogue in video content. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html' target='_blank'>WCAG 1.2.2: Captions (Prerecorded)</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const tracks = el.querySelectorAll('track[kind="captions"], track[kind="subtitles"]');
-                                if (tracks.length === 0) { drawHighlight(el, "#d93025", "<video> (No Captions)", "bad"); return true; }
-                                return false;
-                            }
-                        },
-                        {
-                            id: "v-redundant-alt",
-                            label: "Redundant Alt Text",
-                            desc: "<code>alt</code> text containing <em>'image of'</em> or <em>'photo of'</em>",
-                            severity: "Minor",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "img[alt]",
-                            legends: [{ label: "Violation", color: "#1a73e8", type: "bad" }],
-                            info: {
-                                what: "Flags <code>alt</code> attributes containing unnecessary prefixes like <em>'image of'</em> or <em>'photo of'</em>.",
-                                why: "<strong>Screen readers automatically announce the element as an image.</strong> Including these words forces the user to hear <em>'Image, image of...'</em> redundantly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const alt = el.getAttribute("alt");
-                                if (/\b(image|img|photo|picture|graphic)\b/i.test(alt)) {
-                                    drawHighlight(el, "#1a73e8", `Redundant alt: "${alt.substring(0, 15)}..."`, "bad"); return true;
-                                } return false;
-                            }
-                        }
-                    ]
-                },
-                {
-                    id: "cat-forms-1",
-                    label: "Forms & Controls",
-                    features: [
-                        {
-                            id: "v-unlabeled-inputs",
-                            label: "Unlabeled Form Inputs",
-                            desc: "Inputs missing programmatic names (e.g., <code>aria-label</code>)",
-                            severity: "Critical",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "input:not([type='hidden']):not([type='submit']):not([type='button']), select, textarea",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
-                            info: {
-                                what: "Flags form controls missing a linked <code>&lt;label for&gt;</code>, an <code>aria-label</code>, or a direct <code>&lt;label&gt;</code> wrapper.",
-                                why: "<strong>Screen readers cannot announce what the input is for.</strong> The user will focus the field and only hear <em>'Edit text'</em>, with no context. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html' target='_blank'>WCAG 3.3.2: Labels or Instructions</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const id = el.id;
-                                const hasLabelFor = id ? document.querySelector(`label[for="${id}"]`) : false;
-                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
-                                const hasWrapper = el.closest("label");
-                                if (!hasLabelFor && !hasAria && !hasWrapper) { drawHighlight(el, "#d93025", "Unlabeled Input", "bad"); return true; }
-                                return false;
-                            }
-                        },
-                        {
-                            id: "v-empty-buttons",
-                            label: "Empty Buttons",
-                            desc: "Buttons without readable text or an <code>aria-label</code>",
-                            severity: "Critical",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "button, [role='button']",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
-                            info: {
-                                what: "Flags buttons with no internal text, missing an <code>aria-label</code>, or lacking a child image with an <code>alt</code> attribute.",
-                                why: "<strong>Screen readers will only announce 'Button'</strong>, providing zero context about what clicking the button will actually do. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const text = el.innerText || el.textContent;
-                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
-                                const hasImgAlt = el.querySelector("img[alt]");
-                                if (text.trim() === "" && !hasAria && !hasImgAlt) { drawHighlight(el, "#d93025", "Empty Button", "bad"); return true; }
-                                return false;
-                            }
-                        },
-                        {
-                            id: "v-placeholder-label",
-                            label: "Placeholder as Label",
-                            desc: "Inputs relying solely on the <code>placeholder</code> attribute",
-                            severity: "Serious",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "input[placeholder], textarea[placeholder]",
-                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
-                            info: {
-                                what: "Flags inputs relying solely on the <code>placeholder</code> attribute for their accessible name.",
-                                why: "<strong>Placeholders disappear when a user begins typing</strong>, removing the instructions. Furthermore, default placeholder colors frequently fail text contrast minimums. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const id = el.id;
-                                const hasLabelFor = id ? document.querySelector(`label[for="${id}"]`) : false;
-                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
-                                if (!hasLabelFor && !hasAria) { drawHighlight(el, "#f29900", "Placeholder as Label", "bad"); return true; }
-                                return false;
-                            }
-                        }
-                    ]
-                },
-                {
-                    id: "cat-links-1",
-                    label: "Links & Navigation",
-                    features: [
-                        {
-                            id: "v-empty-links",
-                            label: "Empty Links",
-                            desc: "Links without readable text or an <code>aria-label</code>",
-                            severity: "Critical",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "a[href]",
-                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
-                            info: {
-                                what: "Flags <code>&lt;a&gt;</code> tags lacking readable text or accessible ARIA names.",
-                                why: "<strong>Screen readers will default to reading the raw URL path</strong> out loud, which is often confusing and excessively long. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html' target='_blank'>WCAG 2.4.4: Link Purpose (In Context)</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const text = el.innerText || el.textContent;
-                                const hasAria = el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby");
-                                const hasImgAlt = el.querySelector("img[alt]");
-                                if (text.trim() === "" && !hasAria && !hasImgAlt) { drawHighlight(el, "#d93025", "Empty Link", "bad"); return true; }
-                                return false;
-                            }
-                        },
-                        {
-                            id: "v-suspicious-links",
-                            label: "Suspicious Link Targets",
-                            desc: "Links missing routing context acting as buttons (missing <code>role='button'</code>)",
-                            severity: "Critical",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "a[href='#'], a[href^='javascript:']",
+                            selector: "[id]",
                             legends: [
-                                { label: "javascript: (Critical)", color: "#d93025", type: "js" },
-                                { label: "href='#' (Serious)", color: "#f29900", type: "hash" }
+                                { label: "Visible Duplicate", color: "#d93025", type: "bad" },
+                                { label: "Hidden Duplicate", color: "#f6aea9", type: "hidden-dup" }
                             ],
                             info: {
-                                what: "Flags anchor tags that lack actual routing destinations and are missing <code>role='button'</code>.",
-                                why: "<strong>Using links to trigger JS actions confuses screen readers.</strong> A user expects a link to navigate them to a new page. If it executes a script or toggles a menu, it should be a Button. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
+                                what: "Scans the DOM for multiple elements sharing the identical <code>id</code> attribute. It uniquely tracks and categorizes hidden vs. visible duplicates in the DevTools list.",
+                                why: "<strong>Screen readers and label mappings will only find the first ID.</strong> If multiple elements share an ID (even if one is hidden for mobile/desktop layouts), <code>&lt;label for&gt;</code> and ARIA reference attributes will fail to connect to the subsequent elements. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Ensure every <code>id</code> on the page is entirely unique. If components are reused in multiple layouts, append a dynamic layout suffix to the IDs."
                             },
-                            customHighlight: (el, drawHighlight) => {
-                                if (el.getAttribute("role") === "button") return false;
-                                const href = el.getAttribute("href");
-                                if (href && href.startsWith("javascript:")) {
-                                    drawHighlight(el, "#d93025", "Fake Button (JS)", "js");
-                                } else {
-                                    drawHighlight(el, "#f29900", "Fake Button (#)", "hash");
+                            customHighlight: (el, drawHighlight, state) => {
+                                state.processedIds = state.processedIds || new Set();
+                                const id = el.id.trim();
+
+                                if (!id || state.processedIds.has(id)) return false;
+
+                                try {
+                                    const nodes = document.querySelectorAll(`[id="${CSS.escape(id)}"]`);
+                                    if (nodes.length > 1) {
+                                        state.processedIds.add(id);
+
+                                        let visibleCount = 0;
+                                        let hiddenCount = 0;
+
+                                        nodes.forEach(node => {
+                                            if (node.offsetWidth > 0 || node.offsetHeight > 0) visibleCount++;
+                                            else hiddenCount++;
+                                        });
+
+                                        nodes.forEach(node => {
+                                            const isVisible = (node.offsetWidth > 0 || node.offsetHeight > 0);
+                                            const legendType = isVisible ? "bad" : "hidden-dup";
+                                            const hexColor = isVisible ? "#d93025" : "#f6aea9"; 
+                                            
+                                            const labelText = isVisible
+                                                ? `Duplicate ID: "${id}" (${visibleCount} vis, ${hiddenCount} hid)`
+                                                : `[Hidden] Duplicate ID: "${id}"`;
+
+                                            drawHighlight(node, hexColor, labelText, legendType);
+                                        });
+
+                                        return false;
+                                    }
+                                } catch (e) {
                                 }
-                                return true;
+                                return false;
                             }
                         },
                         {
-                            id: "v-generic-link",
-                            label: "Generic Link Text",
-                            desc: "Ambiguous text like <em>'Click Here'</em>",
-                            severity: "Moderate",
+                            id: "v-broken-aria-ref",
+                            label: "Broken ARIA References",
+                            desc: "ARIA relationship attributes pointing to non-existent DOM IDs",
+                            severity: "Critical",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "a[href]",
-                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            selector: "[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]",
+                            legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
                             info: {
-                                what: "Flags ambiguous link text (e.g., <em>'Click Here'</em>, <em>'Read More'</em>) using exact word boundaries.",
-                                why: "<strong>Users navigating via an isolated 'Links List' will lack context</strong> for where the destination actually leads. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html' target='_blank'>WCAG 2.4.4: Link Purpose</a>"
+                                what: "Validates that any ID referenced by an ARIA relationship attribute actually exists in the DOM.",
+                                why: "<strong>A broken reference means the relationship is completely lost.</strong> The screen reader will not announce the label, description, or target widget if the ID does not physically exist. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Ensure the ID string declared in the ARIA attribute exactly matches the <code>id</code> of an existing element currently present in the DOM."
                             },
                             customHighlight: (el, drawHighlight) => {
-                                const text = (el.innerText || el.textContent).trim();
-                                if (/\b(click here|read more|learn more|more|link|here)\b/i.test(text)) {
-                                    drawHighlight(el, "#fbbc04", `Generic link: "${text.substring(0, 15)}..."`, "bad"); return true;
+                                const attrs = [
+                                    "aria-labelledby", "aria-describedby", "aria-controls",
+                                    "aria-owns", "aria-errormessage", "aria-details", "aria-activedescendant"
+                                ];
+
+                                let brokenRefs = [];
+
+                                attrs.forEach(attr => {
+                                    if (el.hasAttribute(attr)) {
+                                        const ids = el.getAttribute(attr).split(/\s+/).filter(Boolean);
+                                        ids.forEach(id => {
+                                            if (!document.getElementById(id)) {
+                                                brokenRefs.push(`${attr}="${id}"`);
+                                            }
+                                        });
+                                    }
+                                });
+
+                                if (brokenRefs.length > 0) {
+                                    drawHighlight(el, "#d93025", `Broken Ref: ${brokenRefs.join(", ")}`, "bad");
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "v-prohibited-names",
+                            label: "Prohibited Author Names",
+                            desc: "Structural roles containing <code>aria-label</code>",
+                            severity: "Serious",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[role='presentation'], [role='none'], [role='generic']",
+                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
+                            info: {
+                                what: "Flags presentation/none roles that improperly contain <code>aria-label</code> or <code>aria-labelledby</code>.",
+                                why: "<strong>Adding an accessible name to a transparent structural role breaks its semantics.</strong> Presentation nodes should be silent mapping vehicles, not named entities. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Remove the <code>aria-label</code> and <code>aria-labelledby</code> attributes from any element utilizing <code>role=\"presentation\"</code> or <code>role=\"none\"</code>."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                if (el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby")) {
+                                    drawHighlight(el, "#f29900", `Prohibited name on role="${el.getAttribute('role')}"`, "bad"); return true;
                                 } return false;
                             }
                         },
                         {
-                            id: "v-unwarned-window",
-                            label: "Unwarned New Window Links",
-                            desc: "<code>target='_blank'</code> links without an accessible warning",
-                            severity: "Moderate",
-                            wcag: [{ version: "2.0", level: "AAA" }],
-                            selector: "a[target='_blank']",
-                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
+                            id: "v-label-in-name",
+                            label: "Label in Name Mismatch",
+                            desc: "Visible text is not included in the <code>aria-label</code>",
+                            severity: "Serious",
+                            wcag: [{ version: "2.1", level: "A" }],
+                            selector: "button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]",
+                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
                             info: {
-                                what: "Flags <code>target='_blank'</code> links lacking text or ARIA warnings that the context will shift.",
-                                why: "<strong>Unexpectedly opening new tabs disorients cognitive and screen reader users</strong> by suddenly hijacking their context and changing their window environment. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html' target='_blank'>WCAG 3.2.5: Change on Request</a>"
+                                what: "Flags interactive elements where the visible text is completely overridden by an <code>aria-label</code> that does not include the visible text.",
+                                why: "<strong>Voice dictation users rely on visible text.</strong> If they say 'Click Buy' but the ARIA label is 'Add to cart', the voice command will fail. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html' target='_blank'>WCAG 2.5.3: Label in Name</a>",
+                                fix: "Ensure the <code>aria-label</code> value begins with or clearly includes the exact visible text displayed on the element."
                             },
                             customHighlight: (el, drawHighlight) => {
-                                const txt = (el.innerText + " " + (el.getAttribute("aria-label") || "")).toLowerCase();
-                                if (!/new (window|tab)/.test(txt)) {
-                                    drawHighlight(el, "#fbbc04", 'target="_blank" (No Warning)', "bad"); return true;
-                                } return false;
+                                const rawVisible = (el.innerText || "").trim();
+                                const rawAria = el.getAttribute("aria-label").trim();
+
+                                const visibleText = rawVisible.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+                                const ariaLabel = rawAria.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+
+                                if (visibleText.length > 0 && ariaLabel.length > 0) {
+                                    if (!ariaLabel.includes(visibleText)) {
+                                        const cleanVis = rawVisible.replace(/\s+/g, " ").trim();
+                                        const cleanAria = rawAria.replace(/\s+/g, " ").trim();
+
+                                        drawHighlight(el, "#f29900", `Mismatch: "${cleanVis}" != "${cleanAria}"`, "bad");
+                                        return true;
+                                    }
+                                }
+                                return false;
                             }
                         }
                     ]
                 },
                 {
-                    id: "cat-aria-1",
-                    label: "ARIA & Semantics",
+                    id: "cat-aria-states-errors",
+                    label: "ARIA States (Errors)",
                     features: [
                         {
                             id: "v-aria-hidden-focus",
@@ -329,7 +694,8 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
                             info: {
                                 what: "Flags elements that receive keyboard focus but are hidden from Assistive Technologies via <code>aria-hidden='true'</code>.",
-                                why: "<strong>Keyboard users can reach them, but screen readers cannot</strong>, creating a severe operational mismatch and invisible focus traps. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
+                                why: "<strong>Keyboard users can reach them, but screen readers cannot</strong>, creating a severe operational mismatch and invisible focus traps. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "If the element is part of a hidden dialog or closed menu, set it to <code>tabindex=\"-1\"</code> or use the <code>inert</code> attribute on its container. Alternatively, remove <code>aria-hidden=\"true\"</code> if the control should be active."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
@@ -361,75 +727,10 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
                             info: {
                                 what: "Flags elements explicitly marked with <code>aria-invalid='true'</code>.",
-                                why: "<strong>Identifies application-enforced validation errors.</strong> Used to ensure visual error styling is programmatically communicated to screen reader users. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html' target='_blank'>WCAG 3.3.1: Error Identification</a>"
+                                why: "<strong>Identifies application-enforced validation errors.</strong> Used to ensure visual error styling is programmatically communicated to screen reader users. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html' target='_blank'>WCAG 3.3.1: Error Identification</a>",
+                                fix: "Ensure an accessible error message is actively linked to the invalid field using <code>aria-errormessage=\"id\"</code> or <code>aria-describedby=\"id\"</code> so the user knows how to correct it."
                             },
                             customHighlight: (el, drawHighlight) => { drawHighlight(el, "#f29900", 'aria-invalid="true"', "bad"); return true; }
-                        },
-                        {
-                            id: "v-prohibited-names",
-                            label: "Prohibited Author Names",
-                            desc: "Structural roles containing <code>aria-label</code>",
-                            severity: "Serious",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "[role='presentation'], [role='none'], [role='generic']",
-                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
-                            info: {
-                                what: "Flags presentation/none roles that improperly contain <code>aria-label</code> or <code>aria-labelledby</code>.",
-                                why: "<strong>Adding an accessible name to a transparent structural role breaks its semantics.</strong> Presentation nodes should be silent mapping vehicles, not named entities. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                if (el.hasAttribute("aria-label") || el.hasAttribute("aria-labelledby")) {
-                                    drawHighlight(el, "#f29900", `Prohibited name on role="${el.getAttribute('role')}"`, "bad"); return true;
-                                } return false;
-                            }
-                        }
-                    ]
-                },
-                {
-                    id: "cat-structure-1",
-                    label: "Structure & Document",
-                    features: [
-                        {
-                            id: "v-autoplay-media",
-                            label: "Auto-playing Media",
-                            desc: "Audio/Video elements set to <code>autoplay</code>",
-                            severity: "Serious",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "audio[autoplay], video[autoplay]",
-                            legends: [{ label: "Violation", color: "#f29900", type: "bad" }],
-                            info: {
-                                what: "Flags <code>&lt;audio&gt;</code> or <code>&lt;video&gt;</code> elements with <code>autoplay</code> enabled.",
-                                why: "<strong>Unexpected audio conflicts with screen reader announcements</strong>, drowning out the speech engine and making it impossible for the user to hear page navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html' target='_blank'>WCAG 1.4.2: Audio Control</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#f29900", "Autoplay Media", "bad"); return true; }
-                        },
-                        {
-                            id: "v-heading-errors",
-                            label: "Heading Hierarchy Errors",
-                            desc: "Skipped levels (e.g., <code>H1</code> to <code>H3</code>) or fake non-semantic headings",
-                            severity: "Moderate",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']",
-                            legends: [{ label: "Violation", color: "#fbbc04", type: "bad" }],
-                            info: {
-                                what: "Flags skipped sequential levels (e.g., jumping from <code>H1</code> directly to <code>H3</code>) or fake structural classes imitating headings.",
-                                why: "<strong>Headings map the document's structure.</strong> Skipping levels breaks the outline and deeply confuses screen reader navigation. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
-                            },
-                            customHighlight: (el, drawHighlight, state) => {
-                                state.lastLevel = state.lastLevel || 0;
-                                const tag = el.tagName.toLowerCase();
-                                if (tag.match(/^h[1-6]$/)) {
-                                    const level = parseInt(tag.substring(1));
-                                    if (level > state.lastLevel + 1 && state.lastLevel !== 0) {
-                                        drawHighlight(el, "#fbbc04", `${tag.toUpperCase()} (Skipped)`, "bad");
-                                        state.lastLevel = level; return true;
-                                    }
-                                    state.lastLevel = level;
-                                } else if (!el.hasAttribute('role')) {
-                                    if (el.innerText.length < 80) { drawHighlight(el, "#fbbc04", `Fake Heading`, "bad"); return true; }
-                                }
-                                return false;
-                            }
                         }
                     ]
                 },
@@ -443,18 +744,42 @@ window.A11Y_CONFIG = {
                             desc: "Evaluates effective contrast ratio between text and its background.",
                             severity: "CRITICAL",
                             wcag: [
-                                { version: "2.1", level: "AA" },
-                                { version: "2.1", level: "AAA" }
+                                { version: "2.0", level: "AA" }, { version: "2.0", level: "AAA" },
+                                { version: "2.1", level: "AA" }, { version: "2.1", level: "AAA" },
+                                { version: "2.2", level: "AA" }, { version: "2.2", level: "AAA" }
                             ],
                             selector: "p, h1, h2, h3, h4, h5, h6, span, a, button, label, li, td, th, div, b, strong, i, em, mark, small, del, ins, sub, sup",
                             legends: [
-                                { label: "AA Fail", color: "#d93025", type: "aa-fail" },
-                                { label: "AAA Fail", color: "#f29900", type: "aaa-fail" },
-                                { label: "Manual", color: "#00bcd4", type: "manual" }
+                                { 
+                                    label: "AA Fail", 
+                                    color: "#d93025", 
+                                    type: "aa-fail",
+                                    wcag: [
+                                        { version: "2.0", level: "AA" },
+                                        { version: "2.1", level: "AA" },
+                                        { version: "2.2", level: "AA" }
+                                    ]
+                                },
+                                { 
+                                    label: "AAA Fail", 
+                                    color: "#f29900", 
+                                    type: "aaa-fail",
+                                    wcag: [
+                                        { version: "2.0", level: "AAA" },
+                                        { version: "2.1", level: "AAA" },
+                                        { version: "2.2", level: "AAA" }
+                                    ]
+                                },
+                                { 
+                                    label: "Manual", 
+                                    color: "#00bcd4", 
+                                    type: "manual" 
+                                }
                             ],
                             info: {
-                                what: "Traverses the DOM to calculate the effective mathematical contrast ratio between visible text and its solid backing container. Dynamically evaluates <code>font-size</code> and <code>font-weight</code> against WCAG large-text targets.",
-                                why: "<strong>Low contrast prevents users with visual impairments from reading content.</strong> Background images, complex gradients, or transparent floats are safely flagged for Manual Review to prevent false automated calculations.<br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum' target='_blank'>WCAG 1.4.3: Contrast (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced' target='_blank'>WCAG 1.4.6: Contrast (Enhanced)</a>"
+                                what: "Traverses the DOM to calculate the effective mathematical contrast ratio between visible text and its solid backing container. Dynamically evaluates <code>font-size</code> and <code>font-weight</code> against WCAG large-text thresholds.",
+                                why: "<strong>Low contrast prevents users with visual impairments from reading content.</strong> Background images, complex gradients, or transparent floats are safely flagged for Manual Review to prevent false automated calculations.<br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum' target='_blank'>WCAG 1.4.3: Contrast (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced' target='_blank'>WCAG 1.4.6: Contrast (Enhanced)</a>",
+                                fix: "Increase the contrast ratio between the text and background color. Normal text requires 4.5:1 (AA) or 7.0:1 (AAA). Large text (18pt+, or 14pt+ bold) requires 3.0:1 (AA) or 4.5:1 (AAA)."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 let hasDirectText = false;
@@ -525,23 +850,328 @@ window.A11Y_CONFIG = {
                                 const aaTarget = isLargeText ? 3.0 : 4.5;
                                 const aaaTarget = isLargeText ? 4.5 : 7.0;
 
-                                if (ratio < aaTarget) {
+                                let activeLegs = [];
+                                if (typeof lastRunState !== 'undefined' && lastRunState.has("v-text-contrast")) {
+                                    activeLegs = lastRunState.get("v-text-contrast").activeLegends || [];
+                                }
+
+                                const checkingAA = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("aa-fail");
+                                const checkingAAA = activeLegs.length === 0 || activeLegs[0] === "default" || activeLegs.includes("aaa-fail");
+
+                                if (ratio < aaTarget && checkingAA) {
                                     drawHighlight(el, "#d93025", `AA Fail (${displayRatio}:1)`, "aa-fail");
                                     return true;
-                                } else if (ratio < aaaTarget) {
+                                } else if (ratio < aaaTarget && checkingAAA) {
                                     drawHighlight(el, "#f29900", `AAA Fail (${displayRatio}:1)`, "aaa-fail");
                                     return true;
                                 }
 
-                                return false; 
+                                return false;
                             }
-                        }]
+                        }
+                    ]
                 }
             ]
         },
         {
             id: "tab-informative",
             categories: [
+                {
+                    id: "cat-structure-2",
+                    label: "Structure & Document",
+                    features: [
+                        {
+                            id: "i-valid-headings",
+                            label: "Valid Heading Order",
+                            desc: "Standard <code>H1-H6</code> structural outline",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "h1, h2, h3, h4, h5, h6",
+                            legends: [{ label: "Heading", color: "#607d8b", type: "good" }],
+                            info: {
+                                what: "Maps the standard, sequential <code>H1-H6</code> heading structure.",
+                                why: "<strong>Verifies the logical outline of the page.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Ensure heading tags accurately represent the visual and semantic hierarchy of the content section they introduce."
+                            },
+                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#607d8b", `<${el.tagName.toLowerCase()}>`, "good"); return true; }
+                        },
+                        {
+                            id: "i-landmarks",
+                            label: "Landmark Regions",
+                            desc: "HTML5 and ARIA structural landmark containers",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "main, nav, header, footer, aside, [role='main'], [role='navigation'], [role='banner'], [role='contentinfo']",
+                            legends: [{ label: "Landmark", color: "#c2185b", type: "info" }],
+                            info: {
+                                what: "Maps native HTML5 (e.g., <code>&lt;main&gt;</code>, <code>&lt;nav&gt;</code>) and ARIA (e.g., <code>role='banner'</code>) structural landmark containers.",
+                                why: "<strong>Allows screen reader users to jump quickly</strong> between core page sections via the Rotor or Shortcut lists. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html' target='_blank'>WCAG 2.4.1: Bypass Blocks</a>",
+                                fix: "Verify that all top-level content on the page is contained within at least one valid landmark region (e.g., main, nav, footer) so no content is orphaned."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const label = el.hasAttribute("role") ? el.getAttribute("role") : el.tagName.toLowerCase();
+                                drawHighlight(el, "#c2185b", `<${label}>`, "info"); return true;
+                            }
+                        },
+                        {
+                            id: "i-tables",
+                            label: "Table & Grid Structure",
+                            desc: "Native <code>&lt;table&gt;</code> and ARIA data grids",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']",
+                            legends: [
+                                { label: "Table/Grid", color: "#303f9f", type: "solid" },
+                                { label: "Header", color: "#1976d2", type: "dashed" }
+                            ],
+                            info: {
+                                what: "Highlights native <code>&lt;table&gt;</code>, <code>&lt;caption&gt;</code>, and <code>&lt;th&gt;</code> tags, alongside custom div-based grid ARIA structures.",
+                                why: "<strong>Visually maps data structures</strong> and verifies that custom UI grids correctly implement semantic headers. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Verify that column and row headers properly define scope, and that custom ARIA grids fully implement the required keyboard interaction mappings (arrow keys to traverse cells)."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const tag = el.tagName.toLowerCase();
+                                const role = el.getAttribute("role");
+                                const isHeader = tag === "th" || role === "columnheader" || role === "rowheader";
+                                const label = role && !["table", "th", "caption"].includes(tag) ? `role="${role}"` : `<${tag}>`;
+
+                                if (isHeader) { drawHighlight(el, "#1976d2", label, "dashed", "dashed"); }
+                                else { drawHighlight(el, "#303f9f", label, "solid", "solid"); }
+                                return true;
+                            }
+                        },
+                        {
+                            id: "i-lists",
+                            label: "Lists and List Items",
+                            desc: "Unordered (<code>&lt;ul&gt;</code>), ordered (<code>&lt;ol&gt;</code>), and definition lists (<code>&lt;dl&gt;</code>)",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "ul, ol, li, dl, dt, dd",
+                            legends: [{ label: "List Element", color: "#00796b", type: "info" }],
+                            info: {
+                                what: "Maps unordered (<code>&lt;ul&gt;</code>), ordered (<code>&lt;ol&gt;</code>), and glossary lists (<code>&lt;dl&gt;</code>) along with their children.",
+                                why: "<strong>Ensures related items are programmatically grouped</strong> so screen readers can announce list sizes correctly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Verify that list containers (ul, ol) only contain valid direct children (li, script, template) and are not used purely for visual indentation."
+                            },
+                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#00796b", `<${el.tagName.toLowerCase()}>`, "info"); return true; }
+                        },
+                        {
+                            id: "i-language",
+                            label: "Language Definitions",
+                            desc: "Phonetic shifts and root <code>lang</code> declarations",
+                            wcag: [{ version: "2.0", level: "A" }, { version: "2.0", level: "AA" }],
+                            selector: "html, [lang], [xml\\:lang]",
+                            legends: [
+                                { label: "Root Lang Missing", color: "#d93025", type: "root-miss", wcag: [{ version: "2.0", level: "A" }] },
+                                { label: "Root Lang", color: "#1a73e8", type: "root-has", wcag: [{ version: "2.0", level: "A" }] },
+                                { label: "Inline Shift", color: "#9c27b0", type: "shift", wcag: [{ version: "2.0", level: "AA" }] }
+                            ],
+                            info: {
+                                what: "Maps the root document <code>lang</code> declaration alongside any mid-page inline phonetic shifts.",
+                                why: "<strong>Screen readers rely on the language tag</strong> to load the correct dictionary, accent, and pronunciation rules. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html' target='_blank'>WCAG 3.1.1: Language of Page</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html' target='_blank'>WCAG 3.1.2: Language of Parts</a>",
+                                fix: "Ensure a valid ISO language code (e.g., <code>lang=\"en\"</code> or <code>lang=\"fr-CA\"</code>) is defined on the root HTML element, and wrap any foreign phrases in inline spans with the respective lang attribute."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const lang = el.getAttribute("lang") || el.getAttribute("xml:lang");
+                                const isRoot = el.tagName.toLowerCase() === 'html';
+                                if (isRoot) {
+                                    if (!lang || lang.trim() === "") {
+                                        drawHighlight(el, "#d93025", "Missing Root Lang", "root-miss");
+                                    } else {
+                                        drawHighlight(el, "#1a73e8", `Root lang="${lang}"`, "root-has");
+                                    }
+                                } else {
+                                    drawHighlight(el, "#9c27b0", `lang="${lang}"`, "shift");
+                                }
+                                return true;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-media-2",
+                    label: "Images & Media",
+                    features: [
+                        {
+                            id: "i-image-alts",
+                            label: "Display Image Alternatives",
+                            desc: "Prints <code>alt</code> text for all images",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "img",
+                            legends: [
+                                { label: "Has Alt", color: "#1a73e8", type: "has" },
+                                { label: "Decorative", color: "#5f6368", type: "dec" },
+                                { label: "Missing", color: "#d93025", type: "miss" },
+                                { label: "Tracking Pixel", color: "#9c27b0", type: "tracking" } 
+                            ],
+                            info: {
+                                what: "Extracts and visually prints the <code>alt</code> text directly over all <code>&lt;img&gt;</code> elements, and explicitly segregates 1x1 tracking pixels.",
+                                why: "<strong>Allows rapid visual auditing of alternative text descriptions</strong> without needing to inspect the DOM manually. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>",
+                                fix: "Review the visually printed text. Ensure active images accurately describe their content or destination, and decorative layout/tracking images correctly use empty alt text (<code>alt=\"\"</code>)."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const rect = el.getBoundingClientRect();
+                                const isTrackingPixel = rect.width <= 2 && rect.height <= 2;
+                                
+                                if (isTrackingPixel) {
+                                    const altText = el.hasAttribute("alt") ? `alt="${el.getAttribute("alt").trim()}"` : "Missing alt";
+                                    drawHighlight(el, "#9c27b0", `[Pixel] ${altText}`, "tracking");
+                                    return true;
+                                }
+
+                                if (!el.hasAttribute("alt")) {
+                                    drawHighlight(el, "#d93025", "Missing alt", "miss");
+                                } else if (el.getAttribute("alt").trim() === "") {
+                                    drawHighlight(el, "#5f6368", 'alt=""', "dec");
+                                } else {
+                                    const cleanAlt = el.getAttribute("alt").replace(/\s+/g, " ").trim();
+                                    drawHighlight(el, "#1a73e8", `alt="${cleanAlt}"`, "has");
+                                }
+                                return true;
+                            }
+                        },
+                        {
+                            id: "i-captioned-video",
+                            label: "Captioned Video",
+                            desc: "Videos containing <code>&lt;track&gt;</code> elements",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "video",
+                            legends: [{ label: "Has Captions", color: "#009688", type: "good" }],
+                            info: {
+                                what: "Highlights <code>&lt;video&gt;</code> elements that correctly implement <code>&lt;track&gt;</code> captions.",
+                                why: "<strong>Confirms proper multimedia accessibility setup.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html' target='_blank'>WCAG 1.2.2: Captions (Prerecorded)</a>",
+                                fix: "Verify the referenced VTT file loads properly and correctly transcribes all dialogue and relevant sound effects."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const tracks = el.querySelectorAll('track[kind="captions"], track[kind="subtitles"]');
+                                if (tracks.length > 0) { drawHighlight(el, "#009688", "<video> (Captioned)", "good"); return true; }
+                                return false;
+                            }
+                        },
+                        {
+                            id: "i-iframes",
+                            label: "Iframe Context & Titles",
+                            desc: "Analyzes third-party embed context and <code>title</code> attributes",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "iframe",
+                            legends: [
+                                { label: "Titled (Valid)", color: "#1a73e8", type: "titled" },
+                                { label: "Hidden", color: "#5f6368", type: "hidden" },
+                                { label: "Missing Title", color: "#d93025", type: "missing" }
+                            ],
+                            info: {
+                                what: "Extracts explicitly defined <code>title</code> attributes from embedded iframes.",
+                                why: "<strong>Screen readers announce the title to inform the user</strong> what the sub-document contains before they cross the boundary into it. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "If the iframe is structural or decorative (like a hidden tracking pixel), add <code>aria-hidden=\"true\"</code> and <code>tabindex=\"-1\"</code>. Otherwise, add a descriptive <code>title</code> attribute."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const title = el.getAttribute("title");
+                                const isHidden = el.getAttribute("aria-hidden") === "true" || el.getAttribute("tabindex") === "-1";
+
+                                if (isHidden) {
+                                    drawHighlight(el, "#5f6368", "Hidden Iframe", "hidden");
+                                } else if (!title || title.trim() === "") {
+                                    drawHighlight(el, "#d93025", "Missing Title", "missing");
+                                } else {
+                                    const cleanTitle = title.replace(/\s+/g, " ").trim();
+                                    drawHighlight(el, "#1a73e8", `title="${cleanTitle}"`, "titled");
+                                }
+                                return true;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-links-2",
+                    label: "Links & Navigation",
+                    features: [
+                        {
+                            id: "i-warned-window",
+                            label: "Warned New Window Links",
+                            desc: "<code>target='_blank'</code> links with proper warning",
+                            wcag: [{ version: "2.0", level: "AAA" }],
+                            selector: "a[target='_blank']",
+                            legends: [{ label: "Warned", color: "#00acc1", type: "good" }],
+                            info: {
+                                what: "Highlights <code>target='_blank'</code> links that correctly include accessible text or ARIA warnings.",
+                                why: "<strong>Confirms proper communication of context shifts.</strong> Allows assistive technologies to warn the user before the window rips them away. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html' target='_blank'>WCAG 3.2.5: Change on Request</a>",
+                                fix: "Verify that the warning text correctly communicates the action, usually via a visually hidden span containing '(opens in a new tab)'."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const txt = (el.innerText + " " + (el.getAttribute("aria-label") || "")).toLowerCase();
+                                if (/new (window|tab)/.test(txt)) { drawHighlight(el, "#00acc1", 'target="_blank" (Warned)', "good"); return true; }
+                                return false;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-forms-2",
+                    label: "Forms & Controls",
+                    features: [
+                        {
+                            id: "i-fieldsets",
+                            label: "Fieldsets & Captions",
+                            desc: "Visual grouping containers (<code>&lt;fieldset&gt;</code>)",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "fieldset, legend",
+                            legends: [{ label: "Grouping", color: "#3f51b5", type: "good" }],
+                            info: {
+                                what: "Highlights visual grouping containers (<code>&lt;fieldset&gt;</code>) and their titles (<code>&lt;legend&gt;</code>).",
+                                why: "<strong>Crucial for grouping related radio buttons</strong> or complex form sections to give screen readers proper structural context. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Verify that every <code>&lt;fieldset&gt;</code> has a descriptive <code>&lt;legend&gt;</code> as its very first child element."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                drawHighlight(el, "#3f51b5", `<${el.tagName.toLowerCase()}>`, "good"); return true;
+                            }
+                        },
+                        {
+                            id: "i-touch-targets",
+                            label: "Touch Target Sizes",
+                            desc: "Calculates interactive pixel bounds (<code>width</code> / <code>height</code>)",
+                            wcag: [{ version: "2.2", level: "AA" }, { version: "2.1", level: "AAA" }],
+                            selector: "button, a[href], input:not([type='hidden']), select, textarea, summary, [role='button'], [role='link'], [role='menuitem'], [role='tab'], [role='checkbox'], [role='radio'], [role='switch'], [role='slider'], [tabindex]:not([tabindex='-1'])",
+                            legends: [
+                                { label: "< 24px (Fail AA)", color: "#d93025", type: "small", wcag: [{ version: "2.2", level: "AA" }] },
+                                { label: "24-43px (Pass AA / Fail AAA)", color: "#fbbc04", type: "medium", wcag: [{ version: "2.2", level: "AA" }, { version: "2.1", level: "AAA" }] },
+                                { label: "44px+ (Pass AAA)", color: "#1e8e3e", type: "large", wcag: [{ version: "2.1", level: "AAA" }] }
+                            ],
+                            info: {
+                                what: "Computes the exact <code>width</code> and <code>height</code> pixel boundaries of interactive elements, color-coding thresholds.",
+                                why: "<strong>Undersized targets prevent users with fine motor impairments</strong> (like hand tremors) from activating controls accurately without accidental clicks. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html' target='_blank'>WCAG 2.5.8: Target Size (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size.html' target='_blank'>WCAG 2.5.5: Target Size (Enhanced)</a>",
+                                fix: "Use CSS padding or explicit width/height declarations to expand the clickable footprint of the element to meet minimum thresholds (24x24px for AA, 44x44px for AAA)."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width === 0 || rect.height === 0) return false;
+                                const minSize = Math.min(rect.width, rect.height);
+
+                                if (minSize < 24) {
+                                    drawHighlight(el, "#d93025", `${Math.round(rect.width)}x${Math.round(rect.height)}px`, "small");
+                                } else if (minSize < 44) {
+                                    drawHighlight(el, "#fbbc04", `${Math.round(rect.width)}x${Math.round(rect.height)}px`, "medium");
+                                } else {
+                                    drawHighlight(el, "#1e8e3e", `${Math.round(rect.width)}x${Math.round(rect.height)}px`, "large");
+                                }
+                                return true;
+                            }
+                        },
+                        {
+                            id: "i-readonly-fields",
+                            label: "Read-Only Fields",
+                            desc: "Inputs marked as <code>readonly</code> or <code>aria-readonly</code>",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[readonly], [aria-readonly='true']",
+                            legends: [{ label: "Read-Only", color: "#607d8b", type: "info" }],
+                            info: {
+                                what: "Highlights form controls that are set to read-only.",
+                                why: "<strong>Read-only fields must remain focusable</strong> (unlike disabled fields) so screen readers can access their content. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Verify that the field is focusable via keyboard, has sufficient text contrast, and appropriately belongs as a static readable field rather than an active input."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const txt = el.hasAttribute("readonly") ? "readonly" : 'aria-readonly="true"';
+                                drawHighlight(el, "#607d8b", txt, "info");
+                                return true;
+                            }
+                        }
+                    ]
+                },
                 {
                     id: "cat-keyboard-2",
                     label: "Keyboard Navigation",
@@ -559,7 +1189,8 @@ window.A11Y_CONFIG = {
                             ],
                             info: {
                                 what: "Highlights all <code>tabindex</code> variations (<code>0</code>, <code>-1</code>, and <code>&gt; 0</code>) simultaneously on the page.",
-                                why: "<strong>Provides a sweeping visual map of the programmatic focus strategy.</strong> Allows auditors to ensure programmatic focus control is being routed correctly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>"
+                                why: "<strong>Provides a sweeping visual map of the programmatic focus strategy.</strong> Allows auditors to ensure programmatic focus control is being routed correctly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>",
+                                fix: "Review positive tabindexes (red flags). Remove them if they improperly override the natural DOM reading order. Review negative tabindexes to ensure active components haven't accidentally been removed from the keyboard flow."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const val = parseInt(el.getAttribute("tabindex"), 10);
@@ -580,11 +1211,12 @@ window.A11Y_CONFIG = {
                             ],
                             legends: [
                                 { label: "Valid Focus", color: "#9c27b0", type: "path" },
-                                { label: "Hidden from AT (aria-hidden)", color: "#d93025", type: "hidden-at" }
+                                { label: "Focusable in Aria-Hidden", color: "#d93025", type: "hidden-at" }
                             ],
                             info: {
                                 what: "Traces the sequential path of focusable elements and flags traps. Main page elements are numbered sequentially (<code>#1</code>, <code>#2</code>). When focus enters an iframe, elements are marked with an <code>[Iframe]</code> tag and a hierarchical decimal (e.g., <code>#4.1</code> indicates the 1st focusable element inside the 4th tab stop). Nested iframes add further decimals (e.g., <code>[Nested] #4.2.1</code>).",
-                                why: "<strong>Simulates the exact path of the <code>TAB</code> key.</strong> Ensures logical flow and visualizes deeply nested cross-frame boundaries. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>"
+                                why: "<strong>Simulates the exact path of the <code>TAB</code> key.</strong> Ensures logical flow and visualizes deeply nested cross-frame boundaries. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html' target='_blank'>WCAG 2.4.3: Focus Order</a>",
+                                fix: "Review the drawn path line for logical sequential flow (left-to-right, top-to-bottom). Verify that elements flagged as 'Focusable in Aria-Hidden' are safely deactivated (using inert or tabindex=\"-1\") when their parent layer is closed."
                             },
                             customHighlight: (el, drawHighlight, state) => {
                                 if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
@@ -602,9 +1234,9 @@ window.A11Y_CONFIG = {
                                         else currentElement = null;
                                     } else { currentElement = currentElement.parentNode; }
                                 }
-                                
+
                                 state.counter = state.counter || 1;
-                                
+
                                 const prefix = window.A11Y_FOCUS_PREFIX || "";
                                 const depth = window.A11Y_FRAME_DEPTH || 0;
                                 const tagName = el.tagName.toLowerCase();
@@ -618,7 +1250,7 @@ window.A11Y_CONFIG = {
                                                 depth: depth + 1
                                             }, '*');
                                         }
-                                    } catch (e) {}
+                                    } catch (e) { }
                                 }
 
                                 let depthTag = "";
@@ -627,12 +1259,12 @@ window.A11Y_CONFIG = {
 
                                 const displayNum = `${depthTag}#${prefix}${state.counter}`;
 
-                                if (isHiddenFromAT) { 
-                                    drawHighlight(el, "#d93025", `${displayNum}: <${tagName}> (Hidden from AT)`, "hidden-at"); 
-                                } else { 
-                                    drawHighlight(el, "#9c27b0", `${displayNum}: <${tagName}>`, "path"); 
+                                if (isHiddenFromAT) {
+                                    drawHighlight(el, "#d93025", `${displayNum}: <${tagName}> (Hidden from AT)`, "hidden-at");
+                                } else {
+                                    drawHighlight(el, "#9c27b0", `${displayNum}: <${tagName}>`, "path");
                                 }
-                                state.counter++; 
+                                state.counter++;
                                 return true;
                             },
                             preprocessElements: (elements) => {
@@ -661,168 +1293,45 @@ window.A11Y_CONFIG = {
                     ]
                 },
                 {
-                    id: "cat-media-2",
-                    label: "Images & Media",
+                    id: "cat-aria-roles-identity",
+                    label: "ARIA Roles (Identity)",
                     features: [
                         {
-                            id: "i-image-alts",
-                            label: "Display Image Alternatives",
-                            desc: "Prints <code>alt</code> text for all images",
+                            id: "i-aria-roles",
+                            label: "ARIA Roles & Attributes",
+                            desc: "Maps explicit <code>role</code> definitions",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "img",
-                            legends: [
-                                { label: "Has Alt", color: "#1a73e8", type: "has" },
-                                { label: "Decorative", color: "#5f6368", type: "dec" },
-                                { label: "Missing", color: "#d93025", type: "miss" }
-                            ],
+                            selector: "[role]",
+                            legends: [{ label: "Role", color: "#673ab7", type: "info" }],
                             info: {
-                                what: "Extracts and visually prints the <code>alt</code> text directly over all <code>&lt;img&gt;</code> elements.",
-                                why: "<strong>Allows rapid visual auditing of alternative text descriptions</strong> without needing to inspect the DOM manually. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html' target='_blank'>WCAG 1.1.1: Non-text Content</a>"
+                                what: "Maps all elements utilizing an explicit <code>role</code> definition.",
+                                why: "<strong>Allows rapid structural auditing of custom widget semantics.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Verify that the declared ARIA role exactly matches the design pattern and behavior of the component (e.g., using role=\"tablist\" for a set of tabs)."
                             },
-                            customHighlight: (el, drawHighlight) => {
-                                if (!el.hasAttribute("alt")) { drawHighlight(el, "#d93025", "Missing alt", "miss"); }
-                                else if (el.getAttribute("alt").trim() === "") { drawHighlight(el, "#5f6368", 'alt=""', "dec"); }
-                                else { drawHighlight(el, "#1a73e8", `alt="${el.getAttribute("alt")}"`, "has"); }
-                                return true;
-                            }
+                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#673ab7", `role="${el.getAttribute("role")}"`, "info"); return true; }
                         },
                         {
-                            id: "i-captioned-video",
-                            label: "Captioned Video",
-                            desc: "Videos containing <code>&lt;track&gt;</code> elements",
+                            id: "i-aria-roledescription",
+                            label: "Aria-Roledescription",
+                            desc: "Custom semantic overrides via <code>aria-roledescription</code>",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "video",
-                            legends: [{ label: "Has Captions", color: "#009688", type: "good" }],
+                            selector: "[aria-roledescription]",
+                            legends: [{ label: "Roledescription", color: "#009688", type: "info" }],
                             info: {
-                                what: "Highlights <code>&lt;video&gt;</code> elements that correctly implement <code>&lt;track&gt;</code> captions.",
-                                why: "<strong>Confirms proper multimedia accessibility setup.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html' target='_blank'>WCAG 1.2.2: Captions (Prerecorded)</a>"
+                                what: "Highlights elements utilizing <code>aria-roledescription</code> to override how the role is announced.",
+                                why: "<strong>Should be used sparingly.</strong> It overrides the native role announcement (e.g., turning 'button' into 'slide'), which can confuse users if overused. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Ensure the custom description is brief, localized, and only used when no existing native HTML tag or ARIA role accurately communicates the element's purpose."
                             },
                             customHighlight: (el, drawHighlight) => {
-                                const tracks = el.querySelectorAll('track[kind="captions"], track[kind="subtitles"]');
-                                if (tracks.length > 0) { drawHighlight(el, "#009688", "<video> (Captioned)", "good"); return true; }
-                                return false;
-                            }
-                        },
-                        {
-                            id: "i-iframes",
-                            label: "Iframe Context & Titles",
-                            desc: "Analyzes third-party embed context and <code>title</code> attributes",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "iframe",
-                            legends: [
-                                { label: "Titled (Valid)", color: "#1a73e8", type: "titled" },
-                                { label: "Hidden", color: "#5f6368", type: "hidden" },
-                                { label: "Missing Title", color: "#d93025", type: "missing" }
-                            ],
-                            info: {
-                                what: "Extracts explicitly defined <code>title</code> attributes from embedded iframes.",
-                                why: "<strong>Screen readers announce the title to inform the user</strong> what the sub-document contains before they cross the boundary into it. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const title = el.getAttribute("title");
-                                const isHidden = el.getAttribute("aria-hidden") === "true" || el.getAttribute("tabindex") === "-1";
-                                if (isHidden) { drawHighlight(el, "#5f6368", "Hidden Iframe", "hidden"); }
-                                else if (!title || title.trim() === "") { drawHighlight(el, "#d93025", "Missing Title", "missing"); }
-                                else { drawHighlight(el, "#1a73e8", `title="${title}"`, "titled"); }
+                                drawHighlight(el, "#009688", `roledescription="${el.getAttribute('aria-roledescription')}"`, "info");
                                 return true;
                             }
                         }
                     ]
                 },
                 {
-                    id: "cat-forms-2",
-                    label: "Forms & Controls",
-                    features: [
-                        {
-                            id: "i-field-desc",
-                            label: "Form Field Descriptions",
-                            desc: "Supplemental instructional text (<code>aria-describedby</code>)",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "[aria-describedby], [title]",
-                            legends: [{ label: "Description", color: "#e91e63", type: "info" }],
-                            info: {
-                                what: "Identifies supplemental instructional text linked to inputs via <code>aria-describedby</code> or <code>title</code>.",
-                                why: "<strong>Ensures extended hints or error messages are programmatically tied to inputs</strong> so screen readers read them alongside the main label. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html' target='_blank'>WCAG 3.3.2: Labels or Instructions</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                if (el.hasAttribute("aria-describedby")) { drawHighlight(el, "#e91e63", `aria-describedby`, "info"); }
-                                else { drawHighlight(el, "#e91e63", `title`, "info"); }
-                                return true;
-                            }
-                        },
-                        {
-                            id: "i-fieldsets",
-                            label: "Fieldsets & Captions",
-                            desc: "Visual grouping containers (<code>&lt;fieldset&gt;</code>)",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "fieldset, legend",
-                            legends: [{ label: "Grouping", color: "#3f51b5", type: "good" }],
-                            info: {
-                                what: "Highlights visual grouping containers (<code>&lt;fieldset&gt;</code>) and their titles (<code>&lt;legend&gt;</code>).",
-                                why: "<strong>Crucial for grouping related radio buttons</strong> or complex form sections to give screen readers proper structural context. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                drawHighlight(el, "#3f51b5", `<${el.tagName.toLowerCase()}>`, "good"); return true;
-                            }
-                        },
-                        {
-                            id: "i-touch-targets",
-                            label: "Touch Target Sizes",
-                            desc: "Calculates interactive pixel bounds (<code>width</code> / <code>height</code>)",
-                            wcag: [{ version: "2.2", level: "AA" }, { version: "2.1", level: "AAA" }],
-                            selector: "button, a[href], input:not([type='hidden']), select, textarea, summary, [role='button'], [role='link'], [role='menuitem'], [role='tab'], [role='checkbox'], [role='radio'], [role='switch'], [role='slider'], [tabindex]:not([tabindex='-1'])",
-                            legends: [
-                                { label: "< 24px (Fail)", color: "#d93025", type: "small", wcag: [{ version: "2.2", level: "AA" }] },
-                                { label: "24-43px (AA Min)", color: "#fbbc04", type: "medium", wcag: [{ version: "2.1", level: "AAA" }] },
-                                { label: "44px+ (AAA)", color: "#1e8e3e", type: "large", wcag: [{ version: "2.1", level: "AAA" }] }
-                            ],
-                            info: {
-                                what: "Computes the exact <code>width</code> and <code>height</code> pixel boundaries of interactive elements, color-coding thresholds.",
-                                why: "<strong>Undersized targets prevent users with fine motor impairments</strong> (like hand tremors) from activating controls accurately without accidental clicks. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html' target='_blank'>WCAG 2.5.8: Target Size (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size.html' target='_blank'>WCAG 2.5.5: Target Size (Enhanced)</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const rect = el.getBoundingClientRect();
-                                if (rect.width === 0 || rect.height === 0) return false;
-                                const minSize = Math.min(rect.width, rect.height);
-
-                                if (minSize < 24) {
-                                    drawHighlight(el, "#d93025", `${Math.round(rect.width)}x${Math.round(rect.height)}px`, "small");
-                                } else if (minSize < 44) {
-                                    drawHighlight(el, "#fbbc04", `${Math.round(rect.width)}x${Math.round(rect.height)}px`, "medium");
-                                } else {
-                                    drawHighlight(el, "#1e8e3e", `${Math.round(rect.width)}x${Math.round(rect.height)}px`, "large");
-                                }
-                                return true;
-                            }
-                        }
-                    ]
-                },
-                {
-                    id: "cat-links-2",
-                    label: "Links & Navigation",
-                    features: [
-                        {
-                            id: "i-warned-window",
-                            label: "Warned New Window Links",
-                            desc: "<code>target='_blank'</code> links with proper warning",
-                            wcag: [{ version: "2.0", level: "AAA" }],
-                            selector: "a[target='_blank']",
-                            legends: [{ label: "Warned", color: "#00acc1", type: "good" }],
-                            info: {
-                                what: "Highlights <code>target='_blank'</code> links that correctly include accessible text or ARIA warnings.",
-                                why: "<strong>Confirms proper communication of context shifts.</strong> Allows assistive technologies to warn the user before the window rips them away. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html' target='_blank'>WCAG 3.2.5: Change on Request</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const txt = (el.innerText + " " + (el.getAttribute("aria-label") || "")).toLowerCase();
-                                if (/new (window|tab)/.test(txt)) { drawHighlight(el, "#00acc1", 'target="_blank" (Warned)', "good"); return true; }
-                                return false;
-                            }
-                        }
-                    ]
-                },
-                {
-                    id: "cat-aria-2",
-                    label: "ARIA & Semantics",
+                    id: "cat-aria-names-relationships",
+                    label: "ARIA Names & Relationships",
                     features: [
                         {
                             id: "i-accessible-name",
@@ -838,13 +1347,13 @@ window.A11Y_CONFIG = {
                             ],
                             info: {
                                 what: "Computes the final accessible name by simulating the browser's fallback calculation sequence: <code>aria-labelledby</code>, then <code>aria-label</code>, then native linked labels or inner text, and finally the <code>title</code> attribute.",
-                                why: "<strong>Reveals exactly what a screen reader will announce.</strong> Identifies mismatching accessible names and dangerously silent controls. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
+                                why: "<strong>Reveals exactly what a screen reader will announce.</strong> Identifies mismatching accessible names and dangerously silent controls. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Review the visually printed text. Ensure active controls missing a name (red flags) are properly labeled using visible text or an aria-label."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 let name = "";
                                 let source = "";
 
-                                // 1. Check aria-labelledby
                                 if (el.hasAttribute('aria-labelledby')) {
                                     const ids = el.getAttribute('aria-labelledby').split(/\s+/);
                                     name = ids.map(id => {
@@ -854,13 +1363,11 @@ window.A11Y_CONFIG = {
                                     if (name) source = "labelledby";
                                 }
 
-                                // 2. Check aria-label
                                 if (!name && el.hasAttribute('aria-label')) {
                                     name = el.getAttribute('aria-label').trim();
                                     if (name) source = "label";
                                 }
 
-                                // 3. Check Native Element Properties / Associated Labels
                                 if (!name) {
                                     const tag = el.tagName.toLowerCase();
                                     if (['input', 'select', 'textarea'].includes(tag)) {
@@ -880,7 +1387,6 @@ window.A11Y_CONFIG = {
                                         name = (el.getAttribute('alt') || "").trim();
                                         source = "native";
                                     } else {
-                                        // For links/buttons, grab inner text and nested image alts
                                         name = Array.from(el.childNodes).map(n => {
                                             if (n.nodeType === Node.TEXT_NODE) return n.nodeValue;
                                             if (n.nodeType === Node.ELEMENT_NODE && n.tagName.toLowerCase() === 'img') return n.getAttribute('alt') || "";
@@ -890,40 +1396,113 @@ window.A11Y_CONFIG = {
                                     }
                                 }
 
-                                // 4. Fallback to Title attribute
                                 if (!name && el.hasAttribute('title')) {
                                     name = el.getAttribute('title').trim();
                                     if (name) source = "native";
                                 }
 
-                                // Truncate long names to prevent UI blowout
-                                const shortName = name.length > 35 ? name.substring(0, 35) + "..." : name;
+                                name = name.replace(/\s+/g, " ").trim();
 
                                 if (!name) {
                                     drawHighlight(el, "#d93025", "Missing Name", "missing");
                                 } else if (source === "labelledby") {
-                                    drawHighlight(el, "#9c27b0", `[id] ${shortName}`, "labelledby");
+                                    drawHighlight(el, "#9c27b0", `[id] ${name}`, "labelledby");
                                 } else if (source === "label") {
-                                    drawHighlight(el, "#00bcd4", `[aria] ${shortName}`, "label");
+                                    drawHighlight(el, "#00bcd4", `[aria] ${name}`, "label");
                                 } else {
-                                    drawHighlight(el, "#1e8e3e", `[text] ${shortName}`, "native");
+                                    drawHighlight(el, "#1e8e3e", `[text] ${name}`, "native");
                                 }
                                 return true;
                             }
                         },
                         {
-                            id: "i-aria-roles",
-                            label: "ARIA Roles & Attributes",
-                            desc: "Maps explicit <code>role</code> definitions",
+                            id: "i-field-desc",
+                            label: "Form Field Descriptions",
+                            desc: "Supplemental instructional text (<code>aria-describedby</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "[role]",
-                            legends: [{ label: "Role", color: "#673ab7", type: "info" }],
+                            selector: "[aria-describedby], [title]",
+                            legends: [{ label: "Description", color: "#e91e63", type: "info" }],
                             info: {
-                                what: "Maps all elements utilizing an explicit <code>role</code> definition.",
-                                why: "<strong>Allows rapid structural auditing of custom widget semantics.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
+                                what: "Identifies supplemental instructional text linked to inputs via <code>aria-describedby</code> or <code>title</code>.",
+                                why: "<strong>Ensures extended hints or error messages are programmatically tied to inputs</strong> so screen readers read them alongside the main label. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html' target='_blank'>WCAG 3.3.2: Labels or Instructions</a>",
+                                fix: "Ensure the ID declared in aria-describedby connects to a valid, visually persistent element that correctly describes the constraints or errors associated with the input."
                             },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#673ab7", `role="${el.getAttribute("role")}"`, "info"); return true; }
+                            customHighlight: (el, drawHighlight) => {
+                                if (el.hasAttribute("aria-describedby")) { drawHighlight(el, "#e91e63", `aria-describedby`, "info"); }
+                                else { drawHighlight(el, "#e91e63", `title`, "info"); }
+                                return true;
+                            }
                         },
+                        {
+                            id: "i-aria-details",
+                            label: "Aria-Details",
+                            desc: "Complex contextual links via <code>aria-details</code>",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[aria-details]",
+                            legends: [{ label: "Details Linked", color: "#673ab7", type: "info" }],
+                            info: {
+                                what: "Highlights elements utilizing <code>aria-details</code>.",
+                                why: "<strong>Links complex, rich explanations to an element.</strong> Similar to describedby, but allows for structured HTML (like a table or list) in the target description. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Ensure the target element referenced by aria-details contains valid structured HTML content, unlike aria-describedby which only extracts flattened text strings."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                drawHighlight(el, "#673ab7", `aria-details`, "info");
+                                return true;
+                            }
+                        },
+                        {
+                            id: "i-aria-controls",
+                            label: "Aria-Controls",
+                            desc: "Remote DOM visibility targets (<code>aria-controls</code>)",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[aria-controls]",
+                            legends: [{ label: "Controls", color: "#03a9f4", type: "info" }],
+                            info: {
+                                what: "Highlights elements utilizing <code>aria-controls</code> to dictate visibility of remote elements.",
+                                why: "<strong>Links trigger mechanisms to their remote targets</strong> within the accessibility tree. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Verify that the referenced ID correctly maps to the container whose visibility or state is directly manipulated by interacting with this element."
+                            },
+                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#03a9f4", `aria-controls`, "info"); return true; }
+                        },
+                        {
+                            id: "i-aria-owns",
+                            label: "Aria-Owns",
+                            desc: "Remote programmatic ownership (<code>aria-owns</code>)",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[aria-owns]",
+                            legends: [{ label: "Owns", color: "#8bc34a", type: "own" }],
+                            info: {
+                                what: "Highlights elements establishing parent/child relationships outside the DOM tree via <code>aria-owns</code>.",
+                                why: "<strong>Reconstructs the accessibility tree hierarchy</strong> for disjointed or floating widgets. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Use aria-owns cautiously. Ensure the owned elements act as direct descendants of this element in the accessibility tree (e.g., a combobox owning an appended listbox)."
+                            },
+                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#8bc34a", `aria-owns`, "own"); return true; }
+                        },
+                        {
+                            id: "i-aria-setsize",
+                            label: "List Set & Position",
+                            desc: "Virtual list mapping (<code>aria-setsize</code>, <code>aria-posinset</code>)",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[aria-setsize], [aria-posinset]",
+                            legends: [{ label: "List Position", color: "#3f51b5", type: "info" }],
+                            info: {
+                                what: "Highlights elements utilizing <code>aria-setsize</code> and <code>aria-posinset</code>.",
+                                why: "<strong>Crucial for infinite scroll or virtualized lists.</strong> Tells screen readers the total size of a list and the element's position, even if all items aren't in the DOM. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>",
+                                fix: "Ensure aria-posinset increments sequentially, and aria-setsize accurately reflects the total known length of the collection."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const pos = el.getAttribute("aria-posinset") || "?";
+                                const size = el.getAttribute("aria-setsize") || "?";
+                                drawHighlight(el, "#3f51b5", `Item ${pos} of ${size}`, "info");
+                                return true;
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "cat-aria-states-conditions",
+                    label: "ARIA States (Conditions)",
+                    features: [
                         {
                             id: "i-aria-live",
                             label: "ARIA Live Regions",
@@ -933,7 +1512,8 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "Live Region", color: "#ff5722", type: "live" }],
                             info: {
                                 what: "Maps dynamic <code>aria-live</code> injection containers (polite, assertive).",
-                                why: "<strong>Ensures dynamic content updates are announced</strong> to screen readers without requiring focus. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html' target='_blank'>WCAG 4.1.3: Status Messages</a>"
+                                why: "<strong>Ensures dynamic content updates are announced</strong> to screen readers without requiring focus. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html' target='_blank'>WCAG 4.1.3: Status Messages</a>",
+                                fix: "Ensure the region exists in the DOM on initial load before dynamic content is injected into it. Use aria-live=\"polite\" for most notifications to avoid interrupting the user."
                             },
                             customHighlight: (el, drawHighlight) => { drawHighlight(el, "#ff5722", `aria-live="${el.getAttribute("aria-live")}"`, "live"); return true; }
                         },
@@ -946,7 +1526,8 @@ window.A11Y_CONFIG = {
                             legends: [{ label: "Required", color: "#ff9800", type: "req" }],
                             info: {
                                 what: "Maps mandatory inputs enforced via HTML5 <code>required</code> or <code>aria-required</code>.",
-                                why: "<strong>Ensures required status is programmatically available</strong>, not just visually styled. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html' target='_blank'>WCAG 3.3.1: Error Identification</a>"
+                                why: "<strong>Ensures required status is programmatically available</strong>, not just visually styled. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html' target='_blank'>WCAG 3.3.1: Error Identification</a>",
+                                fix: "Verify that the programmatic requirement matches the visual cue (e.g., an asterisk). Avoid using aria-required=\"false\", simply omit the attribute if the field is optional."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const txt = el.hasAttribute("required") ? "required" : 'aria-required="true"';
@@ -965,7 +1546,8 @@ window.A11Y_CONFIG = {
                             ],
                             info: {
                                 what: "Maps expandable widgets by their <code>aria-expanded</code> status, color-coded by true/false state.",
-                                why: "<strong>Visualizes the current programmatic state</strong> of dynamic accordions and menus for easy testing. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
+                                why: "<strong>Visualizes the current programmatic state</strong> of dynamic accordions and menus for easy testing. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Ensure JavaScript actively toggles this attribute between true and false in tandem with the visual display of the controlled content."
                             },
                             customHighlight: (el, drawHighlight) => {
                                 const val = el.getAttribute("aria-expanded");
@@ -975,131 +1557,62 @@ window.A11Y_CONFIG = {
                             }
                         },
                         {
-                            id: "i-aria-controls",
-                            label: "Aria-Controls",
-                            desc: "Remote DOM visibility targets (<code>aria-controls</code>)",
+                            id: "i-aria-pressed",
+                            label: "Aria-Pressed State",
+                            desc: "Toggle button states (<code>aria-pressed</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "[aria-controls]",
-                            legends: [{ label: "Controls", color: "#03a9f4", type: "info" }],
-                            info: {
-                                what: "Highlights elements utilizing <code>aria-controls</code> to dictate visibility of remote elements.",
-                                why: "<strong>Links trigger mechanisms to their remote targets</strong> within the accessibility tree. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#03a9f4", `aria-controls`, "info"); return true; }
-                        },
-                        {
-                            id: "i-aria-owns",
-                            label: "Aria-Owns",
-                            desc: "Remote programmatic ownership (<code>aria-owns</code>)",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "[aria-owns]",
-                            legends: [{ label: "Owns", color: "#8bc34a", type: "own" }],
-                            info: {
-                                what: "Highlights elements establishing parent/child relationships outside the DOM tree via <code>aria-owns</code>.",
-                                why: "<strong>Reconstructs the accessibility tree hierarchy</strong> for disjointed or floating widgets. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#8bc34a", `aria-owns`, "own"); return true; }
-                        }
-                    ]
-                },
-                {
-                    id: "cat-structure-2",
-                    label: "Structure & Document",
-                    features: [
-                        {
-                            id: "i-valid-headings",
-                            label: "Valid Heading Order",
-                            desc: "Standard <code>H1-H6</code> structural outline",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "h1, h2, h3, h4, h5, h6",
-                            legends: [{ label: "Heading", color: "#607d8b", type: "good" }],
-                            info: {
-                                what: "Maps the standard, sequential <code>H1-H6</code> heading structure.",
-                                why: "<strong>Verifies the logical outline of the page.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#607d8b", `<${el.tagName.toLowerCase()}>`, "good"); return true; }
-                        },
-                        {
-                            id: "i-landmarks",
-                            label: "Landmark Regions",
-                            desc: "HTML5 and ARIA structural landmark containers",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "main, nav, header, footer, aside, [role='main'], [role='navigation'], [role='banner'], [role='contentinfo']",
-                            legends: [{ label: "Landmark", color: "#c2185b", type: "info" }],
-                            info: {
-                                what: "Maps native HTML5 (e.g., <code>&lt;main&gt;</code>, <code>&lt;nav&gt;</code>) and ARIA (e.g., <code>role='banner'</code>) structural landmark containers.",
-                                why: "<strong>Allows screen reader users to jump quickly</strong> between core page sections via the Rotor or Shortcut lists. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html' target='_blank'>WCAG 2.4.1: Bypass Blocks</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => {
-                                const label = el.hasAttribute("role") ? el.getAttribute("role") : el.tagName.toLowerCase();
-                                drawHighlight(el, "#c2185b", `<${label}>`, "info"); return true;
-                            }
-                        },
-                        {
-                            id: "i-tables",
-                            label: "Table & Grid Structure",
-                            desc: "Native <code>&lt;table&gt;</code> and ARIA data grids",
-                            wcag: [{ version: "2.0", level: "A" }],
-                            selector: "table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']",
+                            selector: "[aria-pressed]",
                             legends: [
-                                { label: "Table/Grid", color: "#303f9f", type: "solid" },
-                                { label: "Header", color: "#1976d2", type: "dashed" }
+                                { label: "True", color: "#4caf50", type: "true" },
+                                { label: "False", color: "#795548", type: "false" },
+                                { label: "Mixed", color: "#ff9800", type: "mixed" }
                             ],
                             info: {
-                                what: "Highlights native <code>&lt;table&gt;</code>, <code>&lt;caption&gt;</code>, and <code>&lt;th&gt;</code> tags, alongside custom div-based grid ARIA structures.",
-                                why: "<strong>Visually maps data structures</strong> and verifies that custom UI grids correctly implement semantic headers. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
+                                what: "Maps toggle buttons by their <code>aria-pressed</code> status.",
+                                why: "<strong>Visualizes the current programmatic state of toggle buttons</strong> (e.g., Mute/Unmute, Play/Pause) for easy testing. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Ensure JavaScript toggles this attribute when the button is activated. Do not use aria-pressed on elements that do not maintain a toggle state (like standard links)."
                             },
                             customHighlight: (el, drawHighlight) => {
-                                const tag = el.tagName.toLowerCase();
-                                const role = el.getAttribute("role");
-                                const isHeader = tag === "th" || role === "columnheader" || role === "rowheader";
-                                const label = role && !["table", "th", "caption"].includes(tag) ? `role="${role}"` : `<${tag}>`;
-
-                                if (isHeader) { drawHighlight(el, "#1976d2", label, "dashed", "dashed"); }
-                                else { drawHighlight(el, "#303f9f", label, "solid", "solid"); }
+                                const val = el.getAttribute("aria-pressed");
+                                if (val === "true") { drawHighlight(el, "#4caf50", `aria-pressed="true"`, "true"); }
+                                else if (val === "mixed") { drawHighlight(el, "#ff9800", `aria-pressed="mixed"`, "mixed"); }
+                                else { drawHighlight(el, "#795548", `aria-pressed="false"`, "false"); }
                                 return true;
                             }
                         },
                         {
-                            id: "i-lists",
-                            label: "Lists and List Items",
-                            desc: "Unordered (<code>&lt;ul&gt;</code>), ordered (<code>&lt;ol&gt;</code>), and definition lists (<code>&lt;dl&gt;</code>)",
+                            id: "i-aria-value",
+                            label: "Aria-Value Properties",
+                            desc: "Slider & progress bar states (<code>valuenow</code>, <code>valuetext</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "ul, ol, li, dl, dt, dd",
-                            legends: [{ label: "List Element", color: "#00796b", type: "info" }],
+                            selector: "[aria-valuenow], [aria-valuetext]",
+                            legends: [{ label: "Value State", color: "#00acc1", type: "info" }],
                             info: {
-                                what: "Maps unordered (<code>&lt;ul&gt;</code>), ordered (<code>&lt;ol&gt;</code>), and glossary lists (<code>&lt;dl&gt;</code>) along with their children.",
-                                why: "<strong>Ensures related items are programmatically grouped</strong> so screen readers can announce list sizes correctly. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html' target='_blank'>WCAG 1.3.1: Info and Relationships</a>"
-                            },
-                            customHighlight: (el, drawHighlight) => { drawHighlight(el, "#00796b", `<${el.tagName.toLowerCase()}>`, "info"); return true; }
-                        },
-                        {
-                            id: "i-language",
-                            label: "Language Definitions",
-                            desc: "Phonetic shifts and root <code>lang</code> declarations",
-                            wcag: [{ version: "2.0", level: "A" }, { version: "2.0", level: "AA" }],
-                            selector: "html, [lang], [xml\\:lang]",
-                            legends: [
-                                { label: "Root Lang Missing", color: "#d93025", type: "root-miss", wcag: [{ version: "2.0", level: "A" }] },
-                                { label: "Root Lang", color: "#1a73e8", type: "root-has", wcag: [{ version: "2.0", level: "A" }] },
-                                { label: "Inline Shift", color: "#9c27b0", type: "shift", wcag: [{ version: "2.0", level: "AA" }] }
-                            ],
-                            info: {
-                                what: "Maps the root document <code>lang</code> declaration alongside any mid-page inline phonetic shifts.",
-                                why: "<strong>Screen readers rely on the language tag</strong> to load the correct dictionary, accent, and pronunciation rules. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html' target='_blank'>WCAG 3.1.1: Language of Page</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html' target='_blank'>WCAG 3.1.2: Language of Parts</a>"
+                                what: "Highlights the current state of range widgets like sliders, spinbuttons, and progress bars.",
+                                why: "<strong>Ensures visual slider values match their programmatic data.</strong> <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Ensure aria-valuenow increments and decrements logically. Use aria-valuetext if the numerical value needs to be translated into human-readable text (e.g., converting '0' to 'Small')."
                             },
                             customHighlight: (el, drawHighlight) => {
-                                const lang = el.getAttribute("lang") || el.getAttribute("xml:lang");
-                                const isRoot = el.tagName.toLowerCase() === 'html';
-                                if (isRoot) {
-                                    if (!lang || lang.trim() === "") {
-                                        drawHighlight(el, "#d93025", "Missing Root Lang", "root-miss");
-                                    } else {
-                                        drawHighlight(el, "#1a73e8", `Root lang="${lang}"`, "root-has");
-                                    }
-                                } else {
-                                    drawHighlight(el, "#9c27b0", `lang="${lang}"`, "shift");
-                                }
+                                const val = el.getAttribute("aria-valuetext") || el.getAttribute("aria-valuenow");
+                                drawHighlight(el, "#00acc1", `value="${val}"`, "info");
+                                return true;
+                            }
+                        },
+                        {
+                            id: "i-aria-haspopup",
+                            label: "Aria-Haspopup",
+                            desc: "Elements triggering overlays (<code>aria-haspopup</code>)",
+                            wcag: [{ version: "2.0", level: "A" }],
+                            selector: "[aria-haspopup]",
+                            legends: [{ label: "Has Popup", color: "#9c27b0", type: "info" }],
+                            info: {
+                                what: "Highlights elements that trigger interactive popup overlays (menus, dialogs, listboxes).",
+                                why: "<strong>Prepares users for a context shift.</strong> Tells screen reader users that activating the element will spawn an overlay. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html' target='_blank'>WCAG 4.1.2: Name, Role, Value</a>",
+                                fix: "Verify that the attribute value matches the type of popup being triggered (e.g., aria-haspopup=\"menu\" or aria-haspopup=\"dialog\")."
+                            },
+                            customHighlight: (el, drawHighlight) => {
+                                const val = el.getAttribute("aria-haspopup");
+                                drawHighlight(el, "#9c27b0", `haspopup="${val}"`, "info");
                                 return true;
                             }
                         }
