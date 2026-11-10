@@ -483,6 +483,7 @@ WICK-AG-Lens is available under the MIT License. Reference the [LICENSE.md](./LI
 First off, thanks for taking the time to contribute!
 
 To contribute, please follow the process described in **[CONTRIBUTING.md](CONTRIBUTING.md "CONTRIBUTING.md")**
+Any PR need to be done over the current *develop-next* branch.
 
 And if you like the project but just don't have the time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
 - Star the project
