@@ -1,31 +1,37 @@
-# WICK-AG-Lens: Accessibility Inspector
+# WICK-AG-Lens: Accessibility Inspector & MCP Server
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, maps structural information, and provides a rigorous engine to simulate visual impairments directly within your page layout. Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a simulation Mode and a PDF Gatekeeper Auditing engine.
+WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA, now expanded into a full monorepo suite. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, a **Headless Node.js CLI** for automated testing, and an **MCP (Model Context Protocol) Server** to empower AI agents with real-time DOM accessibility diffing. 
 
-You can install WICK-AG-Lens from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
+Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a simulation Mode and a PDF Gatekeeper Auditing engine.
+
+You can install the visual extension from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
 
 &nbsp;
-![WICK-AG-Lens: Accessibility Inspector overview features](images/overview.png)
+![WICK-AG-Lens: Accessibility Inspector overview features](extension/assets/images/overview.png)
 &nbsp;
 
 ## Table of Contents
 1. [Features Overview](#features-overview)
-2. [Installation](#installation)
-3. [Core Features & Usage](#core-features--usage)
-4. [Audit Library & Ruleset](#audit-library--ruleset)
-5. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
-6. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
-7. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
-8. [Limitations & Technical Bounds](#limitations--technical-bounds)
-9. [Compatibility](#compatibility)
-10. [License](#license)
-11. [Contributing](#contributing)
-12. [Development & Testing Sites](#development--testing-sites)
-13. [Changelog](#changelog)
+2. [Monorepo Architecture & Building](#monorepo-architecture--building)
+3. [Headless CLI Automation](#headless-cli-automation)
+4. [MCP Server (AI Integration)](#mcp-server-ai-integration)
+5. [Visual Extension Installation](#visual-extension-installation)
+6. [Core Features & Usage](#core-features--usage)
+7. [Audit Library & Ruleset](#audit-library--ruleset)
+8. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
+9. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
+10. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
+11. [Limitations & Technical Bounds](#limitations--technical-bounds)
+12. [Compatibility](#compatibility)
+13. [License](#license)
+14. [Contributing](#contributing)
+15. [Development & Testing Sites](#development--testing-sites)
+16. [Changelog](#changelog)
 
 ## Features Overview
-WICK-AG-Lens is built for developers and QA engineers. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
+WICK-AG-Lens is built for developers, QA engineers, and AI agents. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
 
+*   **Headless CLI & AI MCP Server:** Automate your accessibility testing via Playwright or provide AI agents with a robust tool to audit and diff structural DOM changes dynamically.
 *   **Real-Time SPA & DOM Sync:** Automatically detects Single Page Application (SPA) client-side routing and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time without requiring a manual refresh.
 *   **Comprehensive Audits:** Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.
 *   **Disability Simulation Engine:** Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout.
@@ -38,8 +44,76 @@ WICK-AG-Lens is built for developers and QA engineers. It runs static analysis a
 *   **One-Click Reporting:** Copy formatted text reports of all active audits, their findings, and direct remediation instructions to your clipboard for easy ticket creation or bug tracking.
 *   **Shadow DOM & Iframe Support:** Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.
 
+## Monorepo Architecture & Building
+To maintain a single source of truth and keep the Chrome Web Store artifact clean of heavy Node dependencies (like Playwright), this project utilizes a lightweight monorepo architecture. 
+*   `/core`: The central heuristic logic (`a11y-config.js` and `shared-utils.js`).
+*   `/extension`: The visual Chrome extension artifact.
+*   `/cli`: The Node.js Playwright environment and MCP server.
 
-## Installation
+### Building the Chrome Extension Locally
+Whenever you make changes to the heuristic rules in the `/core` folder, you must build the extension before Chrome can use it.
+1. Run the build script from the root directory to copy the core logic into the extension package:
+   ```bash
+   node build.js
+   ```
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Toggle **Developer mode** on (top right).
+4. Click **Load unpacked** and select the **`extension`** folder.
+
+## Headless CLI Automation
+The CLI utilizes Playwright to inject the WICK-AG-Lens core heuristics into a headless browser, allowing you to run audits in your terminal or CI/CD pipelines.
+
+### Setup
+Navigate to the CLI directory and install the dependencies (including the Playwright browser binaries):
+```bash
+cd cli
+npm install
+npx playwright install chromium
+```
+
+### CLI Usage
+Run a baseline audit against any public URL:
+```bash
+node index.js audit https://example.com
+```
+
+### CLI Options & Authentication
+You can pass several arguments to customize the run and bypass login screens:
+*   `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`).
+*   `-a, --auth-state <path>`: Path to a saved Playwright storage state JSON file (cookies/localStorage) to bypass logins.
+*   `--login-url <url>`: URL to navigate to for authentication before running the audit.
+*   `-u, --user <user>` and `-p, --pass <pass>`: Credentials for the login URL.
+*   `-i, --interactive`: Launches a visible browser and waits 30 seconds for you to manually solve Captchas/MFA before auditing.
+
+*Example (Dynamic Login):*
+```bash
+node index.js audit https://app.com/dashboard --login-url https://app.com/login -u admin -p 1234
+```
+
+## MCP Server (AI Integration)
+The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to navigate pages, click elements, and receive delta logs of accessibility barriers created or resolved by their actions.
+
+### Exposed Tools
+*   `audit_baseline`: Runs a full baseline scan on a target URL. Accepts `url` and an optional array of `requestedAudits`.
+*   `interact_and_diff`: Clicks a CSS selector, waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of new or resolved violations.
+
+### Running & Testing the MCP Server
+To test the server locally using the Anthropic MCP Inspector:
+```bash
+cd cli
+npx @modelcontextprotocol/inspector node mcp-server.js
+```
+To configure in Claude Desktop, add the following to your `claude_desktop_config.json`:
+```json
+"mcpServers": {
+  "wick-ag-lens": {
+    "command": "node",
+    "args": ["/absolute/path/to/wick-ag-lens/cli/mcp-server.js"]
+  }
+}
+```
+
+## Visual Extension Installation
 
 Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
 
@@ -60,7 +134,7 @@ The inspector categorizes 55 heuristic rulesets across two primary tabs: **Viola
 *   **Master Toggles & Clean UI:** Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.
 *   **Inline Information:** Clicking the `[ i ]` icon next to any audit expands an inline panel detailing exactly *What it highlights*, *Why it's important*, and *How to fix it*, complete with links directly to the official W3C WCAG documentation.
 
-![WCAG Criteria Filtering, Master Toggles, and Inline Info](images/wcag-filtering.png)
+![WCAG Criteria Filtering, Master Toggles, and Inline Info](extension/assets/images/wcag-filtering.png)
 
 ### 2. Disability Simulation Engine (Simulate Mode)
 Switch from the standard "Inspect Mode" into "Simulate Mode" using the top header toggle to visually alter the host page, allowing developers to experience structural boundaries and contrast failures firsthand.
@@ -70,11 +144,11 @@ Switch from the standard "Inspect Mode" into "Simulate Mode" using the top heade
 
 Color Blindness:
 
-![Disability Simulation Engine](images/disability-simulation-blindness.png)
+![Disability Simulation Engine](extension/assets/images/disability-simulation-blindness.png)
 
 Impaired Vision:
 
-![Disability Simulation Engine](images/disability-simulation-impaired.png)
+![Disability Simulation Engine](extension/assets/images/disability-simulation-impaired.png)
 
 ### 3. PDF Gatekeeper Auditing (PDF Mode)
 Analyze raw PDF binary streams directly in the browser. Since Chrome's native PDF viewer is securely isolated and cannot be visually overlaid, this mode programmatically inspects the Document Catalog and Metadata dictionaries via an ArrayBuffer stream.
@@ -85,11 +159,11 @@ Analyze raw PDF binary streams directly in the browser. Since Chrome's native PD
 
 PDF Gatekeeper Auditing:
 
-![PDF Analysis Engine](images/pdf-analysis-engine.png)
+![PDF Analysis Engine](extension/assets/images/pdf-analysis-engine.png)
 
 Impaired Vision:
 
-![Technical Details and Remediation](images/pdf-analysis-details.png)
+![Technical Details and Remediation](extension/assets/images/pdf-analysis-details.png)
 
 
 ### 4. Interactive Info Panels & Code Previews
@@ -97,7 +171,7 @@ Clicking on any highlighted badge directly on the page summons a detailed DevToo
 
 Crucially, the panel extracts a clean, extension-sanitized **HTML Snippet** of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise **CSS Selector**. Dedicated "Copy" buttons (📋) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.
 
-![Interactive Info Panel with HTML Snippet Preview](images/info-panel-preview.png)
+![Interactive Info Panel with HTML Snippet Preview](extension/assets/images/info-panel-preview.png)
 
 ### 5. View Elements List & Precision Locator
 For audits that return multiple findings, clicking the "View Elements" (list icon) button inside the DevTools panel opens a comprehensive details modal displaying a hierarchically sorted list of every flagged element.
@@ -105,7 +179,7 @@ For audits that return multiple findings, clicking the "View Elements" (list ico
 *   **Precision Locator:** Clicking the target crosshair button next to any item will smoothly scroll the browser directly to that specific element on the page, flashing a bright pulsating focus ring to help you locate it instantly—even if it is deeply nested inside a complex UI or an embedded iframe.
 *   **Export Modal List:** A dedicated `Copy All` button allows you to copy the exact list of isolated elements, their labels, and their CSS selectors directly to your clipboard.
 
-![View Elements List and Locator Modal](images/elements-locator.png)
+![View Elements List and Locator Modal](extension/assets/images/elements-locator.png)
 
 ### 6. Comprehensive Tab Reporting
 To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (📋) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.
@@ -113,24 +187,24 @@ To streamline QA ticketing, WICK-AG-Lens features a global clipboard export func
 *   It organizes the output by Category and Rule, explicitly logging `(No matching elements found)` for active audits that currently pass.
 *   Crucially, the exported report **automatically includes explicit, actionable Remediation steps** for every flagged rule, making it effortless to paste direct solutions into Jira or bug tracking tickets for your developers.
 
-![One-Click Clipboard Reporting Output](images/clipboard-report.png)
+![One-Click Clipboard Reporting Output](extension/assets/images/clipboard-report.png)
 
 ### 7. Real-Time SPA & Dynamic DOM Sync
 WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly. 
 *   **SPA Navigation (Hard Wipe):** Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.
 *   **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling `display: none` or `aria-hidden` on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.
 
-![Real-Time SPA Sync automatically highlighting a newly opened dropdown](images/spa-sync.gif)
+![Real-Time SPA Sync automatically highlighting a newly opened dropdown](extension/assets/images/spa-sync.gif)
 
 ### 8. X-Ray Vision for Clipped Elements
 When elements are pushed off-screen or hidden inside `overflow: hidden` containers (like carousel slides or scrollable panels), the extension detects their clipping bounds. Instead of ignoring them or drawing misleading boxes, WICK-AG-Lens renders these hidden elements using a specialized "X-Ray" ghosted hatched pattern. This allows auditors to visualize the exact footprint of hidden interactive elements and invisible focus traps without breaking the page layout.
 
-![X-Ray Vision highlighting clipped carousel elements](images/xray-vision.png)
+![X-Ray Vision highlighting clipped carousel elements](extension/assets/images/xray-vision.png)
 
 ### 9. Embedded Offline Documentation
 Accessibility auditing shouldn't require constantly hunting for internet resources. WICK-AG-Lens includes a fully embedded, offline-ready reference guide. Clicking the book icon in the extension header opens a comprehensive modal detailing every single rule, its WCAG mapping, technical limitations, and precise heuristic logic, ensuring your QA team always has context at their fingertips.
 
-![Embedded Offline Documentation](images/embedded-doc.png)
+![Embedded Offline Documentation](extension/assets/images/embedded-doc.png)
 
 ### 10. Native Dark Mode Support
 The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
@@ -512,6 +586,14 @@ The following deliberately inaccessible and accessible demonstration websites we
 * **[https://www.w3.org/WAI/WCAG20/Techniques/working-examples/PDF4/decorative-image.pdf](https://www.w3.org/WAI/WCAG20/Techniques/working-examples/PDF4/decorative-image.pdf)**
 
 ## Changelog
+
+### v3.0.0: The Automation Update
+* Restructured project into a monorepo architecture.
+* Extracted core heuristic engine into `/core` as the single source of truth.
+* Added Node.js CLI with Playwright adapter for headless accessibility automation.
+* Added MCP Server (Model Context Protocol) exposing `audit_baseline` and `interact_and_diff` tools to AI agents.
+* Centralized DOM traversal (`querySelectorAllDeep`) to ensure mathematical parity between visual and headless environments.
+* Moved visual assets to `extension/assets/` to slim down the Chrome Web Store package.
 
 ### v2.5.0: The Structural Expansion, DOM Integrity, & PDF Update
 * **Introduced PDF Gatekeeper Auditing Engine (PDF Mode):** Analyzes raw PDF binary streams directly in the browser to evaluate structural WCAG and PDF/UA prerequisites (Tags, Title, Language, Extraction Permissions).

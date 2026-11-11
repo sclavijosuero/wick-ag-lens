@@ -1,0 +1,16 @@
+{
+  "name": "wick-ag-lens-cli",
+  "version": "3.0.0",
+  "description": "Headless CLI and MCP Server for WICK-AG-Lens",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "mcp": "node mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "commander": "^11.1.0",
+    "playwright": "^1.40.1"
+  }
+}
