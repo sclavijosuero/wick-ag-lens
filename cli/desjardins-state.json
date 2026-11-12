@@ -1,0 +1,467 @@
+{
+  "cookies": [
+    {
+      "name": "AKA_A2",
+      "value": "A",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794445881.167034,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "AWSALB",
+      "value": "9whOAKIBzl/xVylUJiHLWOe6kcjFwLNTlk14Tr02RBLhhz58PDVIxxqWMqEoKpQaijfrcBD8SrpzyJ3csh4V0P51ZWIwLf1YkOmXAbgw7G2HVggAQdPFKGjmHFYj",
+      "domain": "www.desjardins.com",
+      "path": "/",
+      "expires": 1795047081.337094,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "AWSALBCORS",
+      "value": "9whOAKIBzl/xVylUJiHLWOe6kcjFwLNTlk14Tr02RBLhhz58PDVIxxqWMqEoKpQaijfrcBD8SrpzyJ3csh4V0P51ZWIwLf1YkOmXAbgw7G2HVggAQdPFKGjmHFYj",
+      "domain": "www.desjardins.com",
+      "path": "/",
+      "expires": 1795047081.337244,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "ak_bmsc",
+      "value": "F55C3C149EDDC139082241B5644E1D1C~000000000000000000000000000000~YAAQ1c9YaPHrP7KhAQAAwEEYzQH6Q7G9tYljtGo6S6s8zidjX8DyJNGpzbTXlC4eSoep4b4w8oFNsdS6iii/kpN9HMq5UPXQXLIdNENBR40Fx/hV7I6fO2XW2uiEYYIJsVJR0kGyIFOz/6t33qDgUfZbkYLTIG70b6ORZaDOAzxASwUt86fzmxnfQoKPzBpqxzENlvA31HUxCw7e3N1qz82LfC9CYhSj49x+VjKFLqFM3U5UkgzcQiaGp8aR/5rdwnKwfRj1t9UDBmjaNKzyaejJfoTQPRJHMjUThUCzJNDxeedabREWZEXFeBp4o1bnVMapXZYxos/uM3R64iaLOjzoYDW+84g/+gLRh2OdnoC2CJb6aDekJPfVMcRdFENNNagkgjLx5RFcEBpQNBRi",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794449481.337315,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ak_bmsc",
+      "value": "F55C3C149EDDC139082241B5644E1D1C~000000000000000000000000000000~YAAQ1c9YaC3xP7KhAQAAxEsYzQFmf749u06ds0jVOoVk360g6mnkV6HWq+xRXd7zi7nIXiuTrxBSHe+hChGG56fDTc52R5zoBCGM96csWh0g61Pz0K68oePxTEIvJhmTfZGrGcVren4WpS8/QBjtj+GoMvqRBnidq4thaNG5t/PxtbGPTD5kqrKS4eWbgxadXatR5jYZ2K/78lv2NIl4nY3T/pCDEzFD1Jc6luofMrFLmggZd5eqtAOm9BvA/d9gyzBZOK8HEsF5DIHvDENkiAadAahGp/tat9OtR7mYrmvITi0T4oBQihZ71A0TekzGzIzCve6GHKAQIVqeRNEEop8Yg5mh8wCY5s24FHFk3zKMSuqr+SU9KXce/P1hn7ZIj1rYrwEhXNU7Xe4RZ0GfvM66+QI=",
+      "domain": ".mouv.desjardins.com",
+      "path": "/",
+      "expires": 1794449482.156076,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "bm_sv",
+      "value": "6FC76109B73755BB311F052255CDA931~YAAQ1c9YaC7xP7KhAQAAxEsYzQEnkTe6buRbkLLe2CIzl55kA7QJzpECOVwzMKupGhZqNyb5fs3wvFPbR5X0SD0JCtmUHu4kDn3pGOd0BBHecbTtPmrakxFHPCMaT1cJFR1Uwy8hlzudQKCrdjiyIBAfsTEefDCPxsJWFHi4IG/qI/gMl6aG3TRY2n0WtimAiacoP2ZXEPVr0FUjp3vcq3MA4qUfo3wUXuhyTAGpqyesU9MkVC9KjtB/WBHH3NcijeEbQPvegUrs~1",
+      "domain": ".mouv.desjardins.com",
+      "path": "/",
+      "expires": 1794449482.156152,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "OptanonAlertBoxClosed",
+      "value": "2026-11-12T00:11:25.496Z",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1825978285,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.2.1949415862.1794442284",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1829002288.452636,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_gcl_au",
+      "value": "1.1.743371396.1794442286",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1802218286,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "adobeujs-optin",
+      "value": "%7B%22aam%22%3Atrue%2C%22adcloud%22%3Atrue%2C%22aa%22%3Atrue%2C%22campaign%22%3Atrue%2C%22ecid%22%3Atrue%2C%22livefyre%22%3Afalse%2C%22target%22%3Atrue%2C%22videoaa%22%3Atrue%7D",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1828632285,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "dgag-source-medium",
+      "value": "Direct",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794444085,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "dgag-seo-visit-referrer",
+      "value": "Direct",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794444085,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "demdex",
+      "value": "71196838487397052880691352422119279566",
+      "domain": ".demdex.net",
+      "path": "/",
+      "expires": 1809994286.335965,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "AMCVS_B759358A5CF7BC170A495FB3%40AdobeOrg",
+      "value": "1",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "everest_g_v2",
+      "value": "g_surferid~avUELgAAADSy2nNO",
+      "domain": ".everesttech.net",
+      "path": "/",
+      "expires": 1825978286.312367,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "dpm",
+      "value": "71196838487397052880691352422119279566",
+      "domain": ".dpm.demdex.net",
+      "path": "/",
+      "expires": 1809994286.336147,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "s_vnc365",
+      "value": "1825978286366%26vn%3D1",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1826006399,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "s_ivc",
+      "value": "true",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794444088,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "s_cc",
+      "value": "true",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "AMCV_B759358A5CF7BC170A495FB3%40AdobeOrg",
+      "value": "1585540135%7CMCIDTS%7C20770%7CMCMID%7C76621046096044085950073003635971936021%7CMCAAMLH-1795047086%7C9%7CMCAAMB-1795047086%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1794449486s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-20777%7CvVersion%7C4.4.0",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1829002286.378092,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "IDE",
+      "value": "AHWqTUn0jkMgp3kq6aHgHaK9AoupQ0Zohu3zv80u2XUe2YFir8Gbz3sSbCdlleemOVs",
+      "domain": ".doubleclick.net",
+      "path": "/",
+      "expires": 1829002287.241418,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "DESJ_PREF",
+      "value": "Langue%3Dfr%26Province%3DQC",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1829002287.326827,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "JSESSIONID",
+      "value": "0000dm6H2-ukxCkyOCuF0uANsdA:-1",
+      "domain": "www.desjardins.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "bm_sv",
+      "value": "6FC76109B73755BB311F052255CDA931~YAAQ1c9YaJv3P7KhAQAAv1kYzQEXTQ35O/yRx7xs/oDnTQucbel5OidNxvdrAl/zCsK1fj2Ql47ZQppGIMX6QyBpH3TMBfvGhdnGHhqVhV6KueuNGmfUK5oOCnnxHg8aNDxLIf5Gc84WlJ1t7CozWs2Ud2NAawdaxIrb+8Lv59JUD7EmX+3YVYbLggs9joaZ7WRw9pqV5Z3GUvj6yQQ/wPLYcPnrGYp6fBkeb0K9q/aDUy5tM+lvgOjR8tLAsh8OFLVrKw==~1",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794449481.476835,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "OptanonConsent",
+      "value": "isGpcEnabled=0&datestamp=2026-11-12T00%3A11%3A28.199Z&version=202507.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&consentId=0ed0b662-236d-480d-b4d5-ef3bf195b1a8&interactionCount=1&isAnonUser=1&landingPath=NotLandingPage&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1&intType=1&geolocation=US%3BOR&AwaitingReconsent=false",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1825978288,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "s_sq",
+      "value": "%5B%5BB%5D%5D",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_QE46288V2S",
+      "value": "GS2.2.s1794442284$o1$g1$t1794442288$j58$l0$h0",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1829002288.654685,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_uetsid",
+      "value": "9b804a80de2d11f19a97b383f669505d",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1794528688,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_uetvid",
+      "value": "9b808ab0de2d11f195ebb515fc6a1544",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1828138288,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "MUID",
+      "value": "3A46D377C87D695F1862CB78C9C7685F",
+      "domain": ".bing.com",
+      "path": "/",
+      "expires": 1828138288.965076,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "MR",
+      "value": "0",
+      "domain": ".bat.bing.com",
+      "path": "/",
+      "expires": 1795047088.965207,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "li_sugr",
+      "value": "4b5d346e-1d13-4404-a0e3-9fec4633a382",
+      "domain": ".linkedin.com",
+      "path": "/",
+      "expires": 1802218289.272956,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "lidc",
+      "value": "\"b=TGST07:s=T:r=T:a=T:p=T:g=3422:u=1:x=1:i=1794442289:t=1794528689:v=2:sig=AQGr4yjvPciBCNwtk9BltSCBWCnOYVne\"",
+      "domain": ".linkedin.com",
+      "path": "/",
+      "expires": 1794528688.97885,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "__cf_bm",
+      "value": "LZfPmNOpE0PVd4xXSwb9dHkDLAk4aU6EZEMZOFnY1Og-1794442288.9833698-1.0.1.1-KcAVO05TDkaUNr1VrJfJDaJpZBYxnZRBy2wRmXwEJyuJnZv8QGooa.gBdwNfTcenp9NE1XE2ZWOAbvr6vl46anctS9oLK28otia7lF_wDOzyihbRR9REaf0_UJV3foAI",
+      "domain": ".linkedin.com",
+      "path": "/",
+      "expires": 1794444088.978875,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None",
+      "partitionKey": "https://desjardins.com",
+      "_crHasCrossSiteAncestor": true
+    },
+    {
+      "name": "tst",
+      "value": "Af0NnIm1T5Fu0j4AUR5q1QEGC90p0DqwU43qyVFSJWLYHI0NMNkAHwybbgmSZRNSVoomFtKDeXRxQX2rjHl-t-OII6LRkSRv0Zz_2_2vjV3aClZ8ecsltGZrZPEfV6KwyHMVkrk4dE3fPvGX99LXpNM",
+      "domain": ".pinterest.com",
+      "path": "/",
+      "expires": 1794615089.054034,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "UserMatchHistory",
+      "value": "AQKu6asBa_Kb9AAAAaHNGF_WkcgUWFleBZ7s6VrXBuGOLvo77vVS0It5-qjtCBtL764M4aJrc_32NQ",
+      "domain": ".linkedin.com",
+      "path": "/",
+      "expires": 1797034289.054668,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "AnalyticsSyncHistory",
+      "value": "AQKMf0dT4aZQaAAAAaHNGF_WY1v4_wB1WFKLnh3NXqvV-2yHj9_4jPAvItSP2_FuVOaxYEEoGIWGVW7hDgajcA",
+      "domain": ".linkedin.com",
+      "path": "/",
+      "expires": 1797034289.054682,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "bcookie",
+      "value": "\"v=2&ff2882b1-269c-4356-806b-8a3fc3c82959\"",
+      "domain": ".linkedin.com",
+      "path": "/",
+      "expires": 1825978289.273047,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_pin_unauth",
+      "value": "dWlkPU5qTTVPRGMzTUdVdE5qVTJOUzAwTkRJeExUazVZall0WVdGaU56QTBaVGN5TlRaaQ",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1825978289,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "bscookie",
+      "value": "\"v=1&202611120011297ccc4b28-b1cf-41e2-8f32-957d8654bf93AQGXJNBulFYqQFa7gVnJ3EpOggv0b3OO\"",
+      "domain": ".www.linkedin.com",
+      "path": "/",
+      "expires": 1825978289.167454,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "QSI_HistorySession",
+      "value": "https%3A%2F%2Fwww.desjardins.com%2Fpage-erreur%2Findex.jsp~1794442290039",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_fbp",
+      "value": "fb.1.1794442299117.565356299281952637",
+      "domain": ".desjardins.com",
+      "path": "/",
+      "expires": 1802218299,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "fr",
+      "value": "0HfGhoWYTIGnyJWsF..Bq9QQ7...1.0.Bq9QQ7.AWcgZdbd2GeIwH7xjtbHYaJGQgE",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1802218299.186107,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://www.desjardins.com",
+      "localStorage": [
+        {
+          "name": "_uetvid",
+          "value": "9b808ab0de2d11f195ebb515fc6a1544"
+        },
+        {
+          "name": "_gcl_ls",
+          "value": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":1,\"timeouts\":0,\"errors\":0,\"eopCount\":0,\"creationTimeMs\":1794442298953},\"expires\":1802218298953},\"gsid_dc\":{\"value\":{\"joinId\":\"cEMw2anzG6JPvWA3BK3TyJcTmqnDxyB2rQ\",\"lastJoinedTimeMs\":1794442285545},\"expires\":1794442585545}}"
+        },
+        {
+          "name": "_uetvid_exp",
+          "value": "Tue, 07 Dec 2027 00:11:28 GMT"
+        },
+        {
+          "name": "_uetsid",
+          "value": "9b804a80de2d11f19a97b383f669505d"
+        },
+        {
+          "name": "li_adsId",
+          "value": "8a946cf8-99d4-44a6-9974-4ccd089ebf04"
+        },
+        {
+          "name": "_uetsid_exp",
+          "value": "Fri, 13 Nov 2026 00:11:28 GMT"
+        }
+      ]
+    }
+  ]
+}

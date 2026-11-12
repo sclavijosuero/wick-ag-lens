@@ -60,6 +60,19 @@ Whenever you make changes to the heuristic rules in the `/core` folder, you must
 3. Toggle **Developer mode** on (top right).
 4. Click **Load unpacked** and select the **`extension`** folder.
 
+
+## Visual Extension Installation
+
+Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
+
+1. Navigate to the [WICK-AG-Lens page on the Chrome Web Store](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
+2. Click the **Add to Chrome** button located in the top right corner of the page.
+3. A confirmation browser dialog will appear. Click **Add extension** to grant the necessary permissions for the tool to inspect pages.
+4. You will receive a message saying WICK-AG-Lens has been added to Chrome.
+5. Once installed, open your Chrome Developer Tools (`F12` or `Ctrl+Shift+I` on Windows/Linux, `Cmd+Option+I` on Mac).
+6. Locate the **WICK-AG-Lens** tab in the top navigation bar of the DevTools panel. Note: You may need to click the `>>` icon if your DevTools window is narrow.
+
+
 ## Headless CLI Automation
 The CLI utilizes Playwright to inject the WICK-AG-Lens core heuristics into a headless browser, allowing you to run audits in your terminal or CI/CD pipelines.
 
@@ -79,31 +92,145 @@ node index.js audit https://example.com
 
 ### CLI Options & Authentication
 You can pass several arguments to customize the run and bypass login screens:
-*   `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`).
-*   `-a, --auth-state <path>`: Path to a saved Playwright storage state JSON file (cookies/localStorage) to bypass logins.
-*   `--login-url <url>`: URL to navigate to for authentication before running the audit.
-*   `-u, --user <user>` and `-p, --pass <pass>`: Credentials for the login URL.
-*   `-i, --interactive`: Launches a visible browser and waits 30 seconds for you to manually solve Captchas/MFA before auditing.
+*   `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`)[cite: 2].
+*   `-a, --auth-state <path>`: Path to a saved Playwright storage state JSON file (cookies/localStorage) to bypass logins[cite: 2].
+*   `--login-url <url>`: URL to navigate to for authentication before running the audit[cite: 2].
+*   `-u, --user <user>` and `-p, --pass <pass>`: Credentials for the login URL[cite: 2].
+*   `-i, --interactive>`: Launches a visible browser and waits 30 seconds for you to manually solve Captchas/MFA before auditing[cite: 2].
+*   `-w, --width <pixels>`: Sets the viewport width to test responsive layouts (defaults to 1280).
+*   `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to 800).
+*   `-s, --screenshot`: Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output.
+*   `--wait-ms <milliseconds>`: Explicit pause duration in milliseconds after `networkidle` to let client-side routers or slow animations settle.
+*   `--wait-for-selector <selector>`: Halts audit execution until a specific CSS selector mounts in the DOM.
+*   `--click <selector>`: Interacts with an element after the baseline audit and produces a delta diff log.
 
 *Example (Dynamic Login):*
 ```bash
 node index.js audit https://app.com/dashboard --login-url https://app.com/login -u admin -p 1234
 ```
 
+*Example (Mobile Layout Test - iPhone 13 Viewport):*
+```bash
+node index.js audit https://www.mywebapp.com/qc/fr.html -w 390 -H 844
+```
+
+*Example (Audit with Base64 Screenshots included in the JSON output):*
+```bash
+node index.js audit https://example.com -s
+```
+
+*Example (Dynamic Interaction & Delta Diff):*
+```bash
+node index.js audit https://example.com --click "button#open-navigation-menu"
+```
+
+*Example (Mobile Responsive Click with Screenshots):*
+```bash
+node index.js audit https://example.com/ -w 390 -H 844 -a "example-state.json" --click "button.mobile-menu-toggle" -s
+```
+
+### Viewing CLI Screenshots
+When you use the `-s` flag, the snapshot is embedded dynamically after every action (baseline, clicks, etc.) directly in the JSON output under the `screenshot_base64` key. 
+
+It is exported as a **raw Base64 string** (e.g., `/9j/4AA...`) without the HTML Data URI prefix. This raw format is intentional, as multimodal AI agents using the MCP server require clean Base64 data without HTML prefixes to process visual inputs.
+
+To view the image manually:
+1. **In the Browser:** Open a new tab, type `data:image/jpeg;base64,` into the address bar, paste your raw string immediately after it, and hit Enter.
+2. **In HTML Custom Reports:** Prepend the prefix inside an image tag's source attribute: 
+   `<img src="data:image/jpeg;base64,[YOUR_RAW_STRING]" alt="Audit Screenshot">`
+
+### Handling Enterprise Firewalls & Cookie Banners (State Injection)
+
+Modern enterprise websites often use aggressive bot mitigation (e.g., Akamai), heavy front-end frameworks (e.g., Adobe Experience Manager) with lazy-loaded footers, and intrusive Cookie Consent banners. 
+
+When running a standard headless audit, these protections can result in incomplete scans (missing lazy-loaded elements) or broken CSS selectors (because an injected cookie banner shifts the DOM hierarchy).
+
+WICK-AG-Lens CLI solves this using a **Two-Step State Injection Workflow**. By capturing a human-verified browser state once, you can run perfect, fully-hydrated headless audits indefinitely.
+
+#### Step 1: The One-Time Setup (Interactive Mode)
+Use the `-i` (interactive) flag to launch a visible browser, and the `-a` (auth-state) flag to specify where to save the session data.
+
+```bash
+node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -i -a "mywebsite-state.json"
+```
+
+1. A Chromium window will open and wait for 30 seconds.
+2. Manually click "Accept" or "Decline" on the site's cookie banner.
+3. Wait for the 30-second timer to expire. 
+4. The CLI will automatically save your pristine, banner-free session (cookies and local storage) into `mywebsite-state.json`.
+
+#### Step 2: Fully Automated Headless Audits
+For all future runs (or in your CI/CD pipeline), drop the `-i` flag but keep the `-a` flag pointing to your saved state file.
+
+```bash
+node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -a "mywebsite-state.json"
+```
+
+**What happens under the hood:**
+* Playwright runs completely headless at maximum speed.
+* It injects your saved cookies before the page loads, preventing the cookie banner from rendering and altering the DOM tree.
+* It deletes the `navigator.webdriver` flag to spoof a standard human session.
+* It performs an automated, smooth bottom-to-top scroll to force `IntersectionObserver` elements (like heavy footers and widgets) to hydrate before capturing the structural accessibility snapshot.
+
+#### Troubleshooting Edge Cases: WAF Sinkholes & SPA Timing
+
+Even with state injection, enterprise sites with aggressive Web Application Firewalls (WAFs) and complex client-side routing can present two unique challenges for headless automation:
+
+**1. Akamai "Sinkholing" (Bot Mitigation)**
+Enterprise WAFs (such as Akamai or Cloudflare) sometimes detect subtle headless behaviors. Instead of blocking the connection outright, they "sinkhole" the bot by serving a fake 404 "Page Not Found" screen.
+*   **Resolution:** Target the **root domain** (e.g., `https://www.example.com/`) rather than a deeply nested regional route (e.g., `/qc/fr.html`). Initializing at the root allows the server to evaluate injected cookies and trigger natural HTTP redirects, authenticating the session and bypassing the sinkhole.
+
+**2. SPA Hydration Timing**
+Complex Single Page Applications (SPAs) may momentarily display a skeleton screen or 404 placeholder while client-side routes resolve. If Playwright's `networkidle` lifecycle event resolves during that window, the audit may run against the transient state rather than the fully rendered view.
+*   **Resolution:** Use the built-in timing options to delay baseline execution until the target component mounts:
+    *   `--wait-ms <milliseconds>`: Pauses execution after page load to allow dynamic scripts to hydrate.
+    *   `--wait-for-selector <selector>`: Halts execution until a specific DOM element (e.g., a persistent nav or hero container) is present.
+
+*Example (Waiting for SPA Hydration):*
+```bash
+node index.js audit [https://www.desjardins.com/](https://www.desjardins.com/) --wait-ms 3000 -a "desjardins-state.json"
+```
+
+
 ## MCP Server (AI Integration)
+
 The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to navigate pages, click elements, and receive delta logs of accessibility barriers created or resolved by their actions.
 
 ### Exposed Tools
-*   `audit_baseline`: Runs a full baseline scan on a target URL. Accepts `url` and an optional array of `requestedAudits`.
-*   `interact_and_diff`: Clicks a CSS selector, waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of new or resolved violations.
+
+* `audit_baseline`: Runs a full baseline scan on a target URL. Accepts `url`, an optional array of `requestedAudits`, an `includeScreenshot` boolean for multimodal visual context, and `viewportWidth`/`viewportHeight` parameters to test mobile layouts dynamically.
+* `interact_and_diff`: Clicks a CSS selector, waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of new or resolved violations. Accepts an `includeScreenshot` boolean.
+* `get_audit_trail`: Returns the full chronological Action-State timeline log with global metadata and health scores.
+
+### Handling Cookie Banners Dynamically with AI
+
+When building CLI tools for humans, workarounds like 30-second pauses and interactive (`-i`) flags are necessary to handle obstacles like Cookie Consent banners. However, when exposing these same tools via an MCP Server, **the AI becomes the human.** 
+
+If you hook this up to a multimodal AI agent (like Claude Desktop) that has access to browser automation tools, the AI can handle banners and firewalls dynamically, eliminating the need for manual state injection.
+
+Here is how an AI agent handles this automatically using the WICK MCP tools:
+
+1. **The AI Discovers the Banner (Baseline)**
+   The AI calls the `audit_baseline` tool. It looks at the returned JSON (and the screenshot base64) and realizes, *"Ah, there is a giant cookie consent banner blocking the footer, and my element count is low."*
+
+2. **The AI Uses the Diff Tool to Clear the Banner**
+   The AI dynamically finds the CSS selector for the "Accept Cookies" button (e.g., `#onetrust-accept-btn-handler`) and calls the interaction tool:
+   `interact_and_diff(actionName: "Accept Cookies", selector: "#onetrust-accept-btn-handler")`
+
+3. **The Clean State is Achieved**
+   Under the hood, the WICK script clicks that exact button, waits for the DOM to settle (which removes the banner and shifts the DOM back to its proper structure), and generates the new accessibility snapshot automatically. The AI can now visually perceive the roadblock is gone and capture the fully hydrated, clean element state entirely on its own!
 
 ### Running & Testing the MCP Server
+
 To test the server locally using the Anthropic MCP Inspector:
+
 ```bash
 cd cli
 npx @modelcontextprotocol/inspector node mcp-server.js
 ```
+
 To configure in Claude Desktop, add the following to your `claude_desktop_config.json`:
+
 ```json
 "mcpServers": {
   "wick-ag-lens": {
@@ -112,18 +239,6 @@ To configure in Claude Desktop, add the following to your `claude_desktop_config
   }
 }
 ```
-
-## Visual Extension Installation
-
-Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
-
-1. Navigate to the [WICK-AG-Lens page on the Chrome Web Store](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
-2. Click the **Add to Chrome** button located in the top right corner of the page.
-3. A confirmation browser dialog will appear. Click **Add extension** to grant the necessary permissions for the tool to inspect pages.
-4. You will receive a message saying WICK-AG-Lens has been added to Chrome.
-5. Once installed, open your Chrome Developer Tools (`F12` or `Ctrl+Shift+I` on Windows/Linux, `Cmd+Option+I` on Mac).
-6. Locate the **WICK-AG-Lens** tab in the top navigation bar of the DevTools panel. Note: You may need to click the `>>` icon if your DevTools window is narrow.
-
 
 ## Core Features & Usage
 

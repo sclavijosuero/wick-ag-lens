@@ -1,86 +1,130 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { WICKScanner } from "./scanner.js";
+import { z } from "zod";
+import WICKScanner from "./scanner.js";
 
-const server = new Server({ name: "wick-ag-lens-mcp", version: "3.0.0" }, { capabilities: { tools: {} } });
-const scanner = new WICKScanner();
-let isInitialized = false;
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: [
-            {
-                name: "audit_baseline",
-                description: "Run a full WICK-AG-Lens accessibility baseline scan on a target URL and begin the Action-State timeline.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        url: { type: "string", description: "Target URL to scan" },
-                        requestedAudits: { type: "array", items: { type: "string" }, description: "Array of specific audit IDs. Leave empty for all." }
-                    },
-                    required: ["url"]
-                }
-            },
-            {
-                name: "interact_and_diff",
-                description: "Click a selector, wait for SPA/DOM mutations to settle, and return a delta log of accessibility barriers introduced or resolved.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        actionName: { type: "string", description: "Friendly name for the action (e.g. 'Open Cart Modal')" },
-                        selector: { type: "string", description: "CSS selector to click (e.g. '#open-cart')" },
-                        requestedAudits: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["selector", "actionName"]
-                }
-            },
-            {
-                name: "get_audit_trail",
-                description: "Returns the full chronological Action-State timeline log of all interactions and accessibility shifts.",
-                inputSchema: {
-                    type: "object",
-                    properties: {}
-                }
-            }
-        ]
-    };
+const server = new McpServer({
+  name: "wick-ag-lens-mcp",
+  version: "3.0.0",
 });
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (!isInitialized) {
-        await scanner.init({ interactive: false });
-        isInitialized = true;
-    }
+// Maintain a single active scanner instance for the AI's session
+let activeScanner = null;
 
+server.tool(
+  "audit_baseline",
+  "Runs a full accessibility baseline scan on a target URL.",
+  {
+    url: z.string().describe("The URL to navigate to and audit."),
+    requestedAudits: z.array(z.string()).optional().describe("Optional list of specific audit IDs to run (e.g., ['i-focus-order'])."),
+    includeScreenshot: z.boolean().optional().describe("If true, includes a Base64 JPEG screenshot of the rendered page."),
+    viewportWidth: z.number().optional().describe("Viewport width in pixels (e.g., 375 for mobile, 1280 for desktop)."),
+    viewportHeight: z.number().optional().describe("Viewport height in pixels (e.g., 812 for mobile, 800 for desktop).")
+  },
+  async (args) => {
     try {
-        if (request.params.name === "audit_baseline") {
-            const { url, requestedAudits } = request.params.arguments;
-            const result = await scanner.runBaseline(url, requestedAudits || []);
-            return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-        } 
-        
-        else if (request.params.name === "interact_and_diff") {
-            const { actionName, selector, requestedAudits } = request.params.arguments;
-            const diff = await scanner.interactAndAudit(actionName, selector, requestedAudits || []);
-            return { content: [{ type: "text", text: JSON.stringify(diff, null, 2) }] };
-        }
+      // Close previous instance if it exists to start fresh
+      if (activeScanner) {
+        await activeScanner.close();
+      }
 
-        else if (request.params.name === "get_audit_trail") {
-            const trail = scanner.getAuditTrail();
-            return { content: [{ type: "text", text: JSON.stringify(trail, null, 2) }] };
-        }
-        
-        throw new Error("Tool not found");
-    } catch (err) {
-        return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+      activeScanner = new WICKScanner();
+      
+      const scannerOpts = { 
+        headless: true,
+        width: args.viewportWidth,
+        height: args.viewportHeight
+      };
+      
+      await activeScanner.init(scannerOpts);
+      
+      await activeScanner.runBaseline(
+        args.url, 
+        args.requestedAudits || [], 
+        args.includeScreenshot || false
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(activeScanner.getAuditTrail(), null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Error executing audit_baseline: ${error.message}\n${error.stack}` }],
+        isError: true,
+      };
     }
+  }
+);
+
+server.tool(
+  "interact_and_diff",
+  "Clicks a CSS selector on the current page, waits for the SPA to settle, and returns a delta log of new or resolved accessibility barriers.",
+  {
+    actionName: z.string().describe("A human-readable name for the action (e.g., 'Click Mobile Menu')."),
+    selector: z.string().describe("The CSS selector of the element to click."),
+    requestedAudits: z.array(z.string()).optional(),
+    includeScreenshot: z.boolean().optional()
+  },
+  async (args) => {
+    try {
+      if (!activeScanner) {
+        throw new Error("No active baseline found. Please run 'audit_baseline' first.");
+      }
+
+      const diffLog = await activeScanner.interactAndAudit(
+        args.actionName, 
+        args.selector, 
+        args.requestedAudits || [], 
+        args.includeScreenshot || false
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(diffLog, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Error executing interact_and_diff: ${error.message}\n${error.stack}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "get_audit_trail",
+  "Returns the full chronological Action-State timeline log with global metadata and health scores.",
+  {},
+  async () => {
+    try {
+      if (!activeScanner) {
+        throw new Error("No active scan session found.");
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(activeScanner.getAuditTrail(), null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Error executing get_audit_trail: ${error.message}\n${error.stack}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Process cleanup
+process.on('SIGINT', async () => {
+    if (activeScanner) {
+        await activeScanner.close();
+    }
+    process.exit(0);
 });
 
-async function main() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("WICK-AG-Lens MCP Server v3.0.0 running on stdio");
+// Start the stdio transport
+async function run() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("WICK-AG-Lens MCP Server running on stdio");
 }
 
-main().catch(console.error);
+run().catch(console.error);
