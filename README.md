@@ -96,14 +96,13 @@ You can pass several arguments to customize the run and bypass login screens:
 *   `-a, --auth-state <path>`: Path to a saved Playwright storage state JSON file (cookies/localStorage) to bypass logins[cite: 2].
 *   `--login-url <url>`: URL to navigate to for authentication before running the audit[cite: 2].
 *   `-u, --user <user>` and `-p, --pass <pass>`: Credentials for the login URL[cite: 2].
-*   `-i, --interactive>`: Launches a visible browser and waits 30 seconds for you to manually solve Captchas/MFA before auditing[cite: 2].
+*   `-i, --interactive`: Launches a visible browser and waits 30 seconds for you to manually solve Captchas/MFA before auditing[cite: 2].
 *   `-w, --width <pixels>`: Sets the viewport width to test responsive layouts (defaults to 1280).
 *   `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to 800).
 *   `-s, --screenshot`: Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output.
 *   `--wait-ms <milliseconds>`: Explicit pause duration in milliseconds after `networkidle` to let client-side routers or slow animations settle.
 *   `--wait-for-selector <selector>`: Halts audit execution until a specific CSS selector mounts in the DOM.
-*   `--click <selector>`: Interacts with an element after the baseline audit and produces a delta diff log.
-
+*   `--click <selectors>`: Comma-separated CSS selector(s) to interact with after the baseline audit. Executes each click sequentially, waits for DOM/SPA settling, and logs delta diffs (and optional screenshots) at each step.
 *Example (Dynamic Login):*
 ```bash
 node index.js audit https://app.com/dashboard --login-url https://app.com/login -u admin -p 1234
@@ -119,9 +118,14 @@ node index.js audit https://www.mywebapp.com/qc/fr.html -w 390 -H 844
 node index.js audit https://example.com -s
 ```
 
-*Example (Dynamic Interaction & Delta Diff):*
+*Example (Single Action & Delta Diff):*
 ```bash
 node index.js audit https://example.com --click "button#open-navigation-menu"
+```
+
+*Example (Multi-Action Sequence & Step-by-Step Diffs):*
+```bash
+node index.js audit https://example.com --click "button#open-menu, a#settings-link, button#toggle-dark-mode" -s
 ```
 
 *Example (Mobile Responsive Click with Screenshots):*

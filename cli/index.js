@@ -20,7 +20,7 @@ program.command('audit <url>')
   .option('--login-url <url>', 'URL to navigate to for authentication before running the audit')
   .option('-u, --user <user>', 'Credentials username for login-url')
   .option('-p, --pass <pass>', 'Credentials password for login-url')
-  .option('--click <selector>', 'CSS selector to interact with after baseline scan')
+  .option('--click <selectors>', 'Comma-separated CSS selector(s) to interact with after baseline scan')
   .option('--audits <list>', 'Comma separated list of specific audit IDs to run')
   .action(async (url, options) => {
       const scanner = new WICKScanner();
@@ -58,8 +58,11 @@ program.command('audit <url>')
       });
       
       if (options.click) {
-          console.log(`[Audit] Interacting with element: ${options.click}...`);
-          await scanner.interactAndAudit(`Click: ${options.click}`, options.click, requestedAudits, options.screenshot);
+        const selectors = options.click.split(',').map(s => s.trim()).filter(Boolean);
+        for (const selector of selectors) {
+            console.log(`[Audit] Interacting with element: ${selector}...`);
+            await scanner.interactAndAudit(`Click: ${selector}`, selector, requestedAudits, options.screenshot);
+        }
       }
 
       console.log(JSON.stringify(scanner.getAuditTrail(), null, 2));
