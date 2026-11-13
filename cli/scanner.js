@@ -14,6 +14,7 @@ export class WICKScanner {
         this.auditTrail = [];
         this.lastSnapshot = [];
         this.stepCounter = 0;
+        this.auditDictionary = {};
         this.topLevelMetadata = {
             timestamp: new Date().toISOString(),
             global_summary: { Critical: 0, Serious: 0, Moderate: 0, Minor: 0, Manual: 0, Informative: 0 }
@@ -22,14 +23,11 @@ export class WICKScanner {
 
     async init(options = {}) {
         this.browser = await chromium.launch({ headless: !options.interactive });
-        
-        // Define dynamic viewport or fallback to standard desktop
         const viewportWidth = options.width || 1280;
         const viewportHeight = options.height || 800;
 
         const contextOpts = {
             viewport: { width: viewportWidth, height: viewportHeight },
-            // Standardize the headless User-Agent for rendering consistency
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         };
         
@@ -42,15 +40,75 @@ export class WICKScanner {
         this.page = await this.context.newPage();
     }
 
-    async authenticate(loginUrl, user, pass) {
-        if (!loginUrl) return;
+    async navigateSafely(url, timeout = 45000) {
+        await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+        try {
+            await this.page.waitForLoadState('networkidle', { timeout: 8000 });
+        } catch (e) {
+            console.log('[Audit] Background network activity still active after 8s; proceeding with DOM evaluation...');
+        }
+    }
+
+    async executeStep(step) {
+        switch (step.action) {
+            case 'fill':
+                await this.page.fill(step.target, step.value ?? '');
+                break;
+            case 'select':
+                await this.page.selectOption(step.target, step.value ?? '');
+                break;
+            case 'click':
+                await this.page.click(step.target);
+                break;
+            case 'hover':
+                await this.page.hover(step.target);
+                break;
+            case 'press': {
+                const key = step.value || 'Enter';
+                if (!step.target || step.target.toLowerCase() === 'active') {
+                    await this.page.keyboard.press(key);
+                } else {
+                    await this.page.press(step.target, key);
+                }
+                break;
+            }
+            case 'wait':
+                if (/^\d+$/.test(step.target)) {
+                    await this.page.waitForTimeout(parseInt(step.target, 10));
+                } else {
+                    await this.page.waitForSelector(step.target, { timeout: 15000 });
+                }
+                break;
+            default:
+                throw new Error(`Unknown step action: "${step.action}". Supported actions: click, fill, select, press, hover, wait.`);
+        }
+    }
+
+    async authenticate(loginUrl, steps = []) {
+        if (!loginUrl || steps.length === 0) return;
         console.log(`[Auth] Navigating to ${loginUrl}...`);
-        await this.page.goto(loginUrl, { waitUntil: 'networkidle' });
-        await this.page.fill('input[type="text"], input[type="email"]', user);
-        await this.page.fill('input[type="password"]', pass);
-        await this.page.click('button[type="submit"], input[type="submit"]');
-        await this.page.waitForNavigation({ waitUntil: 'networkidle' });
-        console.log('[Auth] Login successful.');
+        await this.navigateSafely(loginUrl);
+
+        for (const step of steps) {
+            await this.executeStep(step);
+        }
+
+        try {
+            await this.page.waitForURL((currentUrl) => currentUrl.href !== loginUrl, { timeout: 8000 });
+        } catch (e) {
+            await this.page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+        }
+        console.log('[Auth] Login sequence complete.');
+    }
+
+    async authenticateWithScript(scriptPath) {
+        console.log(`[Auth] Executing custom login script: ${scriptPath}`);
+        const fullPath = path.resolve(process.cwd(), scriptPath);
+        const moduleUrl = process.platform === 'win32' ? `file://${fullPath.replace(/\\/g, '/')}` : fullPath;
+        
+        const customAuth = await import(moduleUrl);
+        await customAuth.default(this.page);
+        console.log('[Auth] Custom login script complete.');
     }
 
     async injectCore(frameOrPage) {
@@ -60,9 +118,13 @@ export class WICKScanner {
         await frameOrPage.addScriptTag({ content: fs.readFileSync(path.resolve(__dirname, './cli-adapter.js'), 'utf-8') });
     }
 
-    async extractAllFrames(requestedAudits) {
+    async extractAllFrames(filters = {}) {
         const mergedAudits = new Map();
         const frames = this.page.frames();
+        
+        const requestedAudits = filters.requestedAudits || [];
+        const wcagVersions = filters.wcagVersions || [];
+        const wcagLevels = filters.wcagLevels || [];
         
         for (let i = 0; i < frames.length; i++) {
             const frame = frames[i];
@@ -71,9 +133,9 @@ export class WICKScanner {
                 const prefix = i === 0 ? "" : `F${i}.`;
                 const depth = i === 0 ? 0 : 1;
                 
-                const frameResults = await frame.evaluate(([audits, pref, dep]) => {
-                    return window.A11yCliAdapter ? window.A11yCliAdapter.run(audits, pref, dep) : [];
-                }, [requestedAudits, prefix, depth]);
+                const frameResults = await frame.evaluate(([audits, pref, dep, versions, levels]) => {
+                    return window.A11yCliAdapter ? window.A11yCliAdapter.run(audits, pref, dep, versions, levels) : [];
+                }, [requestedAudits, prefix, depth, wcagVersions, wcagLevels]);
                 
                 for (const audit of frameResults) {
                     if (!mergedAudits.has(audit.auditId)) {
@@ -89,19 +151,25 @@ export class WICKScanner {
         return Array.from(mergedAudits.values());
     }
 
-    buildHierarchy(unifiedSnapshot) {
+    buildHierarchy(unifiedSnapshot, countKey) {
         const hierarchy = {};
         for (const audit of unifiedSnapshot) {
             if (!hierarchy[audit.tab]) hierarchy[audit.tab] = {};
             if (!hierarchy[audit.tab][audit.category]) hierarchy[audit.tab][audit.category] = [];
             
-            hierarchy[audit.tab][audit.category].push({
+            const entry = {
                 auditId: audit.auditId,
                 audit: audit.auditLabel,
-                severity: audit.severity,
-                info: audit.info,
-                elements: audit.elements
-            });
+                severity: audit.severity
+            };
+
+            if (countKey) {
+                entry[countKey] = audit.elements.length;
+            }
+
+            entry.elements = audit.elements;
+
+            hierarchy[audit.tab][audit.category].push(entry);
         }
         return hierarchy;
     }
@@ -120,10 +188,19 @@ export class WICKScanner {
         return scores;
     }
 
-    async generateStepData(actionName, requestedAudits, includeScreenshot) {
+    async generateStepData(interactionObj, filters, includeScreenshot) {
         const startTime = performance.now();
-        const currentSnapshot = await this.extractAllFrames(requestedAudits);
+        const currentSnapshot = await this.extractAllFrames(filters);
         const executionTimeMs = Math.round(performance.now() - startTime);
+
+        for (const audit of currentSnapshot) {
+            if (!this.auditDictionary[audit.auditId] && audit.info) {
+                this.auditDictionary[audit.auditId] = {
+                    auditLabel: audit.auditLabel,
+                    info: audit.info
+                };
+            }
+        }
 
         let screenshotBase64 = null;
         if (includeScreenshot) {
@@ -140,47 +217,27 @@ export class WICKScanner {
         const diffedResolved = [];
 
         if (this.lastSnapshot.length === 0) {
-            // Step 1: Baseline. Everything is new. There are no resolved findings yet.
             for (const audit of currentSnapshot) {
                 diffedNew.push(audit);
             }
         } else {
-            // Step 2+: Diffing Logic
             for (const currAudit of currentSnapshot) {
                 const baseAudit = this.lastSnapshot.find(a => a.auditId === currAudit.auditId) || { elements: [] };
                 
-                // Focus Order Special Handling: Never put in resolved_findings
                 if (currAudit.auditId === 'i-focus-order') {
-                    let isChanged = currAudit.elements.length !== baseAudit.elements.length;
-                    if (!isChanged) {
-                        for (let i = 0; i < currAudit.elements.length; i++) {
-                            if (currAudit.elements[i].selector !== baseAudit.elements[i].selector) {
-                                isChanged = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (isChanged) {
-                        diffedNew.push({ ...currAudit, elements: currAudit.elements }); // Entire new sequence
-                    } else {
-                        diffedNew.push({ ...currAudit, elements: [] }); // No shift occurred
-                    }
+                    let isChanged = currAudit.elements.length !== baseAudit.elements.length ||
+                                    currAudit.elements.some((el, i) => el.selector !== baseAudit.elements[i].selector);
+                    diffedNew.push({ ...currAudit, elements: isChanged ? currAudit.elements : [] });
                 } 
-                // Standard Element Set Diffing for all other audits
                 else {
                     const hash = (el) => `${el.selector}|${el.issueText}`;
                     const baseSet = new Set(baseAudit.elements.map(hash));
                     const currSet = new Set(currAudit.elements.map(hash));
 
-                    const newElements = currAudit.elements.filter(el => !baseSet.has(hash(el)));
-                    const resolvedElements = baseAudit.elements.filter(el => !currSet.has(hash(el)));
-
-                    diffedNew.push({ ...currAudit, elements: newElements });
-                    diffedResolved.push({ ...currAudit, elements: resolvedElements }); 
+                    diffedNew.push({ ...currAudit, elements: currAudit.elements.filter(el => !baseSet.has(hash(el))) });
+                    diffedResolved.push({ ...currAudit, elements: baseAudit.elements.filter(el => !currSet.has(hash(el))) }); 
                 }
             }
-            // Catch audits that disappeared completely in the current snapshot
             for (const baseAudit of this.lastSnapshot) {
                 if (!currentSnapshot.find(a => a.auditId === baseAudit.auditId)) {
                     diffedNew.push({ ...baseAudit, elements: [] });
@@ -193,13 +250,13 @@ export class WICKScanner {
 
         const logEntry = {
             step: ++this.stepCounter,
-            action: actionName,
+            interaction: interactionObj,
             url: this.page.url(),
             execution_time_ms: executionTimeMs,
             screenshot_base64: screenshotBase64,
             health_scores: healthScores,
-            new_findings: this.buildHierarchy(diffedNew),
-            resolved_findings: this.buildHierarchy(diffedResolved)
+            new_findings: this.buildHierarchy(diffedNew, 'totalElemsNew'),
+            resolved_findings: this.buildHierarchy(diffedResolved, 'totalElemsResolved')
         };
 
         this.lastSnapshot = currentSnapshot;
@@ -207,18 +264,16 @@ export class WICKScanner {
         return logEntry;
     }
 
-    async runBaseline(url, requestedAudits = [], includeScreenshot = false, timingOpts = {}) {
+    async runBaseline(url, filters = {}, includeScreenshot = false, timingOpts = {}) {
         if (this.page.url() !== url) {
-            await this.page.goto(url, { waitUntil: 'networkidle' });
+            await this.navigateSafely(url);
         }
 
-        // Wait for specific DOM selector if requested
         if (timingOpts.waitForSelector) {
             console.log(`[Audit] Waiting for selector: ${timingOpts.waitForSelector}...`);
             await this.page.waitForSelector(timingOpts.waitForSelector, { timeout: 15000 });
         }
 
-        // Wait for explicit pause (e.g. SPA router settling) if requested
         if (timingOpts.waitMs && timingOpts.waitMs > 0) {
             console.log(`[Audit] Waiting ${timingOpts.waitMs}ms for SPA hydration...`);
             await this.page.waitForTimeout(timingOpts.waitMs);
@@ -228,28 +283,30 @@ export class WICKScanner {
         await this.page.evaluate(async () => {
             await new Promise((resolve) => {
                 let totalHeight = 0;
-                const distance = 250; // Scroll 250px at a time
+                const distance = 250;
                 const timer = setInterval(() => {
                     const scrollHeight = document.body.scrollHeight;
                     window.scrollBy(0, distance);
                     totalHeight += distance;
-
-                    // Stop scrolling when we reach the bottom
                     if (totalHeight >= scrollHeight - window.innerHeight) {
                         clearInterval(timer);
                         resolve();
                     }
-                }, 100); // Every 100ms
+                }, 100);
             });
         });
         
-        await this.page.waitForTimeout(1500); // Give JS time to render the new HTML
-        await this.page.evaluate(() => window.scrollTo(0, 0)); // Reset focus to top
+        await this.page.waitForTimeout(1500);
+        await this.page.evaluate(() => window.scrollTo(0, 0));
 
-        return await this.generateStepData("Initial Page Load", requestedAudits, includeScreenshot);
+        return await this.generateStepData(
+            { action: "navigate", selector: "Initial Page Load" }, 
+            filters, 
+            includeScreenshot
+        );
     }
 
-    async interactAndAudit(actionName, selector, requestedAudits = [], includeScreenshot = false) {
+    async interactAndAudit(step, filters = {}, includeScreenshot = false) {
         if (!this.page) throw new Error("Browser not initialized.");
 
         const waitForAuditComplete = this.page.evaluate(() => {
@@ -257,18 +314,32 @@ export class WICKScanner {
                 document.addEventListener('wick-audit-complete', resolve, { once: true });
                 setTimeout(resolve, 2500); 
             });
-        });
+        }).catch(() => {});
 
-        await this.page.click(selector);
+        await this.executeStep(step);
+        await this.page.waitForLoadState('domcontentloaded').catch(() => {});
         await waitForAuditComplete;
 
-        return await this.generateStepData(actionName || `Click: ${selector}`, requestedAudits, includeScreenshot);
+        const interactionObj = {
+            action: step.action,
+            selector: step.target || 'active'
+        };
+        if (step.value !== undefined) {
+            interactionObj.value = step.value;
+        }
+
+        return await this.generateStepData(
+            interactionObj, 
+            filters, 
+            includeScreenshot
+        );
     }
 
     getAuditTrail() {
         return {
             ...this.topLevelMetadata,
-            audit_trail: this.auditTrail
+            audit_trail: this.auditTrail,
+            audit_dictionary: this.auditDictionary
         };
     }
 

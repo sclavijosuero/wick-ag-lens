@@ -34,7 +34,7 @@ window.A11yCliAdapter = {
         return links;
     },
 
-    run: function(requestedAudits = [], framePrefix = "", frameDepth = 0) {
+    run: function(requestedAudits = [], framePrefix = "", frameDepth = 0, wcagVersions = [], wcagLevels = []) {
         const results = [];
         const config = window.A11Y_CONFIG;
         if (!config || !window.A11yUtils) return results;
@@ -52,9 +52,40 @@ window.A11yCliAdapter = {
             });
         });
 
-        const targetFeatures = requestedAudits.length > 0
-            ? allFeatures.filter(f => requestedAudits.includes(f.feature.id))
-            : allFeatures;
+        const targetFeatures = allFeatures.filter(({ feature }) => {
+            // 1. Explicit Audit ID overrides everything else
+            if (requestedAudits.length > 0) {
+                return requestedAudits.includes(feature.id);
+            }
+
+            // 2. Otherwise, apply WCAG Engine Filters (if any are provided)
+            let passesVersion = wcagVersions.length === 0;
+            let passesLevel = wcagLevels.length === 0;
+
+            if (feature.wcag && Array.isArray(feature.wcag)) {
+                // Check if any of the requested versions exist in the feature's WCAG tags
+                if (!passesVersion) {
+                    passesVersion = feature.wcag.some(tag => 
+                        wcagVersions.some(v => tag.includes(v))
+                    );
+                }
+                
+                // Check if any of the requested levels exist in the feature's WCAG tags
+                // We use exact spacing/regex to avoid "A" matching "AAA"
+                if (!passesLevel) {
+                    passesLevel = feature.wcag.some(tag => {
+                        return wcagLevels.some(l => 
+                            tag.includes(` ${l}`) || tag.includes(`(${l})`) || tag === l
+                        );
+                    });
+                }
+            } else if (wcagVersions.length > 0 || wcagLevels.length > 0) {
+                // If the feature has no mapped WCAG tags but strict filters are active, drop it
+                return false; 
+            }
+
+            return passesVersion && passesLevel;
+        });
 
         targetFeatures.forEach(({ feature, categoryLabel, tabLabel }) => {
             const rawWhy = feature.info ? feature.info.why : '';
