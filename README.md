@@ -1017,6 +1017,11 @@ Scripts click faster than humans, which would normally break SPAs. The CLI preve
 *   **Binary Stream Analysis:** Checks are performed programmatically via static byte inspection of the raw PDF Document Catalog, which may skip deeply compressed object streams (`/ObjStm`).
 *   **Scope & Coverage:** Programmatic validation verifies critical structural prerequisites with zero false positives. However, deep layout semantics (e.g., table header associations, correct reading order, context-accurate alternative text on vector figures) still require manual screen reader testing or PDF/UA inspection (e.g., using PAC).
 
+### Headless CLI & MCP Server
+*   **WAF Mitigation & Bot Sinkholes:** Because the CLI utilizes Headless Playwright, aggressive enterprise Web Application Firewalls (like Akamai or Cloudflare) may flag the automated session and serve a dummy 404 page. Overcoming this requires utilizing the CLI's State Injection feature (`-a`) to pass pre-authenticated, human-verified cookies.
+*   **Synchronous Step Execution:** Unlike the visual extension which handles erratic, asynchronous human clicking via a persistent 750ms debounce timer, the CLI executes interaction steps (`--step`) in a strictly synchronous, blocking pipeline. It will not execute Step 2 until Step 1 has fully settled and completed its accessibility delta-diff.
+*   **Cross-Origin Iframe Interactions:** While the WICK engine can successfully audit the *DOM* of cross-origin iframes, Playwright's strict execution context prevents the generic `--step` interaction flags (like `click::iframe-button`) from targeting elements deeply nested inside cross-origin sandbox frames without writing a custom `--auth-script` escape.
+*   **JSON Payload Size (Screenshots):** Using the `-s` (screenshot) flag encodes a full 1280x800 layout into a raw Base64 string at every single step. In multi-step user journeys (e.g., 10+ steps), this can dramatically bloat the final JSON file size and significantly increase execution time due to IPC memory transfer constraints.
 
 ## Compatibility
 *   **Browser:** Compatible with Google Chrome version 100.0 or higher.
