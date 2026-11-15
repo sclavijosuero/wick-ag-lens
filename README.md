@@ -12,21 +12,22 @@ You can install the visual extension from the Chrome Web Store: **[Install Here]
 
 ## Table of Contents
 1. [Features Overview](#features-overview)
-2. [Monorepo Architecture & Building](#monorepo-architecture--building)
-3. [Headless CLI Automation](#headless-cli-automation)
-4. [MCP Server (AI Integration)](#mcp-server-ai-integration)
-5. [Visual Extension Installation](#visual-extension-installation)
-6. [Core Features & Usage](#core-features--usage)
-7. [Audit Library & Ruleset](#audit-library--ruleset)
-8. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
-9. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
-10. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
-11. [Limitations & Technical Bounds](#limitations--technical-bounds)
-12. [Compatibility](#compatibility)
-13. [License](#license)
-14. [Contributing](#contributing)
-15. [Development & Testing Sites](#development--testing-sites)
-16. [Changelog](#changelog)
+2. [Core Features & Usage](#core-features--usage)
+3. [Monorepo Architecture & Building](#monorepo-architecture--building)
+4. [Visual Extension Installation](#visual-extension-installation)
+5. [Headless CLI Automation](#headless-cli-automation)
+6. [MCP Server (AI Integration)](#mcp-server-ai-integration)
+7. [CLI & MCP JSON Output Format](#cli--mcp-json-output-format)
+8. [Audit Library & Ruleset](#audit-library--ruleset)
+9. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
+10. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
+11. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
+12. [Limitations & Technical Bounds](#limitations--technical-bounds)
+13. [Compatibility](#compatibility)
+14. [License](#license)
+15. [Contributing](#contributing)
+16. [Development & Testing Sites](#development--testing-sites)
+17. [Changelog](#changelog)
 
 ## Features Overview
 WICK-AG-Lens is built for developers, QA engineers, and AI agents. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
@@ -43,424 +44,6 @@ WICK-AG-Lens is built for developers, QA engineers, and AI agents. It runs stati
 *   **Precision Element Locator:** Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.
 *   **One-Click Reporting:** Copy formatted text reports of all active audits, their findings, and direct remediation instructions to your clipboard for easy ticket creation or bug tracking.
 *   **Shadow DOM & Iframe Support:** Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.
-
-## Monorepo Architecture & Building
-To maintain a single source of truth and keep the Chrome Web Store artifact clean of heavy Node dependencies (like Playwright), this project utilizes a lightweight monorepo architecture. 
-*   `/core`: The central heuristic logic (`a11y-config.js` and `shared-utils.js`).
-*   `/extension`: The visual Chrome extension artifact.
-*   `/cli`: The Node.js Playwright environment and MCP server.
-
-### Building the Chrome Extension Locally
-Whenever you make changes to the heuristic rules in the `/core` folder, you must build the extension before Chrome can use it.
-1. Run the build script from the root directory to copy the core logic into the extension package:
-   ```bash
-   node build.js
-   ```
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. Toggle **Developer mode** on (top right).
-4. Click **Load unpacked** and select the **`extension`** folder.
-
-
-## Visual Extension Installation
-
-Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
-
-1. Navigate to the [WICK-AG-Lens page on the Chrome Web Store](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
-2. Click the **Add to Chrome** button located in the top right corner of the page.
-3. A confirmation browser dialog will appear. Click **Add extension** to grant the necessary permissions for the tool to inspect pages.
-4. You will receive a message saying WICK-AG-Lens has been added to Chrome.
-5. Once installed, open your Chrome Developer Tools (`F12` or `Ctrl+Shift+I` on Windows/Linux, `Cmd+Option+I` on Mac).
-6. Locate the **WICK-AG-Lens** tab in the top navigation bar of the DevTools panel. Note: You may need to click the `>>` icon if your DevTools window is narrow.
-
-
-## Headless CLI Automation
-The CLI utilizes Playwright to inject the WICK-AG-Lens core heuristics into a headless browser, allowing you to run audits in your terminal or CI/CD pipelines.
-
-### Setup
-Navigate to the CLI directory and install the dependencies (including the Playwright browser binaries):
-```bash
-cd cli
-npm install
-npx playwright install chromium
-```
-
-### CLI Usage
-Run a baseline audit against any public URL:
-```bash
-node index.js audit https://example.com
-```
-
-### CLI Options
-You can pass several arguments to customize the run:
--   `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`). If omitted, all available audits (both **Violations & Warnings** and **Informative & Structure**) are evaluated by default.
--   `--wcag-version <versions>`: Comma-separated list to strictly filter executed audits by WCAG version (e.g., `2.0,2.1,2.2`). If omitted, all supported versions are evaluated by default.
--   `--wcag-level <levels>`: Comma-separated list to strictly filter executed audits by WCAG conformance level (e.g., `A,AA,AAA`). If omitted, all supported levels are evaluated by default.
--   `-w, --width <pixels>`: Sets the viewport width to test responsive layouts (defaults to `1280`).
--   `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to `800`).
--   `-s, --screenshot`: Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output.
--   `--wait-ms <milliseconds>`: Explicit pause duration in milliseconds after `networkidle` to let client-side routers or slow animations settle.
--   `--wait-for-selector <selector>`: Halts audit execution until a specific CSS selector mounts in the DOM.
--   `--step <step>`: Executable post-baseline interaction step (e.g., `click::#open-modal`, `fill::#email::invalid`). Can be repeated to build a multi-step user journey; each step captures a full accessibility delta diff.
--   `--login-url <url>`: URL to navigate to for authentication before running the audit.
--   `-u, --user <user>`: Shorthand username for standard 2-field login forms.
--   `-p, --pass <pass>`: Shorthand password for standard 2-field login forms.
--   `--auth-step <step>`: Executable pre-audit auth pipeline step (e.g., `fill::#company::Acme`). Can be repeated.
--   `--auth-script <path>`: Path to a custom JavaScript module exporting an async login function.
--   `-i, --interactive`: Launches a visible browser for 30 seconds to manually solve Captchas/MFA or Cookie banners.
--   `-a, --auth-state <path>`: Path to save (or load) a Playwright storage state JSON file (cookies/localStorage).
-
----
-
-### Step Actions & Keyboard Reference (`--step` & `--auth-step`)
-
-Both `--auth-step` (which executes silently before the baseline scan to establish a session) and `--step` (which executes sequentially after the baseline scan and records an accessibility diff per step) use the `action::target::value` format.
-
-#### Supported Actions
-| Action | Syntax | Behavior |
-| :--- | :--- | :--- |
-| **`click`** | `click::<selector>` | Clicks the target element (buttons, links, tabs, accordions, checkboxes). |
-| **`fill`** | `fill::<selector>::<value>` | Clears an input or textarea and enters `<value>`, firing standard DOM input events. |
-| **`select`** | `select::<selector>::<value>` | Chooses an `<option>` inside a native `<select>` element by option value or label. |
-| **`press`** | `press::<selector>::<key>` | Focuses `<selector>` and dispatches `<key>`. Use `active` as the selector (`press::active::<key>`) to send keystrokes to the currently focused element without resetting tab order. |
-| **`hover`** | `hover::<selector>` | Moves the cursor over `<selector>` to reveal tooltips, dropdowns, or hover states. |
-| **`wait`** | `wait::<ms_or_selector>` | Waits for a duration in milliseconds (`wait::1000`) or until a CSS selector appears (`wait::.toast-alert`). |
-
-#### Supported Keys for `press`
-The `press` action accepts standard **W3C `KeyboardEvent.key`** names (case-sensitive):
-- **Navigation & Focus:** `Enter`, `Tab`, `Escape`, `Space`, `Backspace`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`
-- **Directional Arrows:** `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
-- **Function Keys:** `F1` – `F12`
-- **Characters & Digits:** `a`–`z`, `A`–`Z`, `0`–`9`
-- **Modifier Combinations (joined with `+`):** `Shift+Tab`, `Control+a`, `Alt+ArrowDown`, `Meta+Enter` *(Supported modifiers: `Shift`, `Control`, `Alt`, `Meta`, `ControlOrMeta`)*
-
----
-
-### CLI Usage Examples
-
-#### 1. WCAG 2.0 & 2.1 (Levels A & AA) Compliance Audit
-Filters the rule engine to run only rules mapped to WCAG versions `2.0` and `2.1` at conformance levels `A` and `AA` (which together represent standard WCAG 2.1 AA compliance), excluding Level AAA and WCAG 2.2 checks.
-```bash
-node index.js audit "[https://example.com](https://example.com)" --wcag-version="2.0,2.1" --wcag-level="A,AA"
-```
-
-#### 2. Targeted Audit Subset (`--audits`)
-Runs only a specific comma-separated list of rule IDs instead of the full suite—ideal for fast CI smoke checks on high-priority issues like document titles, image alt text, empty links, and unlabeled form inputs.
-```bash
-node index.js audit "[https://example.com](https://example.com)" \
-  --audits "v-doc-title,v-img-alt,v-empty-links,v-unlabeled-inputs"
-```
-
-#### 3. Focus Order Mapping & Dynamic Shift Detection (`i-focus-order`)
-Maps the complete tab-focus sequence of the page on initial load (Step 1), then opens a navigation drawer (Step 2) and outputs the updated focus sequence only if opening the drawer altered the DOM's tab order.
-```bash
-node index.js audit "[https://example.com](https://example.com)" \
-  --audits "i-focus-order" \
-  --step "click::button#open-nav-drawer"
-```
-
-#### 4. Mobile Layout & Responsive Test (iPhone 13 Viewport)
-Emulates a 390×844 mobile viewport to catch responsive reflow issues, mobile menu accessibility flaws, and undersized touch targets.
-```bash
-node index.js audit "[https://www.mywebapp.com/](https://www.mywebapp.com/)" -w 390 -H 844
-```
-
-#### 5. Single Interaction & Delta Diff with Screenshot
-Captures a baseline audit on page load, clicks the navigation menu button, waits for the DOM to settle, and logs only the newly introduced or resolved findings along with Base64 screenshots at each step.
-```bash
-node index.js audit "[https://example.com](https://example.com)" \
-  --step "click::button#open-navigation-menu" \
-  -s
-```
-
-#### 6. Multi-Step Navigation & Theme Toggle Sequence
-Executes a sequence of UI interactions—opening a menu, navigating to settings, and toggling dark mode—producing an isolated step-by-step accessibility diff (such as new color-contrast violations in dark mode).
-```bash
-node index.js audit "[https://example.com](https://example.com)" \
-  --step "click::button#open-menu" \
-  --step "click::a#settings-link" \
-  --step "click::button#toggle-dark-mode" \
-  -s
-```
-
-#### 7. Single-Page Application (SPA) Hydration & Targeted Rules
-Waits until a dynamic dashboard widget mounts in the DOM, pauses an additional 1.5 seconds for client-side animations to finish, and runs a targeted subset of rules.
-```bash
-node index.js audit "[https://example.com/analytics](https://example.com/analytics)" \
-  --wait-for-selector ".dashboard-chart-ready" \
-  --wait-ms 1500 \
-  --audits "v-heading-errors,v-unlabeled-inputs,i-accessible-name"
-```
-
-#### 8. Keyboard Focus Trap & Modal Escape Testing
-Opens a modal dialog, tabs through its interactive controls using the active focus element (`active`), and verifies that pressing `Escape` closes the dialog cleanly.
-```bash
-node index.js audit "[https://example.com/settings](https://example.com/settings)" \
-  --step "click::#open-profile-modal" \
-  --step "press::active::Tab" \
-  --step "press::active::Tab" \
-  --step "press::active::Escape"
-```
-
-#### 9. Form Validation, Dropdown Selection & Hover States
-Tests dynamic form error states and hover-triggered tooltips by selecting a dropdown option, submitting an invalid input, waiting for validation messages, and hovering over a help badge.
-```bash
-node index.js audit "[https://example.com/checkout](https://example.com/checkout)" \
-  --step "select::select#country::US" \
-  --step "fill::input#zip-code::000" \
-  --step "click::button#submit-order" \
-  --step "wait::.validation-error-banner" \
-  --step "hover::span.cvv-help-tooltip"
-```
-
-#### 10. Standard 2-Field Login Shorthand
-Authenticates through a standard username/password login page before navigating to the protected target URL and running the baseline audit.
-```bash
-node index.js audit "[https://example.com/account](https://example.com/account)" \
-  --login-url "[https://example.com/login](https://example.com/login)" \
-  -u "jdoe@example.com" \
-  -p "SuperSecret123"
-```
-
-#### 11. Enterprise Multi-Field Auth + Post-Login SPA Workflow
-Logs into a 3-field corporate portal using `--auth-step`, then uses `--step` to navigate SPA menus, filter a data grid, submit via keyboard, and capture screenshots filtered to WCAG 2.0/2.1 Level A & AA.
-```bash
-node index.js audit "[https://abi-testing-dojo-demo.azurewebsites.net/](https://abi-testing-dojo-demo.azurewebsites.net/)" \
-  --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" \
-  --wcag-version "2.0,2.1" \
-  --wcag-level "A,AA" \
-  --login-url "[https://abi-testing-dojo-demo.azurewebsites.net/login](https://abi-testing-dojo-demo.azurewebsites.net/login)" \
-  --auth-step "fill::#company::Contoso" \
-  --auth-step "fill::#user::jdoe" \
-  --auth-step "fill::#password::Admin+123" \
-  --auth-step "click::#btn-login" \
-  --step "click::button.menu-button[title='Security']" \
-  --step "click::button.submenu-button[title='Companies']" \
-  --step "fill::input#search-company::Contoso" \
-  --step "press::active::Enter" \
-  -s
-```
-
-#### 12. Manual MFA / Cookie Banner Capture & Headless Session Reuse
-Opens a visible browser window for 30 seconds so you can manually clear cookie banners or complete Multi-Factor Authentication (MFA), saves the authenticated cookies/storage to `auth-state.json`, and reuses that session in subsequent headless CI runs.
-```bash
-# Step A: Interactive capture (run once locally)
-node index.js audit "[https://example.com/portal](https://example.com/portal)" -i -a auth-state.json
-
-# Step B: Headless CI audit reusing the saved session
-node index.js audit "[https://example.com/portal](https://example.com/portal)" -a auth-state.json --wcag-level="A,AA"
-```
-
-#### 13. Custom JavaScript Authentication Module
-Delegates complex SSO, OAuth, or multi-page redirect logins to a custom Playwright script (`async (page) => { ... }`) before running the audit.
-```bash
-node index.js audit "[https://example.com/workspace](https://example.com/workspace)" \
-  --auth-script "./scripts/sso-login.js" \
-  --step "click::button#new-project"
-```
-
----
-
-### Authentication Strategies
-WICK-AG-Lens supports four distinct methods to bypass login screens, ranging from simple shorthand flags to fully customized JavaScript modules.
-
-#### 1. Standard 2-Field Login (Shorthand)
-Use `-u` and `-p` alongside `--login-url` for straightforward single-page login forms.
-
-* **When to use:** Simple forms consisting of a username or email field, a password field, and a submit button on a single page. Under the hood, this automatically compiles into a 3-step pipeline targeting:
-  1. **Username / Email:** `input[type="text"], input[type="email"]`
-  2. **Password:** `input[type="password"]`
-  3. **Submit:** `button[type="submit"], input[type="submit"]`
-
-```bash
-node index.js audit "[https://example.com/account](https://example.com/account)" \
-  --login-url "[https://example.com/login](https://example.com/login)" \
-  -u "jdoe@example.com" \
-  -p "SuperSecret123"
-```
-
-#### 2. Complex & Multi-Step Action Pipeline
-**When to use:** Forms that require extra fields (like "Company" or "Tenant ID"), or Single Sign-On (SSO) flows (like Okta or Microsoft) where you must submit an email on screen one and enter a password on screen two.
-You can chain multiple `--auth-step` flags using a `action::selector::value` delimiter format.
-*Supported actions: `fill`, `select`, `click`, `press`, `wait` (accepts milliseconds or a CSS selector).*
-
-*Example (Multi-Field Form - Username, Password, and Company):*
-```bash
-node index.js audit https://app.com/dashboard \
-  --login-url https://app.com/login \
-  --auth-step "fill::input[name='company']::MyCompany" \
-  --auth-step "fill::input[name='username']::admin" \
-  --auth-step "fill::input[type='password']::1234" \
-  --auth-step "click::button[type='submit']"
-```
-
-*Example (Multi-Page SSO - Wait for password field to appear):*
-```bash
-node index.js audit https://app.com/dashboard \
-  --login-url https://app.com/login \
-  --auth-step "fill::#email-input::admin@company.com" \
-  --auth-step "click::#next-btn" \
-  --auth-step "wait::#password-input" \
-  --auth-step "fill::#password-input::secret123" \
-  --auth-step "click::#submit-btn"
-```
-
-#### 3. Custom Authentication Script (`--auth-script`)
-For complex enterprise authentication flows—such as multi-page SSO redirects (Okta, Microsoft Entra ID / Azure AD), OAuth handshakes, or conditional prompts—pass a custom ES module exporting an `async (page) => { ... }` function. The scanner passes the active Playwright `page` instance directly into your function before navigating to the target audit URL.
-
-* **CLI Command:**
-```bash
-TEST_USER="jdoe@contoso.com" TEST_PASS="Admin+123" \
-node index.js audit "[https://app.contoso.com/dashboard](https://app.contoso.com/dashboard)" \
-  --auth-script "./scripts/sso-login.js" \
-  --step "click::button#open-reports"
-```
-
-* **Example Script (`./scripts/sso-login.js`):**
-```javascript
-export default async function (page) {
-  // 1. Navigate to the protected app to trigger the SSO identity provider redirect
-  await page.goto('[https://app.contoso.com/login](https://app.contoso.com/login)', { waitUntil: 'domcontentloaded' });
-
-  // 2. Step 1 of SSO: Enter corporate email and advance
-  const emailInput = page.locator('input[type="email"]');
-  await emailInput.waitFor({ state: 'visible', timeout: 15000 });
-  await emailInput.fill(process.env.TEST_USER);
-  await page.click('input[type="submit"], button[type="submit"]');
-
-  // 3. Step 2 of SSO: Wait for password screen to mount, fill credentials, and sign in
-  const passwordInput = page.locator('input[type="password"]');
-  await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
-  await passwordInput.fill(process.env.TEST_PASS);
-  await page.click('input[type="submit"], button[type="submit"]');
-
-  // 4. Optional: Dismiss "Stay signed in?" prompt if presented by the IdP
-  const staySignedInBtn = page.locator('input#idBtn_Back, button[data-testid="dismiss-prompt"]');
-  if (await staySignedInBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
-    await staySignedInBtn.click();
-  }
-
-  // 5. Wait until redirected back to the authenticated application shell
-  await page.waitForURL('[https://app.contoso.com/](https://app.contoso.com/)**', { timeout: 20000 });
-  await page.waitForSelector('nav.main-navigation', { timeout: 15000 });
-}
-```
-
-#### 4. Interactive State Capture (The "Human Bypass")
-**When to use:** Sites with aggressive bot mitigation (Akamai, Cloudflare), invisible reCAPTCHAs, or MFA push notifications to your phone. 
-*(See the "Handling Enterprise Firewalls & Cookie Banners" section below for full instructions).*
-
----
-
-### Viewing CLI Screenshots
-When you use the `-s` flag, the snapshot is embedded dynamically after every action (baseline, clicks, etc.) directly in the JSON output under the `screenshot_base64` key. 
-
-It is exported as a **raw Base64 string** (e.g., `/9j/4AA...`) without the HTML Data URI prefix. This raw format is intentional, as multimodal AI agents using the MCP server require clean Base64 data without HTML prefixes to process visual inputs.
-
-To view the image manually:
-1. **In the Browser:** Open a new tab, type `data:image/jpeg;base64,` into the address bar, paste your raw string immediately after it, and hit Enter.
-2. **In HTML Custom Reports:** Prepend the prefix inside an image tag's source attribute: 
-   `<img src="data:image/jpeg;base64,[YOUR_RAW_STRING]" alt="Audit Screenshot">`
-
-### Handling Enterprise Firewalls & Cookie Banners (State Injection)
-
-Modern enterprise websites often use aggressive bot mitigation (e.g., Akamai), heavy front-end frameworks (e.g., Adobe Experience Manager) with lazy-loaded footers, and intrusive Cookie Consent banners. 
-
-When running a standard headless audit, these protections can result in incomplete scans (missing lazy-loaded elements) or broken CSS selectors (because an injected cookie banner shifts the DOM hierarchy).
-
-WICK-AG-Lens CLI solves this using a **Two-Step State Injection Workflow**. By capturing a human-verified browser state once, you can run perfect, fully-hydrated headless audits indefinitely.
-
-#### Step 1: The One-Time Setup (Interactive Mode)
-Use the `-i` (interactive) flag to launch a visible browser, and the `-a` (auth-state) flag to specify where to save the session data.
-
-```bash
-node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -i -a "mywebsite-state.json"
-```
-
-1. A Chromium window will open and wait for 30 seconds.
-2. Manually click "Accept" or "Decline" on the site's cookie banner (or manually log in past any MFA/Captchas).
-3. Wait for the 30-second timer to expire. 
-4. The CLI will automatically save your pristine, banner-free session (cookies and local storage) into `mywebsite-state.json`.
-
-#### Step 2: Fully Automated Headless Audits
-For all future runs (or in your CI/CD pipeline), drop the `-i` flag but keep the `-a` flag pointing to your saved state file.
-
-```bash
-node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -a "mywebsite-state.json"
-```
-
-**What happens under the hood:**
-* Playwright runs completely headless at maximum speed.
-* It injects your saved cookies before the page loads, preventing the cookie banner from rendering and altering the DOM tree.
-* It deletes the `navigator.webdriver` flag to spoof a standard human session.
-* It performs an automated, smooth bottom-to-top scroll to force `IntersectionObserver` elements (like heavy footers and widgets) to hydrate before capturing the structural accessibility snapshot.
-
-#### Troubleshooting Edge Cases: WAF Sinkholes & SPA Timing
-
-Even with state injection, enterprise sites with aggressive Web Application Firewalls (WAFs) and complex client-side routing can present two unique challenges for headless automation:
-
-**1. Akamai "Sinkholing" (Bot Mitigation)**
-Enterprise WAFs (such as Akamai or Cloudflare) sometimes detect subtle headless behaviors. Instead of blocking the connection outright, they "sinkhole" the bot by serving a fake 404 "Page Not Found" screen.
-*   **Resolution:** Target the **root domain** (e.g., `https://www.example.com/`) rather than a deeply nested regional route (e.g., `/qc/fr.html`). Initializing at the root allows the server to evaluate injected cookies and trigger natural HTTP redirects, authenticating the session and bypassing the sinkhole.
-
-**2. SPA Hydration Timing**
-Complex Single Page Applications (SPAs) may momentarily display a skeleton screen or 404 placeholder while client-side routes resolve. If Playwright's `networkidle` lifecycle event resolves during that window, the audit may run against the transient state rather than the fully rendered view.
-*   **Resolution:** Use the built-in timing options to delay baseline execution until the target component mounts:
-    *   `--wait-ms <milliseconds>`: Pauses execution after page load to allow dynamic scripts to hydrate.
-    *   `--wait-for-selector <selector>`: Halts execution until a specific DOM element (e.g., a persistent nav or hero container) is present.
-
-*Example (Waiting for SPA Hydration):*
-```bash
-node index.js audit https://www.example.com/ --wait-ms 3000 -a "example-state.json"
-```
-
-
-## MCP Server (AI Integration)
-
-The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to navigate pages, click elements, and receive delta logs of accessibility barriers created or resolved by their actions.
-
-### Exposed Tools
-
-* `audit_baseline`: Runs a full baseline scan on a target URL. Accepts `url`, an optional array of `requestedAudits`, an `includeScreenshot` boolean for multimodal visual context, and `viewportWidth`/`viewportHeight` parameters to test mobile layouts dynamically.
-* `interact_and_diff`: Clicks a CSS selector, waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of new or resolved violations. Accepts an `includeScreenshot` boolean.
-* `get_audit_trail`: Returns the full chronological Action-State timeline log with global metadata and health scores.
-
-### Handling Cookie Banners Dynamically with AI
-
-When building CLI tools for humans, workarounds like 30-second pauses and interactive (`-i`) flags are necessary to handle obstacles like Cookie Consent banners. However, when exposing these same tools via an MCP Server, **the AI becomes the human.** 
-
-If you hook this up to a multimodal AI agent (like Claude Desktop) that has access to browser automation tools, the AI can handle banners and firewalls dynamically, eliminating the need for manual state injection.
-
-Here is how an AI agent handles this automatically using the WICK MCP tools:
-
-1. **The AI Discovers the Banner (Baseline)**
-   The AI calls the `audit_baseline` tool. It looks at the returned JSON (and the screenshot base64) and realizes, *"Ah, there is a giant cookie consent banner blocking the footer, and my element count is low."*
-
-2. **The AI Uses the Diff Tool to Clear the Banner**
-   The AI dynamically finds the CSS selector for the "Accept Cookies" button (e.g., `#onetrust-accept-btn-handler`) and calls the interaction tool:
-   `interact_and_diff(actionName: "Accept Cookies", selector: "#onetrust-accept-btn-handler")`
-
-3. **The Clean State is Achieved**
-   Under the hood, the WICK script clicks that exact button, waits for the DOM to settle (which removes the banner and shifts the DOM back to its proper structure), and generates the new accessibility snapshot automatically. The AI can now visually perceive the roadblock is gone and capture the fully hydrated, clean element state entirely on its own!
-
-### Running & Testing the MCP Server
-
-To test the server locally using the Anthropic MCP Inspector:
-
-```bash
-cd cli
-npx @modelcontextprotocol/inspector node mcp-server.js
-```
-
-To configure in Claude Desktop, add the following to your `claude_desktop_config.json`:
-
-```json
-"mcpServers": {
-  "wick-ag-lens": {
-    "command": "node",
-    "args": ["/absolute/path/to/wick-ag-lens/cli/mcp-server.js"]
-  }
-}
-```
 
 ## Core Features & Usage
 
@@ -498,10 +81,9 @@ PDF Gatekeeper Auditing:
 
 ![PDF Analysis Engine](extension/assets/images/pdf-analysis-engine.png)
 
-Impaired Vision:
+Technical Details & Remediation:
 
 ![Technical Details and Remediation](extension/assets/images/pdf-analysis-details.png)
-
 
 ### 4. Interactive Info Panels & Code Previews
 Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining *what* was flagged, *why* it creates a barrier for users, and **how to fix it** (utilizing clean, collapsible native HTML accordions to keep the UI compact and prevent screen clutter).
@@ -546,6 +128,531 @@ Accessibility auditing shouldn't require constantly hunting for internet resourc
 ### 10. Native Dark Mode Support
 The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
 
+## Monorepo Architecture & Building
+To maintain a single source of truth and keep the Chrome Web Store artifact clean of heavy Node dependencies (like Playwright), this project utilizes a lightweight monorepo architecture. 
+*   `/core`: The central heuristic logic (`a11y-config.js` and `shared-utils.js`).
+*   `/extension`: The visual Chrome extension artifact.
+*   `/cli`: The Node.js Playwright environment and MCP server.
+
+### Building the Chrome Extension Locally
+Whenever you make changes to the heuristic rules in the `/core` folder, you must build the extension before Chrome can use it.
+1. Run the build script from the root directory to copy the core logic into the extension package:
+   ```bash
+   node build.js
+   ```
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Toggle **Developer mode** on (top right).
+4. Click **Load unpacked** and select the **`extension`** folder.
+
+## Visual Extension Installation
+Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
+
+1. Navigate to the [WICK-AG-Lens page on the Chrome Web Store](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
+2. Click the **Add to Chrome** button located in the top right corner of the page.
+3. A confirmation browser dialog will appear. Click **Add extension** to grant the necessary permissions for the tool to inspect pages.
+4. You will receive a message saying WICK-AG-Lens has been added to Chrome.
+5. Once installed, open your Chrome Developer Tools (`F12` or `Ctrl+Shift+I` on Windows/Linux, `Cmd+Option+I` on Mac).
+6. Locate the **WICK-AG-Lens** tab in the top navigation bar of the DevTools panel. Note: You may need to click the `>>` icon if your DevTools window is narrow.
+
+## Headless CLI Automation
+The CLI utilizes Playwright to inject the WICK-AG-Lens core heuristics into a headless browser, allowing you to run audits in your terminal or CI/CD pipelines.
+
+### Setup
+Navigate to the CLI directory and install the dependencies (including the Playwright browser binaries):
+```bash
+cd cli
+npm install
+npx playwright install chromium
+```
+
+### CLI Usage
+Run a baseline audit against any public URL:
+```bash
+node index.js audit https://example.com
+```
+
+### CLI Options
+You can pass several arguments to customize the run:
+-   `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`). If omitted, all available audits (both **Violations & Warnings** and **Informative & Structure**) are evaluated by default.
+-   `--wcag-version <versions>`: Comma-separated list to strictly filter executed audits by WCAG version (e.g., `2.0,2.1,2.2`). If omitted, all supported versions are evaluated by default.
+-   `--wcag-level <levels>`: Comma-separated list to strictly filter executed audits by WCAG conformance level (e.g., `A,AA,AAA`). If omitted, all supported levels are evaluated by default.
+-   `-w, --width <pixels>`: Sets the viewport width to test responsive layouts (defaults to `1280`).
+-   `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to `800`).
+-   `-s, --screenshot`: Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output.
+-   `--wait-ms <milliseconds>`: Explicit pause duration in milliseconds after `networkidle` to let client-side routers or slow animations settle.
+-   `--wait-for-selector <selector>`: Halts audit execution until a specific CSS selector mounts in the DOM.
+-   `--step <step>`: Executable post-baseline interaction step (e.g., `click::#open-modal`, `fill::#email::invalid`). Can be repeated to build a multi-step user journey; each step captures a full accessibility delta diff.
+-   `--login-url <url>`: URL to navigate to for authentication before running the audit.
+-   `-u, --user <user>`: Shorthand username for standard 2-field login forms.
+-   `-p, --pass <pass>`: Shorthand password for standard 2-field login forms.
+-   `--auth-step <step>`: Executable pre-audit auth pipeline step (e.g., `fill::#company::Acme`). Can be repeated.
+-   `--auth-script <path>`: Path to a custom JavaScript module exporting an async login function.
+-   `-i, --interactive`: Launches a visible browser for 30 seconds to manually solve Captchas/MFA or Cookie banners.
+-   `-a, --auth-state <path>`: Path to save (or load) a Playwright storage state JSON file (cookies/localStorage).
+
+---
+
+### Step Actions & Keyboard Reference (`--step` & `--auth-step`)
+Both `--auth-step` (which executes silently before the baseline scan to establish a session) and `--step` (which executes sequentially after the baseline scan and records an accessibility diff per step) use the `action::target::value` format.
+
+#### Supported Actions
+| Action | Syntax | Behavior |
+| :--- | :--- | :--- |
+| **`click`** | `click::<selector>` | Clicks the target element (buttons, links, tabs, accordions, checkboxes). |
+| **`fill`** | `fill::<selector>::<value>` | Clears an input or textarea and enters `<value>`, firing standard DOM input events. |
+| **`select`** | `select::<selector>::<value>` | Chooses an `<option>` inside a native `<select>` element by option value or label. |
+| **`press`** | `press::<selector>::<key>` | Focuses `<selector>` and dispatches `<key>`. Use `active` as the selector (`press::active::<key>`) to send keystrokes to the currently focused element without resetting tab order. |
+| **`hover`** | `hover::<selector>` | Moves the cursor over `<selector>` to reveal tooltips, dropdowns, or hover states. |
+| **`wait`** | `wait::<ms_or_selector>` | Waits for a duration in milliseconds (`wait::1000`) or until a CSS selector appears (`wait::.toast-alert`). |
+
+#### Supported Keys for `press`
+The `press` action accepts standard **W3C `KeyboardEvent.key`** names (case-sensitive):
+- **Navigation & Focus:** `Enter`, `Tab`, `Escape`, `Space`, `Backspace`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`
+- **Directional Arrows:** `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
+- **Function Keys:** `F1` – `F12`
+- **Characters & Digits:** `a`–`z`, `A`–`Z`, `0`–`9`
+- **Modifier Combinations (joined with `+`):** `Shift+Tab`, `Control+a`, `Alt+ArrowDown`, `Meta+Enter` *(Supported modifiers: `Shift`, `Control`, `Alt`, `Meta`, `ControlOrMeta`)*
+
+---
+
+### CLI Usage Examples
+
+#### 1. WCAG 2.0 & 2.1 (Levels A & AA) Compliance Audit
+Filters the rule engine to run only rules mapped to WCAG versions `2.0` and `2.1` at conformance levels `A` and `AA` (which together represent standard WCAG 2.1 AA compliance), excluding Level AAA and WCAG 2.2 checks.
+```bash
+node index.js audit "https://example.com" --wcag-version="2.0,2.1" --wcag-level="A,AA"
+```
+
+#### 2. Targeted Audit Subset (`--audits`)
+Runs only a specific comma-separated list of rule IDs instead of the full suite—ideal for fast CI smoke checks on high-priority issues like document titles, image alt text, empty links, and unlabeled form inputs.
+```bash
+node index.js audit "https://example.com" \
+  --audits "v-doc-title,v-img-alt,v-empty-links,v-unlabeled-inputs"
+```
+
+#### 3. Focus Order Mapping & Dynamic Shift Detection (`i-focus-order`)
+Maps the complete tab-focus sequence of the page on initial load (Step 1), then opens a navigation drawer (Step 2) and outputs the updated focus sequence only if opening the drawer altered the DOM's tab order.
+```bash
+node index.js audit "https://example.com" \
+  --audits "i-focus-order" \
+  --step "click::button#open-nav-drawer"
+```
+
+#### 4. Mobile Layout & Responsive Test (iPhone 13 Viewport)
+Emulates a 390×844 mobile viewport to catch responsive reflow issues, mobile menu accessibility flaws, and undersized touch targets.
+```bash
+node index.js audit "https://www.mywebapp.com/" -w 390 -H 844
+```
+
+#### 5. Single Interaction & Delta Diff with Screenshot
+Captures a baseline audit on page load, clicks the navigation menu button, waits for the DOM to settle, and logs only the newly introduced or resolved findings along with Base64 screenshots at each step.
+```bash
+node index.js audit "https://example.com" \
+  --step "click::button#open-navigation-menu" \
+  -s
+```
+
+#### 6. Multi-Step Navigation & Theme Toggle Sequence
+Executes a sequence of UI interactions—opening a menu, navigating to settings, and toggling dark mode—producing an isolated step-by-step accessibility diff (such as new color-contrast violations in dark mode).
+```bash
+node index.js audit "https://example.com" \
+  --step "click::button#open-menu" \
+  --step "click::a#settings-link" \
+  --step "click::button#toggle-dark-mode" \
+  -s
+```
+
+#### 7. Single-Page Application (SPA) Hydration & Targeted Rules
+Waits until a dynamic dashboard widget mounts in the DOM, pauses an additional 1.5 seconds for client-side animations to finish, and runs a targeted subset of rules.
+```bash
+node index.js audit "https://example.com/analytics" \
+  --wait-for-selector ".dashboard-chart-ready" \
+  --wait-ms 1500 \
+  --audits "v-heading-errors,v-unlabeled-inputs,i-accessible-name"
+```
+
+#### 8. Keyboard Focus Trap & Modal Escape Testing
+Opens a modal dialog, tabs through its interactive controls using the active focus element (`active`), and verifies that pressing `Escape` closes the dialog cleanly.
+```bash
+node index.js audit "https://example.com/settings" \
+  --step "click::#open-profile-modal" \
+  --step "press::active::Tab" \
+  --step "press::active::Tab" \
+  --step "press::active::Escape"
+```
+
+#### 9. Form Validation, Dropdown Selection & Hover States
+Tests dynamic form error states and hover-triggered tooltips by selecting a dropdown option, submitting an invalid input, waiting for validation messages, and hovering over a help badge.
+```bash
+node index.js audit "https://example.com/checkout" \
+  --step "select::select#country::US" \
+  --step "fill::input#zip-code::000" \
+  --step "click::button#submit-order" \
+  --step "wait::.validation-error-banner" \
+  --step "hover::span.cvv-help-tooltip"
+```
+
+#### 10. Standard 2-Field Login Shorthand
+Authenticates through a standard username/password login page before navigating to the protected target URL and running the baseline audit.
+```bash
+node index.js audit "https://example.com/account" \
+  --login-url "https://example.com/login" \
+  -u "jdoe@example.com" \
+  -p "SuperSecret123"
+```
+
+#### 11. Enterprise Multi-Field Auth + Post-Login SPA Workflow
+Logs into a 3-field corporate portal using `--auth-step`, then uses `--step` to navigate SPA menus, filter a data grid, submit via keyboard, and capture screenshots filtered to WCAG 2.0/2.1 Level A & AA.
+```bash
+node index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
+  --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" \
+  --wcag-version "2.0,2.1" \
+  --wcag-level "A,AA" \
+  --login-url "https://abi-testing-dojo-demo.azurewebsites.net/login" \
+  --auth-step "fill::#company::Contoso" \
+  --auth-step "fill::#user::jdoe" \
+  --auth-step "fill::#password::Admin+123" \
+  --auth-step "click::#btn-login" \
+  --step "click::button.menu-button[title='Security']" \
+  --step "click::button.submenu-button[title='Companies']" \
+  --step "fill::input#search-company::Contoso" \
+  --step "press::active::Enter" \
+  -s
+```
+
+#### 12. Manual MFA / Cookie Banner Capture & Headless Session Reuse
+Opens a visible browser window for 30 seconds so you can manually clear cookie banners or complete Multi-Factor Authentication (MFA), saves the authenticated cookies/storage to `auth-state.json`, and reuses that session in subsequent headless CI runs.
+```bash
+# Step A: Interactive capture (run once locally)
+node index.js audit "https://example.com/portal" -i -a auth-state.json
+
+# Step B: Headless CI audit reusing the saved session
+node index.js audit "https://example.com/portal" -a auth-state.json --wcag-level="A,AA"
+```
+
+#### 13. Custom JavaScript Authentication Module
+Delegates complex SSO, OAuth, or multi-page redirect logins to a custom Playwright script (`async (page) => { ... }`) before running the audit.
+```bash
+node index.js audit "https://example.com/workspace" \
+  --auth-script "./scripts/sso-login.js" \
+  --step "click::button#new-project"
+```
+
+---
+
+### Authentication Strategies
+WICK-AG-Lens supports four distinct methods to bypass login screens, ranging from simple shorthand flags to fully customized JavaScript modules.
+
+#### 1. Standard 2-Field Login (Shorthand)
+Use `-u` and `-p` alongside `--login-url` for straightforward single-page login forms.
+
+* **When to use:** Simple forms consisting of a username or email field, a password field, and a submit button on a single page. Under the hood, this automatically compiles into a 3-step pipeline targeting:
+  1. **Username / Email:** `input[type="text"], input[type="email"]`
+  2. **Password:** `input[type="password"]`
+  3. **Submit:** `button[type="submit"], input[type="submit"]`
+
+```bash
+node index.js audit "https://example.com/account" \
+  --login-url "https://example.com/login" \
+  -u "jdoe@example.com" \
+  -p "SuperSecret123"
+```
+
+#### 2. Complex & Multi-Step Action Pipeline
+**When to use:** Forms that require extra fields (like "Company" or "Tenant ID"), or Single Sign-On (SSO) flows (like Okta or Microsoft) where you must submit an email on screen one and enter a password on screen two.
+You can chain multiple `--auth-step` flags using a `action::selector::value` delimiter format.
+*Supported actions: `fill`, `select`, `click`, `press`, `wait` (accepts milliseconds or a CSS selector).*
+
+*Example (Multi-Field Form - Username, Password, and Company):*
+```bash
+node index.js audit https://app.com/dashboard \
+  --login-url https://app.com/login \
+  --auth-step "fill::input[name='company']::MyCompany" \
+  --auth-step "fill::input[name='username']::admin" \
+  --auth-step "fill::input[type='password']::1234" \
+  --auth-step "click::button[type='submit']"
+```
+
+*Example (Multi-Page SSO - Wait for password field to appear):*
+```bash
+node index.js audit https://app.com/dashboard \
+  --login-url https://app.com/login \
+  --auth-step "fill::#email-input::admin@company.com" \
+  --auth-step "click::#next-btn" \
+  --auth-step "wait::#password-input" \
+  --auth-step "fill::#password-input::secret123" \
+  --auth-step "click::#submit-btn"
+```
+
+#### 3. Custom Authentication Script (`--auth-script`)
+For complex enterprise authentication flows—such as multi-page SSO redirects (Okta, Microsoft Entra ID / Azure AD), OAuth handshakes, or conditional prompts—pass a custom ES module exporting an `async (page) => { ... }` function. The scanner passes the active Playwright `page` instance directly into your function before navigating to the target audit URL.
+
+* **CLI Command:**
+```bash
+TEST_USER="jdoe@contoso.com" TEST_PASS="Admin+123" \
+node index.js audit "https://app.contoso.com/dashboard" \
+  --auth-script "./scripts/sso-login.js" \
+  --step "click::button#open-reports"
+```
+
+* **Example Script (`./scripts/sso-login.js`):**
+```javascript
+export default async function (page) {
+  // 1. Navigate to the protected app to trigger the SSO identity provider redirect
+  await page.goto('https://app.contoso.com/login', { waitUntil: 'domcontentloaded' });
+
+  // 2. Step 1 of SSO: Enter corporate email and advance
+  const emailInput = page.locator('input[type="email"]');
+  await emailInput.waitFor({ state: 'visible', timeout: 15000 });
+  await emailInput.fill(process.env.TEST_USER);
+  await page.click('input[type="submit"], button[type="submit"]');
+
+  // 3. Step 2 of SSO: Wait for password screen to mount, fill credentials, and sign in
+  const passwordInput = page.locator('input[type="password"]');
+  await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
+  await passwordInput.fill(process.env.TEST_PASS);
+  await page.click('input[type="submit"], button[type="submit"]');
+
+  // 4. Optional: Dismiss "Stay signed in?" prompt if presented by the IdP
+  const staySignedInBtn = page.locator('input#idBtn_Back, button[data-testid="dismiss-prompt"]');
+  if (await staySignedInBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+    await staySignedInBtn.click();
+  }
+
+  // 5. Wait until redirected back to the authenticated application shell
+  await page.waitForURL('https://app.contoso.com/**', { timeout: 20000 });
+  await page.waitForSelector('nav.main-navigation', { timeout: 15000 });
+}
+```
+
+#### 4. Interactive State Capture (The "Human Bypass")
+**When to use:** Sites with aggressive bot mitigation (Akamai, Cloudflare), invisible reCAPTCHAs, or MFA push notifications to your phone. 
+*(See the "Handling Enterprise Firewalls & Cookie Banners" section below for full instructions).*
+
+---
+
+### Viewing CLI Screenshots
+When you use the `-s` flag, the snapshot is embedded dynamically after every action (baseline, clicks, etc.) directly in the JSON output under the `screenshot_base64` key. 
+
+It is exported as a **raw Base64 string** (e.g., `/9j/4AA...`) without the HTML Data URI prefix. This raw format is intentional, as multimodal AI agents using the MCP server require clean Base64 data without HTML prefixes to process visual inputs.
+
+To view the image manually:
+1. **In the Browser:** Open a new tab, type `data:image/jpeg;base64,` into the address bar, paste your raw string immediately after it, and hit Enter.
+2. **In HTML Custom Reports:** Prepend the prefix inside an image tag's source attribute: 
+   `<img src="data:image/jpeg;base64,[YOUR_RAW_STRING]" alt="Audit Screenshot">`
+
+### Handling Enterprise Firewalls & Cookie Banners (State Injection)
+Modern enterprise websites often use aggressive bot mitigation (e.g., Akamai), heavy front-end frameworks (e.g., Adobe Experience Manager) with lazy-loaded footers, and intrusive Cookie Consent banners. 
+
+When running a standard headless audit, these protections can result in incomplete scans (missing lazy-loaded elements) or broken CSS selectors (because an injected cookie banner shifts the DOM hierarchy).
+
+WICK-AG-Lens CLI solves this using a **Two-Step State Injection Workflow**. By capturing a human-verified browser state once, you can run perfect, fully-hydrated headless audits indefinitely.
+
+#### Step 1: The One-Time Setup (Interactive Mode)
+Use the `-i` (interactive) flag to launch a visible browser, and the `-a` (auth-state) flag to specify where to save the session data.
+
+```bash
+node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -i -a "mywebsite-state.json"
+```
+
+1. A Chromium window will open and wait for 30 seconds.
+2. Manually click "Accept" or "Decline" on the site's cookie banner (or manually log in past any MFA/Captchas).
+3. Wait for the 30-second timer to expire. 
+4. The CLI will automatically save your pristine, banner-free session (cookies and local storage) into `mywebsite-state.json`.
+
+#### Step 2: Fully Automated Headless Audits
+For all future runs (or in your CI/CD pipeline), drop the `-i` flag but keep the `-a` flag pointing to your saved state file.
+
+```bash
+node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -a "mywebsite-state.json"
+```
+
+**What happens under the hood:**
+* Playwright runs completely headless at maximum speed.
+* It injects your saved cookies before the page loads, preventing the cookie banner from rendering and altering the DOM tree.
+* It deletes the `navigator.webdriver` flag to spoof a standard human session.
+* It performs an automated, smooth bottom-to-top scroll to force `IntersectionObserver` elements (like heavy footers and widgets) to hydrate before capturing the structural accessibility snapshot.
+
+#### Troubleshooting Edge Cases: WAF Sinkholes & SPA Timing
+Even with state injection, enterprise sites with aggressive Web Application Firewalls (WAFs) and complex client-side routing can present two unique challenges for headless automation:
+
+**1. Akamai "Sinkholing" (Bot Mitigation)**
+Enterprise WAFs (such as Akamai or Cloudflare) sometimes detect subtle headless behaviors. Instead of blocking the connection outright, they "sinkhole" the bot by serving a fake 404 "Page Not Found" screen.
+*   **Resolution:** Target the **root domain** (e.g., `https://www.example.com/`) rather than a deeply nested regional route (e.g., `/qc/fr.html`). Initializing at the root allows the server to evaluate injected cookies and trigger natural HTTP redirects, authenticating the session and bypassing the sinkhole.
+
+**2. SPA Hydration Timing**
+Complex Single Page Applications (SPAs) may momentarily display a skeleton screen or 404 placeholder while client-side routes resolve. If Playwright's `networkidle` lifecycle event resolves during that window, the audit may run against the transient state rather than the fully rendered view.
+*   **Resolution:** Use the built-in timing options to delay baseline execution until the target component mounts:
+    *   `--wait-ms <milliseconds>`: Pauses execution after page load to allow dynamic scripts to hydrate.
+    *   `--wait-for-selector <selector>`: Halts execution until a specific DOM element (e.g., a persistent nav or hero container) is present.
+
+*Example (Waiting for SPA Hydration):*
+```bash
+node index.js audit https://www.example.com/ --wait-ms 3000 -a "example-state.json"
+```
+
+## MCP Server (AI Integration)
+The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to navigate pages, click elements, and receive delta logs of accessibility barriers created or resolved by their actions.
+
+### Exposed Tools
+* `audit_baseline`: Runs a full baseline scan on a target URL. Accepts `url`, an optional array of `requestedAudits`, an `includeScreenshot` boolean for multimodal visual context, and `viewportWidth`/`viewportHeight` parameters to test mobile layouts dynamically.
+* `interact_and_diff`: Clicks a CSS selector, waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of new or resolved violations. Accepts an `includeScreenshot` boolean.
+* `get_audit_trail`: Returns the full chronological Action-State timeline log with global metadata and health scores.
+
+### Handling Cookie Banners Dynamically with AI
+When building CLI tools for humans, workarounds like 30-second pauses and interactive (`-i`) flags are necessary to handle obstacles like Cookie Consent banners. However, when exposing these same tools via an MCP Server, **the AI becomes the human.** 
+
+If you hook this up to a multimodal AI agent (like Claude Desktop) that has access to browser automation tools, the AI can handle banners and firewalls dynamically, eliminating the need for manual state injection.
+
+Here is how an AI agent handles this automatically using the WICK MCP tools:
+
+1. **The AI Discovers the Banner (Baseline)**
+   The AI calls the `audit_baseline` tool. It looks at the returned JSON (and the screenshot base64) and realizes, *"Ah, there is a giant cookie consent banner blocking the footer, and my element count is low."*
+
+2. **The AI Uses the Diff Tool to Clear the Banner**
+   The AI dynamically finds the CSS selector for the "Accept Cookies" button (e.g., `#onetrust-accept-btn-handler`) and calls the interaction tool:
+   `interact_and_diff(actionName: "Accept Cookies", selector: "#onetrust-accept-btn-handler")`
+
+3. **The Clean State is Achieved**
+   Under the hood, the WICK script clicks that exact button, waits for the DOM to settle (which removes the banner and shifts the DOM back to its proper structure), and generates the new accessibility snapshot automatically. The AI can now visually perceive the roadblock is gone and capture the fully hydrated, clean element state entirely on its own!
+
+### Running & Testing the MCP Server
+To test the server locally using the Anthropic MCP Inspector:
+```bash
+cd cli
+npx @modelcontextprotocol/inspector node mcp-server.js
+```
+
+To configure in Claude Desktop, add the following to your `claude_desktop_config.json`:
+```json
+"mcpServers": {
+  "wick-ag-lens": {
+    "command": "node",
+    "args": ["/absolute/path/to/wick-ag-lens/cli/mcp-server.js"]
+  }
+}
+```
+
+### Integrating with Third-Party Playwright MCP Servers
+Because the WICK-AG-Lens MCP Server uses Playwright under the hood for DOM traversal and screenshots, it can run autonomously for basic audits. However, if your AI agent is already using a dedicated, general-purpose browser automation server (like the official Playwright MCP or Puppeteer MCP) to manage complex tasks (like filling out multi-page shopping carts before auditing), you can orchestrate handoffs between the two servers.
+
+**Architecture Concept: The Handoff**
+1. **The Navigation Agent (Playwright MCP):** Your AI uses a general browser MCP to navigate the web, bypass captchas, log into complex portals, and establish the session state.
+2. **State Sharing:** The AI instructs the Playwright MCP to export the current browser session state (Cookies and LocalStorage) to a file (e.g., `auth-state.json`).
+3. **The Audit Agent (WICK-AG-Lens MCP):** The AI then calls the WICK-AG-Lens `audit_baseline` tool, passing the path to that saved state file. WICK-AG-Lens boots its own headless Playwright instance, injects the cookies, and runs the audit on the exact page the first agent left off on.
+
+**Example Handoff Workflow (Claude Desktop)**
+If you have both servers configured in your `claude_desktop_config.json`, the AI can execute a workflow like this:
+
+*   *AI Action 1 (Playwright MCP):* `navigate(url: "https://shop.example.com")`
+*   *AI Action 2 (Playwright MCP):* `fill(selector: "#user", value: "admin")`, `click(selector: "#login")`
+*   *AI Action 3 (Playwright MCP):* `evaluate(script: "require('fs').writeFileSync('state.json', JSON.stringify(await context.storageState()))")`
+*   *AI Action 4 (WICK-AG-Lens MCP):* `audit_baseline(url: "https://shop.example.com/dashboard", auth_state_path: "state.json")`
+
+This allows the AI to use its preferred, robust tools for driving the browser, while seamlessly tagging in WICK-AG-Lens specifically for capturing structural accessibility delta-diffs.
+
+## CLI & MCP JSON Output Format
+When executing WICK-AG-Lens programmatically via the Headless CLI or consuming it as an AI agent through the MCP Server, the output is generated as a structured JSON payload. This payload provides a complete historical timeline of the session, tracking the accessibility state across multiple pages, interactions, and DOM mutations.
+
+The root JSON object contains three primary properties: `global_summary`, `audit_dictionary`, and the chronological `audit_trail`.
+
+### 1. `global_summary`
+A high-level rollup of the **active, unresolved issues** remaining on the page at the exact moment the final step concluded. This is calculated by taking the initial baseline scan and applying the cumulative math of all subsequent delta-diffs (adding new issues and subtracting resolved ones).
+
+### 2. `audit_dictionary`
+To drastically reduce JSON bloat across multi-step journeys, repetitive metadata for each audit rule (such as the rule's descriptive label, its severity, "what/why/fix" instructions, and official WCAG reference links) is extracted into this single root-level dictionary placed at the bottom of the JSON payload. 
+The timeline steps reference these rules solely by their `auditId` (e.g., `v-doc-title`), which you can look up in this dictionary to retrieve the full educational context and remediation steps.
+
+### 3. `audit_trail` (The Timeline Steps)
+An array of objects representing every state-change in the automated session. Each object in this array is referred to as a "step". 
+
+*   **Step 1 is always the Baseline Scan.** It represents the state of the DOM immediately after navigating to the target URL and letting initial hydration finish.
+*   **Steps 2+ are Delta Diffs.** They represent the isolated structural changes to the page's accessibility caused by a specific user interaction (like clicking a menu, filling a form, or pressing a key).
+
+#### Understanding a Step Object
+Each step in the `audit_trail` contains:
+*   `step`: The integer sequence number.
+*   `interaction`: An object detailing the action that triggered the state change (`action`, `selector`, and `value`). For Step 1, this defaults to `"navigate" : "Initial Page Load"`.
+*   `url`: The active URL of the page when the snapshot was taken (crucial for tracking multi-page SPA routes).
+*   `execution_time_ms`: How long the step took to settle and audit.
+*   `screenshot_base64`: A raw Base64 JPEG string of the visual viewport (only included if the `-s` flag is passed).
+*   `health_scores`: A point-in-time snapshot of the active violation counts specifically at that step.
+*   `new_findings`: Grouped accessibility violations and informative elements that were **not present** in the previous step but appeared as a result of the interaction.
+*   `resolved_findings`: Grouped accessibility violations and informative elements that **were present** in the previous step but disappeared as a result of the interaction.
+
+---
+
+### The Delta-Diff: `new_findings` VS `resolved_findings`
+The core power of the WICK-AG-Lens CLI is its ability to perform **structural DOM diffing**. When you pass an interaction flag (like `--step "click::button#open-menu"`), the engine doesn't just run a brand-new, isolated scan. It compares the new DOM against the previous state and splits the results into two critical buckets.
+
+#### `new_findings` (Things that broke or appeared)
+This object lists elements that became newly visible or were dynamically injected into the DOM during this step. 
+*   *Example:* If you click `#open-menu` and the dropdown contains links missing `aria-label`s, those specific failing links will appear in `new_findings`.
+*   *Note:* Even if a page has 50 existing contrast errors from the baseline scan, they **will not** be repeated here. This bucket only contains the delta of *new* violations caused by opening the menu.
+
+#### `resolved_findings` (Things that were fixed or hidden)
+This object lists elements that were present in the previous step but are no longer active, visible, or failing in the current step. 
+*   *Example:* If Step 3 clicks `#close-modal`, all the accessibility violations that existed inside that modal will be recorded in `resolved_findings` because closing the modal successfully removed them from the active accessibility tree.
+*   *AI Agent Usage:* For AI agents trying to fix code iteratively via the MCP server, seeing violations appear in `resolved_findings` after applying a patch confirms the fix was successful.
+
+#### Audit Node Counters
+Inside both the `new_findings` and `resolved_findings` buckets, audits are grouped by Category (e.g., "Images & Media"). Each audit node contains two integer counters to help CI/CD pipelines quickly parse the diff size without iterating through the raw CSS selectors:
+*   `totalElemsNew`: The count of newly introduced elements for this specific rule during this step.
+*   `totalElemsResolved`: The count of previously existing elements for this specific rule that were cleared during this step.
+
+*Example Output Snippet:*
+```json
+{
+  "timestamp": "2026-11-14T20:15:00.000Z",
+  "global_summary": {
+    "Critical": 1,
+    "Serious": 0
+  },
+  "audit_trail": [
+    {
+      "step": 1,
+      "interaction": { "action": "navigate", "selector": "Initial Page Load" },
+      "url": "https://example.com",
+      "health_scores": { "Critical": 0, "Serious": 0 },
+      "new_findings": {},
+      "resolved_findings": {}
+    },
+    {
+      "step": 2,
+      "interaction": { "action": "click", "selector": "button#open-modal" },
+      "url": "https://example.com",
+      "health_scores": { "Critical": 1, "Serious": 0 },
+      "new_findings": {
+        "Violations & Warnings": {
+          "Forms & Controls": [
+            {
+              "auditId": "v-empty-buttons",
+              "audit": "Empty Buttons",
+              "severity": "Critical",
+              "totalElemsNew": 1,
+              "elements": [
+                {
+                  "selector": "div.modal-body > button.close",
+                  "htmlSnippet": "<button class=\"close\"> ... </button>",
+                  "issueText": "Violation",
+                  "legend": "Violation"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "resolved_findings": {}
+    }
+  ],
+  "audit_dictionary": {
+    "v-empty-buttons": {
+      "what": "Identifies buttons missing accessible names...",
+      "fix": "Provide a descriptive aria-label or inner text."
+    }
+  }
+}
+```
 
 ## Audit Library & Ruleset
 
