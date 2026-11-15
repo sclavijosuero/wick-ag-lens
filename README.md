@@ -22,12 +22,13 @@ You can install the visual extension from the Chrome Web Store: **[Install Here]
 9. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
 10. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
 11. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
-12. [Limitations & Technical Bounds](#limitations--technical-bounds)
-13. [Compatibility](#compatibility)
-14. [License](#license)
-15. [Contributing](#contributing)
-16. [Development & Testing Sites](#development--testing-sites)
-17. [Changelog](#changelog)
+12. [SPA Rendering & State Handling](#spa-rendering--state-handling)
+13. [Limitations & Technical Bounds](#limitations--technical-bounds)
+14. [Compatibility](#compatibility)
+15. [License](#license)
+16. [Contributing](#contributing)
+17. [Development & Testing Sites](#development--testing-sites)
+18. [Changelog](#changelog)
 
 ## Features Overview
 WICK-AG-Lens is built for developers, QA engineers, and AI agents. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
@@ -965,6 +966,34 @@ The PDF Mode provides a programmatic structural verification of essential PDF/UA
 *   **Document Title:** Uses a heuristic metadata scanner to search the Info dictionary for literal or hex-encoded `/Title` metadata, and verifies if `/DisplayDocTitle` is enforced (WCAG 2.4.2). 
 *   **Primary Language:** Strict Catalog property validation. Scans for the root `/Lang` ISO language code identifier to ensure speech synthesizers load the correct phonetic dictionary (WCAG 3.1.1).
 *   **Accessibility Extraction Permission:** Strict bitmask calculation. Evaluates User Security Access Permissions (`/P`). Evaluates Bit 10 (value 512, `0x200`) to ensure assistive technologies are mathematically permitted to extract text contents if the document is encrypted (Robust Principle).
+
+
+## SPA Rendering & State Handling
+
+Automated accessibility testing in modern Single Page Applications (SPAs) introduces a classic race condition: the gap between when a script *thinks* the page is ready and when the DOM has *actually* finished hydrating. WICK-AG-Lens utilizes a hybrid approach to ensure no elements are missed during rapid state changes.
+
+### Who Decides When the Page is Rendered? (The Hybrid Approach)
+It is a coordinated handoff between the browser automation and the WICK heuristic engine:
+
+*   **Action Readiness (Playwright):** Playwright decides if an element is ready to be *touched*. Before it executes a `--step "click::#submit"`, its internal engine waits for the target to exist, become visible, stop animating, and become capable of receiving pointer events. 
+*   **Audit Readiness (WICK-AG-Lens):** Once Playwright successfully interacts with the page, it passes control to the WICK engine to decide when the page is ready to be *scanned*. The engine hooks directly into an internal double-debounce event to wait for the SPA router to fully settle before evaluating the DOM.
+*   **The Failsafe:** Because some enterprise SPAs use CSS animations or detached DOM nodes that evade standard observer hooks, the CLI exposes explicit `--wait-ms` and `--wait-for-selector` flags so you can manually force Playwright to wait for specific client-side routing to finish before triggering the audit.
+
+### How the Systems Handle Fast, Sequential Clicks
+The visual extension and the headless CLI handle rapid state changes in completely different ways, optimized for their specific environments:
+
+**The Visual Extension (Asynchronous Human Interaction)**
+Humans click unpredictably. To prevent the extension from scanning half-rendered states or crashing the main thread during rapid clicks, it relies entirely on a Dual-Debounce `MutationObserver`. 
+*   If a user clicks a tab, then instantly clicks a dropdown, the DOM mutates repeatedly. 
+*   Every single mutation resets an internal 750ms countdown timer. 
+*   The WICK audit engine does not fire until the user stops clicking and the DOM remains completely quiet for that full 750ms window. It guarantees the scan only captures the final, settled layout.
+
+**The Headless CLI (Synchronous Script Execution)**
+Scripts click faster than humans, which would normally break SPAs. The CLI prevents missing elements by forcing strict, blocking sequential execution.
+*   When you pass multiple `--step` flags, they do not execute simultaneously.
+*   Step 1 executes its click. The script physically halts and waits for the debounce/settle logic to clear, and then waits for the WICK scanner to return the JSON payload.
+*   Step 2 is completely blocked from finding its target or executing its click until Step 1's accessibility delta-diff is fully calculated and recorded in the timeline. You cannot "outrun" the scanner in the CLI because the pipeline is strictly synchronous.
+
 
 ## Limitations & Technical Bounds
 
