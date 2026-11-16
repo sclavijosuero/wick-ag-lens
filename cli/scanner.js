@@ -154,6 +154,8 @@ export class WICKScanner {
     buildHierarchy(unifiedSnapshot, countKey) {
         const hierarchy = {};
         for (const audit of unifiedSnapshot) {
+            if (!audit.elements || audit.elements.length === 0) continue; // Ensure empty arrays are not added to JSON
+
             if (!hierarchy[audit.tab]) hierarchy[audit.tab] = {};
             if (!hierarchy[audit.tab][audit.category]) hierarchy[audit.tab][audit.category] = [];
             
@@ -177,12 +179,10 @@ export class WICKScanner {
     calculateHealthScores(unifiedSnapshot) {
         const scores = { Critical: 0, Serious: 0, Moderate: 0, Minor: 0, Manual: 0, Informative: 0 };
         for (const audit of unifiedSnapshot) {
-            if (audit.auditId !== 'i-focus-order') {
-                const rawSev = audit.severity || 'Informative';
-                const sev = rawSev.charAt(0).toUpperCase() + rawSev.slice(1).toLowerCase();
-                if (scores[sev] !== undefined) {
-                    scores[sev] += audit.elements.length;
-                }
+            const rawSev = audit.severity || 'Informative';
+            const sev = rawSev.charAt(0).toUpperCase() + rawSev.slice(1).toLowerCase();
+            if (scores[sev] !== undefined) {
+                scores[sev] += audit.elements.length;
             }
         }
         return scores;
@@ -193,12 +193,27 @@ export class WICKScanner {
         const currentSnapshot = await this.extractAllFrames(filters);
         const executionTimeMs = Math.round(performance.now() - startTime);
 
+        let focusOrderState = null;
+        const currentStandardSnapshot = [];
+
+        // 1. Intercept i-focus-order and build the dictionary
         for (const audit of currentSnapshot) {
             if (!this.auditDictionary[audit.auditId] && audit.info) {
                 this.auditDictionary[audit.auditId] = {
                     auditLabel: audit.auditLabel,
                     info: audit.info
                 };
+            }
+
+            if (audit.auditId === 'i-focus-order') {
+                focusOrderState = {
+                    auditId: audit.auditId,
+                    audit: audit.auditLabel,
+                    totalElems: audit.elements.length,
+                    elements: audit.elements
+                };
+            } else {
+                currentStandardSnapshot.push(audit);
             }
         }
 
@@ -208,44 +223,49 @@ export class WICKScanner {
             screenshotBase64 = buffer.toString('base64');
         }
 
-        const healthScores = this.calculateHealthScores(currentSnapshot);
-        for (const [k, v] of Object.entries(healthScores)) {
-            this.topLevelMetadata.global_summary[k] += v;
-        }
+        // 2. Fix Double-Counting: Overwrite global_summary with the current active DOM state
+        const healthScores = this.calculateHealthScores(currentStandardSnapshot);
+        this.topLevelMetadata.global_summary = { ...healthScores };
 
         const diffedNew = [];
         const diffedResolved = [];
 
+        // 3. Strict Delta-Diffing using Unique Hashes
         if (this.lastSnapshot.length === 0) {
-            for (const audit of currentSnapshot) {
-                diffedNew.push(audit);
+            for (const audit of currentStandardSnapshot) {
+                if (audit.elements.length > 0) diffedNew.push(audit);
             }
         } else {
-            for (const currAudit of currentSnapshot) {
+            for (const currAudit of currentStandardSnapshot) {
                 const baseAudit = this.lastSnapshot.find(a => a.auditId === currAudit.auditId) || { elements: [] };
                 
-                if (currAudit.auditId === 'i-focus-order') {
-                    let isChanged = currAudit.elements.length !== baseAudit.elements.length ||
-                                    currAudit.elements.some((el, i) => el.selector !== baseAudit.elements[i].selector);
-                    diffedNew.push({ ...currAudit, elements: isChanged ? currAudit.elements : [] });
-                } 
-                else {
-                    const hash = (el) => `${el.selector}|${el.issueText}`;
-                    const baseSet = new Set(baseAudit.elements.map(hash));
-                    const currSet = new Set(currAudit.elements.map(hash));
+                const hash = (el) => `${el.selector}|${el.issueText}`;
+                const baseSet = new Set(baseAudit.elements.map(hash));
+                const currSet = new Set(currAudit.elements.map(hash));
 
-                    diffedNew.push({ ...currAudit, elements: currAudit.elements.filter(el => !baseSet.has(hash(el))) });
-                    diffedResolved.push({ ...currAudit, elements: baseAudit.elements.filter(el => !currSet.has(hash(el))) }); 
+                const newElems = currAudit.elements.filter(el => !baseSet.has(hash(el)));
+                if (newElems.length > 0) {
+                    diffedNew.push({ ...currAudit, elements: newElems });
+                }
+
+                const resolvedElems = baseAudit.elements.filter(el => !currSet.has(hash(el)));
+                if (resolvedElems.length > 0) {
+                    diffedResolved.push({ ...currAudit, elements: resolvedElems });
                 }
             }
+            
             for (const baseAudit of this.lastSnapshot) {
-                if (!currentSnapshot.find(a => a.auditId === baseAudit.auditId)) {
-                    diffedNew.push({ ...baseAudit, elements: [] });
-                    if (baseAudit.auditId !== 'i-focus-order') {
+                if (!currentStandardSnapshot.find(a => a.auditId === baseAudit.auditId)) {
+                    if (baseAudit.elements.length > 0) {
                         diffedResolved.push({ ...baseAudit, elements: baseAudit.elements });
                     }
                 }
             }
+        }
+
+        const pageStateMaps = {};
+        if (focusOrderState) {
+            pageStateMaps.focus_order = focusOrderState;
         }
 
         const logEntry = {
@@ -255,11 +275,13 @@ export class WICKScanner {
             execution_time_ms: executionTimeMs,
             screenshot_base64: screenshotBase64,
             health_scores: healthScores,
+            page_state_maps: Object.keys(pageStateMaps).length > 0 ? pageStateMaps : undefined,
             new_findings: this.buildHierarchy(diffedNew, 'totalElemsNew'),
             resolved_findings: this.buildHierarchy(diffedResolved, 'totalElemsResolved')
         };
 
-        this.lastSnapshot = currentSnapshot;
+        // Note: Only the standard (non-focus-order) snapshot is cached for the next step's diff
+        this.lastSnapshot = currentStandardSnapshot; 
         this.auditTrail.push(logEntry);
         return logEntry;
     }

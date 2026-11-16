@@ -1,12 +1,12 @@
 {
-  "name": "wick-ag-lens-cli",
+  "name": "wick-ag-lens",
   "version": "3.0.0",
-  "description": "Headless CLI and MCP Server for WICK-AG-Lens",
-  "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "mcp": "node mcp-server.js"
+  "description": "Headless Accessibility Inspector & MCP Server",
+  "author": "Sebastian Clavijo Suero",
+  "license": "MIT",
+  "bin": {
+    "wick-ag-lens": "./index.js",
+    "wick-mcp": "./mcp-server.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.1",

@@ -1,23 +1,39 @@
+// To run the build.js:
+// >  node build.js
+// ------------------------------------------
+
 const fs = require('fs');
 const path = require('path');
 
-const CORE_DIR = path.join(__dirname, 'core');
-const EXT_CORE_DIR = path.join(__dirname, 'extension', 'core');
+const sourceDir = path.join(__dirname, 'core');
+const extensionDest = path.join(__dirname, 'extension', 'core');
+const cliDest = path.join(__dirname, 'cli', 'core');
 
-// Clean and recreate the extension/core directory
-if (fs.existsSync(EXT_CORE_DIR)) {
-    fs.rmSync(EXT_CORE_DIR, { recursive: true, force: true });
-}
-fs.mkdirSync(EXT_CORE_DIR, { recursive: true });
-
-// Copy all core files into the extension artifact
-fs.readdirSync(CORE_DIR).forEach(file => {
-    const srcFile = path.join(CORE_DIR, file);
-    const destFile = path.join(EXT_CORE_DIR, file);
-    if (fs.statSync(srcFile).isFile()) {
-        fs.copyFileSync(srcFile, destFile);
-        console.log(`[Build] Copied ${file} to extension/core/`);
+function buildTarget(src, dest, targetName) {
+  try {
+    // 1. Clean the destination directory if it already exists
+    if (fs.existsSync(dest)) {
+      fs.rmSync(dest, { recursive: true, force: true });
     }
-});
 
-console.log('✅ WICK-AG-Lens v3.0.0 Build Complete. The /extension folder is ready for the Web Store.');
+    // 2. Create the destination directory structure
+    fs.mkdirSync(dest, { recursive: true });
+
+    // 3. Copy the files recursively (Requires Node.js 16.7.0+)
+    fs.cpSync(src, dest, { recursive: true });
+    
+  } catch (err) {
+    console.error(`❌ [Error] Failed to build ${targetName}:`, err);
+    process.exit(1);
+  }
+}
+
+console.log('Starting WICK-AG-Lens build process...\n');
+
+buildTarget(sourceDir, extensionDest, 'Extension');
+buildTarget(sourceDir, cliDest, 'CLI');
+
+// Final Success Messages
+console.log('✅ WICK-AG-Lens v3.0.0 Build Complete.');
+console.log('   📦 The /extension folder is ready for the Chrome Web Store.');
+console.log('   🚀 The /cli folder is ready for npm publishing.');

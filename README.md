@@ -131,19 +131,39 @@ The extension's DevTools panel fully respects your system and browser theme pref
 
 ## Monorepo Architecture & Building
 To maintain a single source of truth and keep the Chrome Web Store artifact clean of heavy Node dependencies (like Playwright), this project utilizes a lightweight monorepo architecture. 
+
 *   `/core`: The central heuristic logic (`a11y-config.js` and `shared-utils.js`).
 *   `/extension`: The visual Chrome extension artifact.
 *   `/cli`: The Node.js Playwright environment and MCP server.
 
-### Building the Chrome Extension Locally
-Whenever you make changes to the heuristic rules in the `/core` folder, you must build the extension before Chrome can use it.
-1. Run the build script from the root directory to copy the core logic into the extension package:
-   ```bash
-   node build.js
-   ```
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. Toggle **Developer mode** on (top right).
-4. Click **Load unpacked** and select the **`extension`** folder.
+### 1. The Dual Build Process
+Whenever you make changes to the heuristic rules in the root `/core` folder, you must build the project to propagate those changes to the specific environments.
+
+Run the build script from the root directory:
+```bash
+node build.js
+```
+This script automatically copies the `/core` logic into both `/extension/core` (for the Chrome extension) and `/cli/core` (for the headless package).
+
+### 2. Version Control (Gitignore)
+To prevent Git from tracking duplicate files and bloating the repository history, the copied core folders are explicitly ignored. If you are developing locally, ensure your root `.gitignore` contains:
+```text
+/extension/core/
+/cli/core/
+/cli/node_modules/
+```
+*Note: Only the root `/core` folder is ever committed to GitHub.*
+
+### 3. Publishing & Distribution
+**Publishing the Extension:**
+Once built, the `/extension` folder is completely standalone. You can load it locally via `chrome://extensions/` (Developer Mode) or zip it directly for the Chrome Web Store.
+
+**Publishing the CLI & MCP Server (npm):**
+The Headless CLI and MCP Server are distributed as an npm package. To publish a new version:
+1. Ensure you have run `node build.js` in the root so the CLI has the latest core engine.
+2. Navigate into the CLI directory: `cd cli`
+3. Publish to the registry: `npm publish`
+Users and AI agents can then execute the tool on the fly using `npx wick-ag-lens`.
 
 ## Visual Extension Installation
 Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
