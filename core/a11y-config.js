@@ -1134,7 +1134,7 @@ window.A11Y_CONFIG = {
                             ],
                             info: {
                                 what: "Computes the exact <code>width</code> and <code>height</code> pixel boundaries of interactive elements, color-coding thresholds.",
-                                why: "<strong>Undersized targets prevent users with fine motor impairments</strong> (like hand tremors) from activating controls accurately without accidental clicks. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html' target='_blank'>WCAG 2.5.8: Target Size (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size.html' target='_blank'>WCAG 2.5.5: Target Size (Enhanced)</a>",
+                                why: "<strong>Undersized targets prevent users with fine motor impairments</strong> (like hand tremors) from activating controls accurately without accidental clicks. <br><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html' target='_blank'>WCAG 2.5.8: Target Size (Minimum)</a><br><a href='https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html' target='_blank'>WCAG 2.5.5: Target Size (Enhanced)</a>",
                                 fix: "Use CSS padding or explicit width/height declarations to expand the clickable footprint of the element to meet minimum thresholds (24x24px for AA, 44x44px for AAA)."
                             },
                             customHighlight: (el, drawHighlight) => {
