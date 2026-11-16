@@ -124,6 +124,7 @@
   th, td { text-align: left; padding: 7px 12px; border-top: 1px solid var(--border); vertical-align: top; }
   th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--panel-2); }
   tr.row { cursor: pointer; }
+  tr.row.audit-start td { border-top: 4px solid var(--muted); }
   tr.row:hover td { background: var(--panel-2); }
   tr.row[aria-expanded="true"] td { background: var(--accent-soft); }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
@@ -425,7 +426,9 @@
       h('div', { class: 'head' },
         h('h3', {}, `Step ${d.stepNo} · ${step.interaction?.action || ''}`),
         h('span', { class: 'mono' }, step.interaction?.selector || ''),
-        step.execution_time_ms != null ? h('span', { class: 'chip' }, `${step.execution_time_ms} ms`) : null),
+        step.execution_time_ms != null ? h('span', {
+          class: 'chip', title: 'Time spent running the audits once the page was considered stable. It does not include page load or waiting for the page to settle.',
+        }, `Audits ran in ${step.execution_time_ms} ms`) : null),
       step.url ? h('div', { class: 'head url' }, step.url) : null,
       banner,
       h('div', { class: 'viewer' }, h('div', { class: 'viewer-wrap' }, img)));
@@ -514,8 +517,10 @@
         ? [h('span', { class: 'chip re' }, '⟲ Reappeared'), h('div', { class: 'hist' }, `Earlier: ${pastText(r)}`)]
         : 'First time'));
 
+      // thick divider when a different audit starts (not for the focus-order map: one audit only)
+      const newAudit = !isMap && i > 0 && r.auditId !== rows[i - 1].auditId;
       tbody.append(h('tr', {
-        class: 'row', tabindex: 0, 'aria-expanded': open ? 'true' : 'false',
+        class: `row${newAudit ? ' audit-start' : ''}`, tabindex: 0, 'aria-expanded': open ? 'true' : 'false',
         onclick: () => toggle(i),
         onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(i); } },
       }, cells));
