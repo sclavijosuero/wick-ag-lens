@@ -2,8 +2,33 @@
   "name": "wick-ag-lens",
   "version": "3.0.0",
   "description": "Headless Accessibility Inspector & MCP Server",
+  "type": "module",
   "author": "Sebastian Clavijo Suero",
   "license": "MIT",
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "mcp",
+    "model-context-protocol",
+    "playwright",
+    "cli",
+    "audit",
+    "agent-browser",
+    "agent-skills"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sclavijosuero/wick-ag-lens.git",
+    "directory": "cli"
+  },
+  "homepage": "https://github.com/sclavijosuero/wick-ag-lens#readme",
+  "bugs": {
+    "url": "https://github.com/sclavijosuero/wick-ag-lens/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "bin": {
     "wick-ag-lens": "./index.js",
     "wick-mcp": "./mcp-server.js"
@@ -14,8 +39,12 @@
     "scanner.js",
     "cli-adapter.js",
     "core/",
-    "skills/"
+    "skills/",
+    "README.md"
   ],
+  "scripts": {
+    "prepublishOnly": "cd .. && node build.js"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.1",
     "commander": "^11.1.0",

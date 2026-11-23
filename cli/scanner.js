@@ -188,7 +188,7 @@ export class WICKScanner {
         return scores;
     }
 
-    async generateStepData(interactionObj, filters, includeScreenshot) {
+    async generateStepData(interactionObj, filters, includeScreenshot, screenshotQuality = 70) {
         const startTime = performance.now();
         const currentSnapshot = await this.extractAllFrames(filters);
         const executionTimeMs = Math.round(performance.now() - startTime);
@@ -219,7 +219,9 @@ export class WICKScanner {
 
         let screenshotBase64 = null;
         if (includeScreenshot) {
-            const buffer = await this.page.screenshot({ type: 'jpeg', quality: 60 });
+            const parsedQuality = Number.isFinite(Number(screenshotQuality)) ? Number(screenshotQuality) : 70;
+            const quality = Math.min(100, Math.max(1, Math.round(parsedQuality)));
+            const buffer = await this.page.screenshot({ type: 'jpeg', quality });
             screenshotBase64 = buffer.toString('base64');
         }
 
@@ -286,7 +288,7 @@ export class WICKScanner {
         return logEntry;
     }
 
-    async runBaseline(url, filters = {}, includeScreenshot = false, timingOpts = {}) {
+    async runBaseline(url, filters = {}, includeScreenshot = false, timingOpts = {}, screenshotQuality = 70) {
         if (this.page.url() !== url) {
             await this.navigateSafely(url);
         }
@@ -324,11 +326,12 @@ export class WICKScanner {
         return await this.generateStepData(
             { action: "navigate", selector: "Initial Page Load" }, 
             filters, 
-            includeScreenshot
+            includeScreenshot,
+            screenshotQuality
         );
     }
 
-    async interactAndAudit(step, filters = {}, includeScreenshot = false) {
+    async interactAndAudit(step, filters = {}, includeScreenshot = false, screenshotQuality = 70) {
         if (!this.page) throw new Error("Browser not initialized.");
 
         const waitForAuditComplete = this.page.evaluate(() => {
@@ -353,7 +356,8 @@ export class WICKScanner {
         return await this.generateStepData(
             interactionObj, 
             filters, 
-            includeScreenshot
+            includeScreenshot,
+            screenshotQuality
         );
     }
 

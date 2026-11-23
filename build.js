@@ -40,3 +40,4 @@ buildTarget(skillsSourceDir, cliSkillsDest, 'CLI Skills');
 console.log('✅ WICK-AG-Lens v3.0.0 Build Complete.');
 console.log('   📦 The /extension folder is ready for the Chrome Web Store.');
 console.log('   🚀 The /cli folder (with /core and /skills) is ready for npm publishing.');
+console.log('   🚀 The /cli folder (with /core and /skills/wick-ag-lens/SKILL.md) is ready for npm publishing.');

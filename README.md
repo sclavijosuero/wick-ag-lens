@@ -1,144 +1,65 @@
-# WICK-AG-Lens: Accessibility Inspector & MCP Server
+# WICK-AG-Lens: Accessibility Inspector & Automation Suite
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA, now expanded into a full monorepo suite. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, a **Headless Node.js CLI** for automated testing, and an **MCP (Model Context Protocol) Server** (with native session handoff support for Playwright and **`agent-browser`**, plus a bundled **AI Agent Skill**) to empower AI agents with real-time DOM accessibility diffing.
+WICK-AG-Lens is an open-source, multi-environment web accessibility inspection suite built for Web Developers, QA Engineers, and AI Agents. Powered by a single shared heuristic rules engine, it operates across:
 
-Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a Simulation Mode and a PDF Gatekeeper Auditing engine.
+1. **Chrome DevTools Extension ([`extension/README.md`](./extension/README.md)):** Generates real-time visual overlays, focus-order SVG paths, X-Ray clipped element previews, disability simulations, and PDF gatekeeper audits directly inside Chrome DevTools.
+2. **Headless CLI, MCP Server & `agent-browser` Integration ([`cli/README.md`](./cli/README.md)):** Runs deterministic Playwright accessibility audits in CI/CD pipelines and equips AI agents (Claude Code, Claude Desktop, Cursor, Windsurf, Copilot) with real-time DOM delta-diffing, multi-step authentication, `agent-browser` session handoffs, and a token-efficient Agent Skill.
 
-You can install the visual extension from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
+Designed for modern web applications, WICK-AG-Lens features a real-time sync engine that automatically re-audits the DOM when new elements are injected or revealed, seamlessly handling Single Page Application (SPA) routing and client-side state transitions.
 
 &nbsp;
 ![WICK-AG-Lens: Accessibility Inspector overview features](extension/assets/images/overview.png)
+[![npm version](https://img.shields.io/npm/v/wick-ag-lens.svg)](https://www.npmjs.com/package/wick-ag-lens)
 &nbsp;
+
+---
+
+## Documentation Suite
+
+| Guide | Target Audience | Covers |
+| :--- | :--- | :--- |
+| **[Root `README.md`](./README.md)** *(This File)* | All Users & Contributors | Suite overview, monorepo architecture, SPA rendering internals, the 55-rule Audit Library & Search Predicates, system compatibility, and changelog. |
+| **[Chrome Extension Guide](./extension/README.md)** | Web Developers & Manual QA | Chrome Web Store installation, DevTools UI controls, Disability Simulation Mode, PDF Gatekeeper Mode, X-Ray vision, and extension-specific bounds. |
+| **[CLI, MCP & AI Guide](./cli/README.md)** | Automation QA, DevOps & AI Agents | Headless CLI flags & examples, 5 auth strategies, MCP Server tools, `agent-browser` integration, bundled `SKILL.md`, and JSON delta-diff schema. |
+
+---
 
 ## Table of Contents
 1. [Features Overview](#features-overview)
-2. [Core Features & Usage](#core-features--usage)
-3. [Monorepo Architecture & Building](#monorepo-architecture--building)
-4. [Visual Extension Installation](#visual-extension-installation)
-5. [Headless CLI Automation](#headless-cli-automation)
-6. [MCP Server & AI Agent Integration](#mcp-server--ai-agent-integration)
-7. [CLI & MCP JSON Output Format](#cli--mcp-json-output-format)
-8. [Audit Library & Ruleset](#audit-library--ruleset)
-9. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
-10. [Disability Simulation Engine (Logic & Assumptions)](#disability-simulation-engine-logic--assumptions)
-11. [PDF Accessibility Engine (Logic & Assumptions)](#pdf-accessibility-engine-logic--assumptions)
-12. [SPA Rendering & State Handling](#spa-rendering--state-handling)
-13. [Limitations & Technical Bounds](#limitations--technical-bounds)
-14. [Compatibility](#compatibility)
-15. [License](#license)
-16. [Contributing](#contributing)
-17. [Development & Testing Sites](#development--testing-sites)
-18. [Changelog](#changelog)
+2. [Monorepo Architecture & Building](#monorepo-architecture--building)
+3. [SPA Rendering & State Handling](#spa-rendering--state-handling)
+4. [Audit Library & Ruleset](#audit-library--ruleset)
+5. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
+6. [Shared Limitations & Technical Bounds](#shared-limitations--technical-bounds)
+7. [Compatibility](#compatibility)
+8. [Development & Testing Sites](#development--testing-sites)
+9. [License](#license)
+10. [Contributing](#contributing)
+11. [Changelog](#changelog)
+
+---
 
 ## Features Overview
-WICK-AG-Lens is built for developers, QA engineers, and AI agents. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
 
-*   **Headless CLI, AI MCP Server & `agent-browser` Support:** Automate your accessibility testing via Playwright, connect AI agents directly via the MCP Server, or pair with Vercel's token-efficient `agent-browser` CLI and our bundled **AI Agent Skill (`SKILL.md`)** for rapid UI scouting, encrypted credential vault / live session handoffs, and real-time structural DOM delta diffing. *(New in v3.0.0)*
-*   **Real-Time SPA & DOM Sync:** Automatically detects Single Page Application (SPA) client-side routing and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time without requiring a manual refresh.
-*   **Comprehensive Audits:** Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.
-*   **Disability Simulation Engine:** Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout. *(New in v2.4.0)*
-*   **PDF Gatekeeper Auditing:** Zero-dependency binary scanner to evaluate critical structural WCAG and PDF/UA prerequisites (Tags, Title, Language, Extraction Permissions) directly from the active tab. *(New in v2.5.0)*
-*   **WCAG Criteria Filtering:** Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).
-*   **Visual Highlighting & Focus Tracing:** Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.
-*   **X-Ray Vision for Clipped Elements:** Renders hidden or off-screen interactive elements (like carousel slides) with a ghosted hatched pattern so you can visualize hidden focus traps without breaking the layout.
-*   **Interactive Info Panels & Code Previews:** Clicking any on-page badge opens a detailed panel explaining the issue, displaying a sanitized HTML snippet of the target element, and providing actionable remediation steps.
-*   **Precision Element Locator:** Use the crosshair action inside the DevTools details modal to instantly scroll an affected element into view, marking it with a highly visible pulsating ring.
-*   **One-Click Reporting:** Copy formatted text reports of all active audits, their findings, and direct remediation instructions to your clipboard for easy ticket creation or bug tracking.
-*   **Shadow DOM & Iframe Support:** Pierces open web components to evaluate encapsulated markup and fully traverses and aggregates data across iframes.
+* **Unified 55-Rule Heuristic Engine:** Evaluates actionable violations and structural accessibility patterns across WCAG 2.0, 2.1, and 2.2 at conformance levels A, AA, and AAA—guaranteeing identical results between visual browser debugging and headless CI/AI scans.
+* **Visual Chrome DevTools Extension:** Highlights issues on-page with interactive code-preview toasts, cross-iframe focus order tracing, X-Ray hatched overlays for clipped elements, Disability Simulation filters, and a binary PDF Gatekeeper scanner. *(See [`extension/README.md`](./extension/README.md))*
+* **Headless CLI, AI MCP Server & `agent-browser` Support:** Automates multi-step SPA journeys in CI/CD via Playwright, exposes stateful delta-diff tools (`audit_baseline`, `interact_and_diff`, `get_audit_trail`) over MCP, pairs with `agent-browser` for low-token scouting and encrypted credential vault handoffs, and includes a bundled `SKILL.md`. *(See [`cli/README.md`](./cli/README.md))*
+* **Real-Time SPA & DOM Sync:** Detects client-side history routing and dynamic DOM mutations (modals, drawers, lazy-loaded components) to re-evaluate the accessibility tree without manual refreshes.
+* **WCAG Criteria Filtering:** Dynamically restricts executed audits and badge outputs by specific WCAG versions (`2.0`, `2.1`, `2.2`) and conformance levels (`A`, `AA`, `AAA`).
+* **Shadow DOM & Cross-Iframe Traversal:** Pierces open Web Components and recursively traverses same-origin and nested iframes to aggregate unified accessibility findings.
 
-## Core Features & Usage
-
-### 1. WCAG Filtering & Audit Controls (Inspect Mode)
-The inspector categorizes 55 heuristic rulesets across two primary tabs: **Violations & Warnings** (actionable failures) and **Informative & Structure** (valid page architecture and semantic patterns). 
-
-*   **Version & Level Filters:** Dynamically restrict the visible audits using the Version (2.0, 2.1, 2.2) and Level (A, AA, AAA) filters. Toggling these checkboxes instantly redraws the page highlights to strictly match the selected compliance criteria.
-*   **Master Toggles & Clean UI:** Use the Master Toggle at the top of each tab to activate all audits instantly, and use the category chevron buttons to collapse groups for a clutter-free DevTools workspace.
-*   **Inline Information:** Clicking the `[ i ]` icon next to any audit expands an inline panel detailing exactly *What it highlights*, *Why it's important*, and *How to fix it*, complete with links directly to the official W3C WCAG documentation.
-
-![WCAG Criteria Filtering, Master Toggles, and Inline Info](extension/assets/images/wcag-filtering.png)
-
-### 2. Disability Simulation Engine (Simulate Mode)
-Switch from the standard "Inspect Mode" into "Simulate Mode" using the top header toggle to visually alter the host page, allowing developers to experience structural boundaries and contrast failures firsthand.
-*   **Color Blindness:** Applies strict SVG `feColorMatrix` transformations to emulate Achromatopsia, Protanopia, Deuteranopia, and Tritanopia.
-*   **Impaired Vision:** Utilizes interactive intensity sliders to dynamically emulate Double Vision (Diplopia), Loss of Contrast, Yellowing (Aging Lens), Cataracts, and Field of Vision Loss (Central Macular and Peripheral Tunnel parameters).
-*   **Accuracy Indicators:** The UI explicitly tags simulations as *Strict Simulation* (mapped to established physiological math) or *Approximate* (combinatorial CSS filters).
-
-Color Blindness:
-
-![Disability Simulation Engine](extension/assets/images/disability-simulation-blindness.png)
-
-Impaired Vision:
-
-![Disability Simulation Engine](extension/assets/images/disability-simulation-impaired.png)
-
-### 3. PDF Gatekeeper Auditing (PDF Mode)
-Analyze raw PDF binary streams directly in the browser. Since Chrome's native PDF viewer is securely isolated and cannot be visually overlaid, this mode programmatically inspects the Document Catalog and Metadata dictionaries via an ArrayBuffer stream.
-*   **Auto-Scan Verification:** Navigate to any direct PDF URL and toggle "Scan Active PDF" to execute an instant structural audit covering Tags, Titles, Language, and Extraction Permissions.
-*   **View Technical Details Modal:** Click the details icon on any gatekeeper check to open a comprehensive modal. This displays the explicit Evaluation Finding (Pass/Fail), the precise Technical Stream Inspection output (e.g., `/MarkInfo << /Marked true >>`), Scope Guidance, and specific Remediation steps across Adobe Acrobat, Microsoft Word, and InDesign.
-*   **Global Clipboard Export:** A dedicated `Copy Tab Report` (📋) button allows you to instantly export all 4 PDF gatekeeper checks, their statuses, technical outputs, and software-specific remediation instructions directly to your clipboard.
-*   **Accuracy Identifiers:** Checks are clearly labeled with their confidence interval (e.g., *High Confidence* for strict catalog validation vs. *Moderate Confidence* for heuristic metadata scanning).
-
-PDF Gatekeeper Auditing:
-
-![PDF Analysis Engine](extension/assets/images/pdf-analysis-engine.png)
-
-Technical Details & Remediation:
-
-![Technical Details and Remediation](extension/assets/images/pdf-analysis-details.png)
-
-### 4. Interactive Info Panels & Code Previews
-Clicking on any highlighted badge directly on the page summons a detailed DevTools-style toast notification. This panel provides immediate context for the audit, explaining *what* was flagged, *why* it creates a barrier for users, and **how to fix it** (utilizing clean, collapsible native HTML accordions to keep the UI compact and prevent screen clutter).
-
-Crucially, the panel extracts a clean, extension-sanitized **HTML Snippet** of the target element, styled with VS Code dark-theme syntax highlighting, alongside the precise **CSS Selector**. Dedicated "Copy" buttons (📋) allow you to instantly grab the code or selector for bug reports without opening the native Elements panel.
-
-![Interactive Info Panel with HTML Snippet Preview](extension/assets/images/info-panel-preview.png)
-
-### 5. View Elements List & Precision Locator
-For audits that return multiple findings, clicking the "View Elements" (list icon) button inside the DevTools panel opens a comprehensive details modal displaying a hierarchically sorted list of every flagged element.
-
-*   **Precision Locator:** Clicking the target crosshair button next to any item will smoothly scroll the browser directly to that specific element on the page, flashing a bright pulsating focus ring to help you locate it instantly—even if it is deeply nested inside a complex UI or an embedded iframe.
-*   **Export Modal List:** A dedicated `Copy All` button allows you to copy the exact list of isolated elements, their labels, and their CSS selectors directly to your clipboard.
-
-![View Elements List and Locator Modal](extension/assets/images/elements-locator.png)
-
-### 6. Comprehensive Tab Reporting
-To streamline QA ticketing, WICK-AG-Lens features a global clipboard export function. Clicking the clipboard icon (📋) at the top of either the Violations or Informative tabs generates a fully formatted text report of your current analysis.
-*   The report only exports data for **actively toggled audits** that pass your current WCAG filters.
-*   It organizes the output by Category and Rule, explicitly logging `(No matching elements found)` for active audits that currently pass.
-*   Crucially, the exported report **automatically includes explicit, actionable Remediation steps** for every flagged rule, making it effortless to paste direct solutions into Jira or bug tracking tickets for your developers.
-
-![One-Click Clipboard Reporting Output](extension/assets/images/clipboard-report.png)
-
-### 7. Real-Time SPA & Dynamic DOM Sync
-WICK-AG-Lens features a Dual-Debounce MutationObserver to handle modern Single Page Applications (React, Vue, Angular) and dynamic content seamlessly. 
-*   **SPA Navigation (Hard Wipe):** Instantly detects URL changes via the history API, clearing old highlights and triggering a fresh audit to prevent stale ghost boxes from floating over new views.
-*   **Dynamic DOM Mutations (Soft Update):** Listens for injected elements (e.g., lazy-loaded content) as well as state changes on pre-rendered components (e.g., toggling `display: none` or `aria-hidden` on modals and dropdowns). Once the DOM settles, it silently runs a background rescan to attach new highlights and update holistic contexts without flashing the screen.
-
-![Real-Time SPA Sync automatically highlighting a newly opened dropdown](extension/assets/images/spa-sync.gif)
-
-### 8. X-Ray Vision for Clipped Elements
-When elements are pushed off-screen or hidden inside `overflow: hidden` containers (like carousel slides or scrollable panels), the extension detects their clipping bounds. Instead of ignoring them or drawing misleading boxes, WICK-AG-Lens renders these hidden elements using a specialized "X-Ray" ghosted hatched pattern. This allows auditors to visualize the exact footprint of hidden interactive elements and invisible focus traps without breaking the page layout.
-
-![X-Ray Vision highlighting clipped carousel elements](extension/assets/images/xray-vision.png)
-
-### 9. Embedded Offline Documentation
-Accessibility auditing shouldn't require constantly hunting for internet resources. WICK-AG-Lens includes a fully embedded, offline-ready reference guide. Clicking the book icon in the extension header opens a comprehensive modal detailing every single rule, its WCAG mapping, technical limitations, and precise heuristic logic, ensuring your QA team always has context at their fingertips.
-
-![Embedded Offline Documentation](extension/assets/images/embedded-doc.png)
-
-### 10. Native Dark Mode Support
-The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
+---
 
 ## Monorepo Architecture & Building
 
-> **Note for End-Users:** This section describes the internal repository structure of `wick-ag-lens` for contributors and maintainers. If you are using the Chrome extension, CLI, MCP server, or `agent-browser` to audit your own applications, you do **not** need to run these build steps—skip directly to [Visual Extension Installation](#visual-extension-installation), [Headless CLI Automation](#headless-cli-automation), or [MCP Server & AI Agent Integration](#mcp-server--ai-agent-integration).
+> **Note for End-Users:** This section describes the internal repository structure of `wick-ag-lens` for contributors and maintainers. If you are using the Chrome extension, CLI, MCP server, or `agent-browser` to audit your own applications, you do **not** need to run these build steps—skip directly to [Visual Extension Installation](./extension/README.md) or [Headless CLI Automation](./cli/README.md).
 
 To maintain a single source of truth across all execution environments—and keep the Chrome Web Store extension clean of heavy Node dependencies like Playwright—this repository uses a lightweight monorepo architecture. The browser extension, Headless CLI, MCP Server, and `agent-browser` workflows all run against the exact same underlying heuristic ruleset:
 
--   `/core`: The central heuristic rules and DOM traversal engine (`a11y-config.js` and `shared-utils.js`).
--   `/extension`: The visual Chrome DevTools extension artifact.
--   `/cli`: The Node.js Playwright runner, Headless CLI (`index.js`), and MCP Server (`mcp-server.js`) used for automated pipelines and `agent-browser` handoffs.
--   `/skills`: Portable AI Agent Skills (`skills/wick-ag-lens/SKILL.md`) for token-efficient browser and accessibility orchestration.
+* `/core`: The central heuristic rules and DOM traversal engine (`a11y-config.js` and `shared-utils.js`).
+* `/extension`: The visual Chrome DevTools extension artifact.
+* `/cli`: The Node.js Playwright runner, Headless CLI (`index.js`), and MCP Server (`mcp-server.js`) used for automated pipelines and `agent-browser` handoffs.
+* `/skills`: Portable AI Agent Skills (`skills/wick-ag-lens/SKILL.md`) for token-efficient browser and accessibility orchestration.
 
 ### 1. The Monorepo Build Process (Contributors Only)
 Whenever changes are made to the heuristic rules in the root `/core` folder or the agent instructions in `/skills`, the repository must be built to propagate those updates into the target packages.
@@ -166,640 +87,44 @@ To prevent Git from tracking duplicate build artifacts and bloating repository h
 Once built, the `/extension` folder is completely standalone. It can be loaded locally via `chrome://extensions/` (Developer Mode) or zipped directly for the Chrome Web Store.
 
 **Publishing the CLI, MCP Server & Bundled Skill (npm):**
-The Headless CLI, MCP Server, and bundled `skills/` directory are distributed together as a single npm package. To publish a new release:
+The Headless CLI, MCP Server, and bundled `skills/` directory are distributed together as a single npm package (and `cli/package.json` includes a `prepublishOnly` hook that automatically runs `node ../build.js`). To publish a new release:
 1. Run `node build.js` in the repository root so `/cli` contains the latest `/core` engine and `/skills` directory.
 2. Navigate into the CLI directory: `cd cli`
-3. Publish to the registry: `npm publish`
+3. *(Optional)* Preview the exact files that will be bundled into the npm tarball: `npm pack --dry-run`
+4. Publish to the registry: `npm publish`
 
 End-users and AI agents can then run the CLI (`npx wick-ag-lens`), launch the MCP server (`npx -y --package=wick-ag-lens wick-mcp`), or copy the bundled skill from `node_modules/wick-ag-lens/skills/wick-ag-lens/SKILL.md` into their own projects.
-## Visual Extension Installation
-Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
-
-1. Navigate to the [WICK-AG-Lens page on the Chrome Web Store](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd).
-2. Click the **Add to Chrome** button located in the top right corner of the page.
-3. A confirmation browser dialog will appear. Click **Add extension** to grant the necessary permissions for the tool to inspect pages.
-4. You will receive a message saying WICK-AG-Lens has been added to Chrome.
-5. Once installed, open your Chrome Developer Tools (`F12` or `Ctrl+Shift+I` on Windows/Linux, `Cmd+Option+I` on Mac).
-6. Locate the **WICK-AG-Lens** tab in the top navigation bar of the DevTools panel. Note: You may need to click the `>>` icon if your DevTools window is narrow.
-
-## Headless CLI Automation
-The CLI utilizes Playwright to inject the WICK-AG-Lens core heuristics into a headless browser, allowing you to run audits in your terminal or CI/CD pipelines.
-
-### Setup
-Navigate to the CLI directory and install the dependencies (including the Playwright browser binaries):
-```bash
-cd cli
-npm install
-npx playwright install chromium
-```
-
-### CLI Usage
-Run a baseline audit against any public URL:
-```bash
-node index.js audit https://example.com
-```
-
-### CLI Options
-You can pass several arguments to customize the run:
--   `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`). If omitted, all available audits (both **Violations & Warnings** and **Informative & Structure**) are evaluated by default.
--   `--wcag-version <versions>`: Comma-separated list to strictly filter executed audits by WCAG version (e.g., `2.0,2.1,2.2`). If omitted, all supported versions are evaluated by default.
--   `--wcag-level <levels>`: Comma-separated list to strictly filter executed audits by WCAG conformance level (e.g., `A,AA,AAA`). If omitted, all supported levels are evaluated by default.
--   `-w, --width <pixels>`: Sets the viewport width to test responsive layouts (defaults to `1280`).
--   `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to `800`).
--   `-s, --screenshot`: Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output.
--   `--wait-ms <milliseconds>`: Explicit pause duration in milliseconds after `networkidle` to let client-side routers or slow animations settle.
--   `--wait-for-selector <selector>`: Halts audit execution until a specific CSS selector mounts in the DOM.
--   `--step <step>`: Executable post-baseline interaction step (e.g., `click::#open-modal`, `fill::#email::invalid`). Can be repeated to build a multi-step user journey; each step captures a full accessibility delta diff.
--   `--login-url <url>`: URL to navigate to for authentication before running the audit.
--   `-u, --user <user>`: Shorthand username for standard 2-field login forms.
--   `-p, --pass <pass>`: Shorthand password for standard 2-field login forms.
--   `--auth-step <step>`: Executable pre-audit auth pipeline step (e.g., `fill::#company::Acme`). Can be repeated.
--   `--auth-script <path>`: Path to a custom JavaScript module exporting an async login function.
--   `-i, --interactive`: Launches a visible browser for 30 seconds to manually solve Captchas/MFA or Cookie banners.
--   `-a, --auth-state <path>`: Path to save (or load) a Playwright storage state JSON file (cookies/localStorage) — compatible with Playwright and `agent-browser state save`.
 
 ---
 
-### Step Actions & Keyboard Reference (`--step` & `--auth-step`)
-Both `--auth-step` (which executes silently before the baseline scan to establish a session) and `--step` (which executes sequentially after the baseline scan and records an accessibility diff per step) use the `action::target::value` format.
+## SPA Rendering & State Handling
 
-#### Supported Actions
-| Action | Syntax | Behavior |
-| :--- | :--- | :--- |
-| **`click`** | `click::<selector>` | Clicks the target element (buttons, links, tabs, accordions, checkboxes). |
-| **`fill`** | `fill::<selector>::<value>` | Clears an input or textarea and enters `<value>`, firing standard DOM input events. |
-| **`select`** | `select::<selector>::<value>` | Chooses an `<option>` inside a native `<select>` element by option value or label. |
-| **`press`** | `press::<selector>::<key>` | Focuses `<selector>` and dispatches `<key>`. Use `active` as the selector (`press::active::<key>`) to send keystrokes to the currently focused element without resetting tab order. |
-| **`hover`** | `hover::<selector>` | Moves the cursor over `<selector>` to reveal tooltips, dropdowns, or hover states. |
-| **`wait`** | `wait::<ms_or_selector>` | Waits for a duration in milliseconds (`wait::1000`) or until a CSS selector appears (`wait::.toast-alert`). |
+Automated and visual accessibility testing in modern Single Page Applications (SPAs) introduces a classic race condition: the gap between when an action occurs and when the DOM has *actually* finished hydrating. WICK-AG-Lens uses a coordinated architecture across both its visual extension and headless runner to ensure no elements are missed during rapid state changes.
 
-#### Supported Keys for `press`
-The `press` action accepts standard **W3C `KeyboardEvent.key`** names (case-sensitive):
-- **Navigation & Focus:** `Enter`, `Tab`, `Escape`, `Space`, `Backspace`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`
-- **Directional Arrows:** `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
-- **Function Keys:** `F1` – `F12`
-- **Characters & Digits:** `a`–`z`, `A`–`Z`, `0`–`9`
-- **Modifier Combinations (joined with `+`):** `Shift+Tab`, `Control+a`, `Alt+ArrowDown`, `Meta+Enter` *(Supported modifiers: `Shift`, `Control`, `Alt`, `Meta`, `ControlOrMeta`)*
+### Who Decides When the Page is Rendered? (The Hybrid Approach)
+* **Action Readiness (Playwright / User):** In headless CLI and MCP workflows, Playwright waits for the target element to exist, become visible, stop animating, and receive pointer events before executing an action. In the browser, the human visually assesses readiness.
+* **Audit Readiness (WICK-AG-Lens):** Once an interaction completes, control passes to the WICK engine to decide when the DOM is ready to be *scanned*. The engine hooks into an internal double-debounce mechanism to wait for client-side routers and dynamic mutations to settle before evaluating the DOM.
+* **The Failsafe (Headless Timing Controls):** Because some enterprise SPAs use detached loaders or custom animations that evade standard observer hooks, the CLI and MCP server expose explicit `waitMs` (`--wait-ms`) and `waitForSelector` (`--wait-for-selector`) parameters to halt baseline scanning until key components mount.
 
----
+### How the Systems Handle Fast, Sequential Clicks
 
-### CLI Usage Examples
+**The Visual Extension (Asynchronous Human Interaction)**
+Humans click unpredictably. To prevent the extension from scanning half-rendered states or blocking the main thread during rapid clicks, it relies on a Dual-Debounce `MutationObserver`:
+* If a user clicks a tab and immediately opens a dropdown, the DOM mutates repeatedly.
+* Every mutation resets an internal `750ms` countdown timer.
+* The WICK audit engine fires only once the DOM remains completely quiet for that full `750ms` window, capturing the final settled layout.
 
-#### 1. WCAG 2.0 & 2.1 (Levels A & AA) Compliance Audit
-Filters the rule engine to run only rules mapped to WCAG versions `2.0` and `2.1` at conformance levels `A` and `AA` (which together represent standard WCAG 2.1 AA compliance), excluding Level AAA and WCAG 2.2 checks.
-```bash
-node index.js audit "https://example.com" --wcag-version="2.0,2.1" --wcag-level="A,AA"
-```
-
-#### 2. Targeted Audit Subset (`--audits`)
-Runs only a specific comma-separated list of rule IDs instead of the full suite—ideal for fast CI smoke checks on high-priority issues like document titles, image alt text, empty links, and unlabeled form inputs.
-```bash
-node index.js audit "https://example.com" \
-  --audits "v-doc-title,v-img-alt,v-empty-links,v-unlabeled-inputs"
-```
-
-#### 3. Focus Order Mapping & Dynamic Shift Detection (`i-focus-order`)
-Maps the complete tab-focus sequence of the page on initial load (Step 1), then opens a navigation drawer (Step 2) and outputs the updated focus sequence only if opening the drawer altered the DOM's tab order.
-```bash
-node index.js audit "https://example.com" \
-  --audits "i-focus-order" \
-  --step "click::button#open-nav-drawer"
-```
-
-#### 4. Mobile Layout & Responsive Test (iPhone 13 Viewport)
-Emulates a 390×844 mobile viewport to catch responsive reflow issues, mobile menu accessibility flaws, and undersized touch targets.
-```bash
-node index.js audit "https://www.mywebapp.com/" -w 390 -H 844
-```
-
-#### 5. Single Interaction & Delta Diff with Screenshot
-Captures a baseline audit on page load, clicks the navigation menu button, waits for the DOM to settle, and logs only the newly introduced or resolved findings along with Base64 screenshots at each step.
-```bash
-node index.js audit "https://example.com" \
-  --step "click::button#open-navigation-menu" \
-  -s
-```
-
-#### 6. Multi-Step Navigation & Theme Toggle Sequence
-Executes a sequence of UI interactions—opening a menu, navigating to settings, and toggling dark mode—producing an isolated step-by-step accessibility diff (such as new color-contrast violations in dark mode).
-```bash
-node index.js audit "https://example.com" \
-  --step "click::button#open-menu" \
-  --step "click::a#settings-link" \
-  --step "click::button#toggle-dark-mode" \
-  -s
-```
-
-#### 7. Single-Page Application (SPA) Hydration & Targeted Rules
-Waits until a dynamic dashboard widget mounts in the DOM, pauses an additional 1.5 seconds for client-side animations to finish, and runs a targeted subset of rules.
-```bash
-node index.js audit "https://example.com/analytics" \
-  --wait-for-selector ".dashboard-chart-ready" \
-  --wait-ms 1500 \
-  --audits "v-heading-errors,v-unlabeled-inputs,i-accessible-name"
-```
-
-#### 8. Keyboard Focus Trap & Modal Escape Testing
-Opens a modal dialog, tabs through its interactive controls using the active focus element (`active`), and verifies that pressing `Escape` closes the dialog cleanly.
-```bash
-node index.js audit "https://example.com/settings" \
-  --step "click::#open-profile-modal" \
-  --step "press::active::Tab" \
-  --step "press::active::Tab" \
-  --step "press::active::Escape"
-```
-
-#### 9. Form Validation, Dropdown Selection & Hover States
-Tests dynamic form error states and hover-triggered tooltips by selecting a dropdown option, submitting an invalid input, waiting for validation messages, and hovering over a help badge.
-```bash
-node index.js audit "https://example.com/checkout" \
-  --step "select::select#country::US" \
-  --step "fill::input#zip-code::000" \
-  --step "click::button#submit-order" \
-  --step "wait::.validation-error-banner" \
-  --step "hover::span.cvv-help-tooltip"
-```
-
-#### 10. Standard 2-Field Login Shorthand
-Authenticates through a standard username/password login page before navigating to the protected target URL and running the baseline audit.
-```bash
-node index.js audit "https://example.com/account" \
-  --login-url "https://example.com/login" \
-  -u "jdoe@example.com" \
-  -p "SuperSecret123"
-```
-
-#### 11. Enterprise Multi-Field Auth + Post-Login SPA Workflow
-Logs into a 3-field corporate portal using `--auth-step`, then uses `--step` to navigate SPA menus, filter a data grid, submit via keyboard, and capture screenshots filtered to WCAG 2.0/2.1 Level A & AA.
-```bash
-node index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
-  --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" \
-  --wcag-version "2.0,2.1" \
-  --wcag-level "A,AA" \
-  --login-url "https://abi-testing-dojo-demo.azurewebsites.net/login" \
-  --auth-step "fill::#company::Contoso" \
-  --auth-step "fill::#user::jdoe" \
-  --auth-step "fill::#password::Admin+123" \
-  --auth-step "click::#btn-login" \
-  --step "click::button.menu-button[title='Security']" \
-  --step "click::button.submenu-button[title='Companies']" \
-  --step "fill::input#search-company::Contoso" \
-  --step "press::active::Enter" \
-  -s
-```
-
-#### 12. Manual MFA / Cookie Banner Capture & Headless Session Reuse
-Opens a visible browser window for 30 seconds so you can manually clear cookie banners or complete Multi-Factor Authentication (MFA), saves the authenticated cookies/storage to `auth-state.json`, and reuses that session in subsequent headless CI runs.
-```bash
-# Step A: Interactive capture (run once locally)
-node index.js audit "https://example.com/portal" -i -a auth-state.json
-
-# Step B: Headless CI audit reusing the saved session
-node index.js audit "https://example.com/portal" -a auth-state.json --wcag-level="A,AA"
-```
-
-#### 13. Custom JavaScript Authentication Module
-Delegates complex SSO, OAuth, or multi-page redirect logins to a custom Playwright script (`async (page) => { ... }`) before running the audit.
-```bash
-node index.js audit "https://example.com/workspace" \
-  --auth-script "./scripts/sso-login.js" \
-  --step "click::button#new-project"
-```
+**The Headless CLI & MCP Server (Synchronous Step Execution)**
+Automation scripts click faster than humans, which would normally break SPAs. The CLI and MCP server prevent race conditions by enforcing strict, blocking sequential execution:
+* When multiple `--step` flags (or sequential `interact_and_diff` calls) are executed, they never run concurrently.
+* Step 1 executes its action, halts until the settle listener (`wick-audit-complete` / fallback timer) clears, and computes the accessibility delta-diff.
+* Step 2 is blocked from locating or interacting with its target until Step 1's delta-diff is recorded in the timeline.
 
 ---
-
-### Authentication Strategies
-WICK-AG-Lens supports **five distinct methods** to authenticate and bypass login screens across both the CLI (`-u`/`-p`, `--auth-step`, `--auth-script`, `-i`/`-a`) and the MCP Server (`user`/`pass`, `authSteps`, `authScript`, `authState`).
-
-#### 1. Standard 2-Field Login (Shorthand)
-Use `-u` and `-p` alongside `--login-url` (or `loginUrl`, `user`, and `pass` in MCP `audit_baseline`) for straightforward single-page login forms.
-
-* **When to use:** Simple forms consisting of a username or email field, a password field, and a submit button on a single page. Under the hood, this automatically compiles into a 3-step pipeline targeting:
-  1. **Username / Email:** `input[type="text"], input[type="email"], input[type="user"]`
-  2. **Password:** `input[type="password"]`
-  3. **Submit:** `button[type="submit"], input[type="submit"]`
-
-```bash
-node index.js audit "https://example.com/account" \
-  --login-url "https://example.com/login" \
-  -u "jdoe@example.com" \
-  -p "SuperSecret123"
-```
-
-#### 2. Complex & Multi-Step Action Pipeline
-**When to use:** Forms that require extra fields (like "Company" or "Tenant ID"), or Single Sign-On (SSO) flows (like Okta or Microsoft) where you must submit an email on screen one and enter a password on screen two.
-You can chain multiple `--auth-step` flags using the `action::selector::value` format (or pass an `authSteps` array in MCP `audit_baseline`).
-*Supported actions: `fill`, `select`, `click`, `press`, `hover`, `wait` (accepts milliseconds or a CSS selector).*
-
-*Example (Multi-Field Form - Username, Password, and Company):*
-```bash
-node index.js audit https://app.com/dashboard \
-  --login-url https://app.com/login \
-  --auth-step "fill::input[name='company']::MyCompany" \
-  --auth-step "fill::input[name='username']::admin" \
-  --auth-step "fill::input[type='password']::1234" \
-  --auth-step "click::button[type='submit']"
-```
-
-*Example (Multi-Page SSO - Wait for password field to appear):*
-```bash
-node index.js audit https://app.com/dashboard \
-  --login-url https://app.com/login \
-  --auth-step "fill::#email-input::admin@company.com" \
-  --auth-step "click::#next-btn" \
-  --auth-step "wait::#password-input" \
-  --auth-step "fill::#password-input::secret123" \
-  --auth-step "click::#submit-btn"
-```
-
-#### 3. Custom Authentication Script (`--auth-script` / `authScript`)
-For complex enterprise authentication flows—such as multi-page SSO redirects (Okta, Microsoft Entra ID / Azure AD), OAuth handshakes, or conditional prompts—pass a custom ES module exporting an `async (page) => { ... }` function. The scanner passes the active Playwright `page` instance directly into your function before navigating to the target audit URL.
-
-* **CLI Command:**
-```bash
-TEST_USER="jdoe@contoso.com" TEST_PASS="Admin+123" \
-node index.js audit "https://app.contoso.com/dashboard" \
-  --auth-script "./scripts/sso-login.js" \
-  --step "click::button#open-reports"
-```
-
-* **Example Script (`./scripts/sso-login.js`):**
-```javascript
-export default async function (page) {
-  // 1. Navigate to the protected app to trigger the SSO identity provider redirect
-  await page.goto('https://app.contoso.com/login', { waitUntil: 'domcontentloaded' });
-
-  // 2. Step 1 of SSO: Enter corporate email and advance
-  const emailInput = page.locator('input[type="email"]');
-  await emailInput.waitFor({ state: 'visible', timeout: 15000 });
-  await emailInput.fill(process.env.TEST_USER);
-  await page.click('input[type="submit"], button[type="submit"]');
-
-  // 3. Step 2 of SSO: Wait for password screen to mount, fill credentials, and sign in
-  const passwordInput = page.locator('input[type="password"]');
-  await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
-  await passwordInput.fill(process.env.TEST_PASS);
-  await page.click('input[type="submit"], button[type="submit"]');
-
-  // 4. Optional: Dismiss "Stay signed in?" prompt if presented by the IdP
-  const staySignedInBtn = page.locator('input#idBtn_Back, button[data-testid="dismiss-prompt"]');
-  if (await staySignedInBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
-    await staySignedInBtn.click();
-  }
-
-  // 5. Wait until redirected back to the authenticated application shell
-  await page.waitForURL('https://app.contoso.com/**', { timeout: 20000 });
-  await page.waitForSelector('nav.main-navigation', { timeout: 15000 });
-}
-```
-
-#### 4. Interactive State Capture (The "Human Bypass")
-**When to use:** Sites with aggressive bot mitigation (Akamai, Cloudflare), invisible reCAPTCHAs, or MFA push notifications to your phone. Launches a visible browser for 30 seconds (`-i`) and exports cookies and `localStorage` to a reusable JSON file (`-a`).
-*(See the "Handling Enterprise Firewalls & Cookie Banners" section below for full instructions).*
-
-#### 5. External Browser & `agent-browser` State Handoff (`-a` / `authState`)
-**When to use:** AI-driven workflows, encrypted credential vaults, or reusing an active Chrome session you are already logged into without writing login scripts or waiting on a 30-second interactive timer.
-
-Because `agent-browser` and Playwright share the standard `storageState` JSON format (`cookies` and `localStorage`), you can authenticate externally using any of three protocols and pass the exported file straight into WICK-AG-Lens via `-a <path>` (CLI) or `authState` (MCP):
-
-* **Protocol A — AI-Driven Interactive Login (`agent-browser state save`):** An AI agent navigates unfamiliar login forms using compact `@e` accessibility snapshots and saves the resulting session state:
-  ```bash
-  agent-browser open https://app.example.com/login
-  agent-browser snapshot -i
-  agent-browser fill @e1 "jdoe@example.com"
-  agent-browser fill @e2 "SuperSecret123"
-  agent-browser click @e3
-  agent-browser wait --url "**/dashboard"
-  agent-browser state save auth-state.json
-
-  # Hand off session state to WICK-AG-Lens
-  node index.js audit "https://app.example.com/dashboard" -a auth-state.json
-  ```
-* **Protocol B — Encrypted Credential Vault (`agent-browser auth login`):** Store credentials once in `agent-browser`'s AES-256-GCM encrypted vault (`~/.agent-browser/auth/`) so raw passwords never appear in CLI flags or AI prompts, then export the session state:
-  ```bash
-  # One-time encrypted profile setup
-  echo "SuperSecret123" | agent-browser auth save my-app \
-    --url "https://app.example.com/login" \
-    --username "jdoe@example.com" \
-    --password-stdin
-
-  # Replay login & export storageState for WICK-AG-Lens
-  agent-browser auth login my-app
-  agent-browser state save auth-state.json
-  node index.js audit "https://app.example.com/dashboard" -a auth-state.json
-  ```
-* **Protocol C — Live Chrome Session Reuse (`--auto-connect`):** Attach `agent-browser` to an already-authenticated local Chrome window (launched with remote debugging) to extract cookies/storage past corporate SSO, hardware security keys, or 2FA:
-  ```bash
-  agent-browser --auto-connect state save auth-state.json
-  node index.js audit "https://app.example.com/dashboard" -a auth-state.json
-  ```
-
-*(Security Note: Saved `storageState` files contain live session tokens in plaintext—always exclude `*-state.json` in `.gitignore` and delete temporary state files after your audit completes).*
-
----
-
-### Viewing CLI Screenshots
-When you use the `-s` flag, the snapshot is embedded dynamically after every action (baseline, clicks, etc.) directly in the JSON output under the `screenshot_base64` key. 
-
-It is exported as a **raw Base64 string** (e.g., `/9j/4AA...`) without the HTML Data URI prefix. This raw format is intentional, as multimodal AI agents using the MCP server require clean Base64 data without HTML prefixes to process visual inputs.
-
-To view the image manually:
-1. **In the Browser:** Open a new tab, type `data:image/jpeg;base64,` into the address bar, paste your raw string immediately after it, and hit Enter.
-2. **In HTML Custom Reports:** Prepend the prefix inside an image tag's source attribute: 
-   `<img src="data:image/jpeg;base64,[YOUR_RAW_STRING]" alt="Audit Screenshot">`
-
-### Handling Enterprise Firewalls & Cookie Banners (State Injection)
-Modern enterprise websites often use aggressive bot mitigation (e.g., Akamai), heavy front-end frameworks (e.g., Adobe Experience Manager) with lazy-loaded footers, and intrusive Cookie Consent banners. 
-
-When running a standard headless audit, these protections can result in incomplete scans (missing lazy-loaded elements) or broken CSS selectors (because an injected cookie banner shifts the DOM hierarchy).
-
-WICK-AG-Lens CLI solves this using a **Two-Step State Injection Workflow**. By capturing a human-verified browser state once, you can run perfect, fully-hydrated headless audits indefinitely.
-
-#### Step 1: The One-Time Setup (Interactive Mode)
-Use the `-i` (interactive) flag to launch a visible browser, and the `-a` (auth-state) flag to specify where to save the session data.
-
-```bash
-node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -i -a "mywebsite-state.json"
-```
-
-1. A Chromium window will open and wait for 30 seconds.
-2. Manually click "Accept" or "Decline" on the site's cookie banner (or manually log in past any MFA/Captchas).
-3. Wait for the 30-second timer to expire. 
-4. The CLI will automatically save your pristine, banner-free session (cookies and local storage) into `mywebsite-state.json`.
-
-#### Step 2: Fully Automated Headless Audits
-For all future runs (or in your CI/CD pipeline), drop the `-i` flag but keep the `-a` flag pointing to your saved state file.
-
-```bash
-node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-order" -a "mywebsite-state.json"
-```
-
-**What happens under the hood:**
-* Playwright runs completely headless at maximum speed.
-* It injects your saved cookies before the page loads, preventing the cookie banner from rendering and altering the DOM tree.
-* It deletes the `navigator.webdriver` flag to spoof a standard human session.
-* It performs an automated, smooth bottom-to-top scroll to force `IntersectionObserver` elements (like heavy footers and widgets) to hydrate before capturing the structural accessibility snapshot.
-
-#### Troubleshooting Edge Cases: WAF Sinkholes & SPA Timing
-Even with state injection, enterprise sites with aggressive Web Application Firewalls (WAFs) and complex client-side routing can present two unique challenges for headless automation:
-
-**1. Akamai "Sinkholing" (Bot Mitigation)**
-Enterprise WAFs (such as Akamai or Cloudflare) sometimes detect subtle headless behaviors. Instead of blocking the connection outright, they "sinkhole" the bot by serving a fake 404 "Page Not Found" screen.
-*   **Resolution:** Target the **root domain** (e.g., `https://www.example.com/`) rather than a deeply nested regional route (e.g., `/qc/fr.html`). Initializing at the root allows the server to evaluate injected cookies and trigger natural HTTP redirects, authenticating the session and bypassing the sinkhole.
-
-**2. SPA Hydration Timing**
-Complex Single Page Applications (SPAs) may momentarily display a skeleton screen or 404 placeholder while client-side routes resolve. If Playwright's `networkidle` lifecycle event resolves during that window, the audit may run against the transient state rather than the fully rendered view.
-*   **Resolution:** Use the built-in timing options to delay baseline execution until the target component mounts:
-    *   `--wait-ms <milliseconds>`: Pauses execution after page load to allow dynamic scripts to hydrate.
-    *   `--wait-for-selector <selector>`: Halts execution until a specific DOM element (e.g., a persistent nav or hero container) is present.
-
-*Example (Waiting for SPA Hydration):*
-```bash
-node index.js audit https://www.example.com/ --wait-ms 3000 -a "example-state.json"
-```
-
-## MCP Server & AI Agent Integration
-The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to authenticate, navigate pages, execute full user interactions, and receive delta logs of accessibility barriers created or resolved by their actions. It also pairs seamlessly with external browser automation tools—including Vercel's **`agent-browser`** CLI and the official **Playwright MCP**—via standard session state handoffs.
-
-### Exposed MCP Tools
-* `audit_baseline`: Authenticates (if configured) and runs a full baseline scan on a target URL. Supports:
-  * **Authentication:** `loginUrl`, shorthand `user`/`pass`, ordered `authSteps` (`[{ action, target, value }]`), `authScript` (custom JS module path), and `authState` (path to a saved Playwright/`agent-browser` storageState JSON file).
-  * **Scope & Filtering:** `requestedAudits`, `wcagVersions`, and `wcagLevels`.
-  * **Viewport & Timing:** `viewportWidth`, `viewportHeight`, `waitMs`, `waitForSelector`, and `includeScreenshot` (Base64 JPEG visual context).
-* `interact_and_diff`: Executes a post-baseline interaction (`action`: `"click" | "fill" | "select" | "press" | "hover" | "wait"`, `target`, `value`), waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of `new_findings` and `resolved_findings`. Also supports `requestedAudits`, `wcagVersions`, `wcagLevels`, and `includeScreenshot`.
-* `get_audit_trail`: Returns the full chronological Action-State timeline log with `global_summary`, `page_state_maps` (`focus_order`), and `audit_dictionary`.
-
-### Handling Cookie Banners Dynamically with AI
-When building CLI tools for humans, workarounds like 30-second pauses and interactive (`-i`) flags are necessary to handle obstacles like Cookie Consent banners. However, when exposing these same tools via an MCP Server, **the AI becomes the human.** 
-
-If you hook this up to an AI agent that has access to WICK-AG-Lens MCP tools, the AI can handle banners and firewalls dynamically, eliminating the need for manual state injection:
-
-1. **The AI Discovers the Banner (Baseline)**
-   The AI calls `audit_baseline`. It inspects the returned JSON (and optional screenshot) and identifies a cookie consent banner blocking the underlying page structure.
-
-2. **The AI Uses the Diff Tool to Clear the Banner**
-   The AI dynamically locates the CSS selector for the "Accept Cookies" button (e.g., `#onetrust-accept-btn-handler`) and calls the interaction tool:
-   `interact_and_diff(action: "click", target: "#onetrust-accept-btn-handler")`
-
-3. **The Clean State is Achieved**
-   Under the hood, WICK-AG-Lens clicks that exact button, waits for the DOM to settle (removing the banner and restoring the page structure), and generates the new accessibility delta snapshot automatically.
-
-### Running & Testing the MCP Server
-To test the server locally using the Anthropic MCP Inspector:
-```bash
-cd cli
-npx @modelcontextprotocol/inspector node mcp-server.js
-```
-
-To configure in Claude Desktop (or `.mcp.json`), add the following to your `mcpServers` configuration:
-```json
-{
-  "mcpServers": {
-    "wick-ag-lens": {
-      "command": "node",
-      "args": ["/absolute/path/to/wick-ag-lens/cli/mcp-server.js"]
-    }
-  }
-}
-```
-
-### AI Agent Skill Setup (Claude Code, Cursor, Windsurf, Copilot)
-WICK-AG-Lens includes a portable, token-efficient **Agent Skill** (`skills/wick-ag-lens/SKILL.md`) that teaches AI coding assistants how to orchestrate **WICK-AG-Lens MCP/CLI**, **`agent-browser`**, and **Playwright MCP** while preventing Base64 screenshot bloat and noisy informative payloads from exhausting context windows.
-
-#### How the Skill Routes Tasks
-*   **Tier 1 — Direct WICK-AG-Lens MCP (Fastest):** Used when target URLs and CSS selectors (including login forms) are known, passing authentication steps directly into `audit_baseline` and chaining `interact_and_diff`.
-*   **Tier 2 — `agent-browser` CLI + WICK-AG-Lens (Token-Efficient Scouting):** Used in terminal-enabled environments when exploring unfamiliar SPAs—scouting with compact `@e` accessibility snapshots (~70% fewer tokens than Playwright MCP), exporting session state via `agent-browser state save`, and handing off to WICK-AG-Lens for deep DOM delta audits.
-*   **Tier 3 — Playwright MCP + WICK-AG-Lens MCP (Sandboxed Fallback):** Used in environments without shell access (such as Claude Desktop) when dynamic page discovery is needed before running WICK-AG-Lens audits.
-
-#### Option 1: Install via Skills CLI (Recommended)
-Run the following command in your project or global environment to install the skill automatically across supported AI tools:
-```bash
-npx skills add sclavijosuero/wick-ag-lens
-```
-
-#### Option 2: Copy from the npm Package or Repository
-If you installed `wick-ag-lens` via npm, the skill file is bundled directly inside the package at:
-```text
-node_modules/wick-ag-lens/skills/wick-ag-lens/SKILL.md
-```
-Copy `SKILL.md` into your AI assistant's skills directory:
-*   **Claude Code (Global):** `~/.claude/skills/wick-ag-lens/SKILL.md` (or `%USERPROFILE%\.claude\skills\wick-ag-lens\SKILL.md` on Windows)
-*   **Project-Scoped (Claude Code / Cursor / Copilot / Codex):** `.claude/skills/wick-ag-lens/SKILL.md` or `.agents/skills/wick-ag-lens/SKILL.md`
-
-#### Recommended Multi-Tool MCP Configuration
-When pairing `wick-ag-lens` with `agent-browser` and Playwright MCP, keep `agent-browser` out of `mcpServers` (it runs via CLI with zero upfront schema tokens) and pass `--caps=core` to Playwright MCP to minimize tool schema overhead:
-```json
-{
-  "mcpServers": {
-    "wick-ag-lens": {
-      "command": "npx",
-      "args": ["-y", "--package=wick-ag-lens", "wick-mcp"]
-    },
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest", "--headless", "--caps=core"]
-    }
-  }
-}
-```
-*(In VS Code, you can run this directly via the **Claude Code** extension or integrated terminal without needing the web console, and inspect exact token usage per MCP server and skill using `/context` or `/cost`.)*
-
-### Integrating with `agent-browser` (Token-Efficient AI Scouting)
-[`agent-browser`](https://agent-browser.dev/) is an open-source browser automation CLI built for AI agents that reads the browser's accessibility tree and outputs compact text snapshots with short element references (such as `@e1`), cutting LLM token consumption significantly compared to raw DOM dumps.
-
-Because `agent-browser` operates on the **accessibility tree** while WICK-AG-Lens inspects the **full raw HTML/CSS DOM**, the two tools complement each other in a bidirectional AI workflow:
-
-1. **Scout & Session Handoff (`agent-browser` → WICK-AG-Lens):**
-   * **Lightweight Navigation & Auth Protocols:** An AI agent uses `agent-browser` (`open`, `snapshot -i`, `click @e1`, `fill @e2 "..."`), `agent-browser auth login <profile>` (AES-256-GCM encrypted credential vault), or `agent-browser --auto-connect` (attaching to an already-authenticated Chrome session) to bypass complex login flows using minimal tokens.
-   * **Zero-Conversion State Sharing:** Running `agent-browser state save auth-state.json` exports a standard Playwright `storageState` JSON file (cookies and `localStorage`).
-   * **Deep DOM Audit:** The AI passes `auth-state.json` directly into WICK-AG-Lens via the CLI (`-a auth-state.json`) or MCP (`audit_baseline` with `authState: "auth-state.json"`) to run all 55 heuristic DOM/CSS audits without repeating the login flow.
-
-2. **Accessibility Blind-Spot Resolution (WICK-AG-Lens → `agent-browser`):**
-   * Because `agent-browser` relies on semantic roles and accessible names to generate `@e` tags, poorly coded interactive controls (such as `<div onclick="...">` without a `role`, or unlabeled inputs) can be invisible or ambiguous in its snapshots.
-   * When an agent gets stuck because a control is missing from `agent-browser`'s accessibility snapshot, it can invoke WICK-AG-Lens on that URL. WICK-AG-Lens inspects the raw DOM and returns the exact CSS `selector` and `htmlSnippet` of the inaccessible element (e.g., `v-unfocusable-clickables` or `v-unlabeled-inputs`), allowing the AI to target the raw selector and unblock the workflow.
-
-**Example Workflow (`agent-browser` + WICK-AG-Lens):**
-```bash
-# 1. Authenticate via AI scouting (or `agent-browser auth login my-app`)
-agent-browser open https://shop.example.com/login
-agent-browser snapshot -i
-agent-browser fill @e1 "jdoe@example.com"
-agent-browser fill @e2 "SuperSecret123"
-agent-browser click @e3
-agent-browser wait --url "**/dashboard"
-
-# 2. Export authenticated session state (cookies & localStorage)
-agent-browser state save auth-state.json
-
-# 3. Hand off session state to WICK-AG-Lens CLI (or pass authState to MCP audit_baseline)
-node index.js audit "https://shop.example.com/dashboard" \
-  -a auth-state.json \
-  --wcag-version="2.0,2.1" \
-  --wcag-level="A,AA"
-```
-
-### Integrating with Third-Party Playwright MCP Servers
-If your AI agent uses a general-purpose browser automation MCP server (such as the official `@playwright/mcp`) in environments without shell access, you can orchestrate the same session handoff between the two MCP servers:
-
-1. **The Navigation Agent (Playwright MCP):** Your AI uses Playwright MCP to navigate the web, bypass captchas, log into complex portals, and establish the session state.
-2. **State Sharing:** The AI instructs Playwright MCP to export the current browser session state (`cookies` and `localStorage`) to a file (e.g., `state.json`).
-3. **The Audit Agent (WICK-AG-Lens MCP):** The AI calls `wick-ag-lens:audit_baseline`, passing `authState: "state.json"`. WICK-AG-Lens boots its own headless Playwright instance, injects the cookies, and runs the audit on the exact page the first agent left off on.
-
-**Example Handoff Workflow (MCP):**
-*   *AI Action 1 (Playwright MCP):* `browser_navigate(url: "https://shop.example.com")`
-*   *AI Action 2 (Playwright MCP):* Authenticate and export storage state to `state.json`.
-*   *AI Action 3 (WICK-AG-Lens MCP):* `audit_baseline(url: "https://shop.example.com/dashboard", authState: "state.json")`
-
-## CLI & MCP JSON Output Format
-When executing WICK-AG-Lens programmatically via the Headless CLI or consuming it as an AI agent through the MCP Server, the output is generated as a structured JSON payload. This payload provides a complete historical timeline of the session, tracking the accessibility state across multiple pages, interactions, and DOM mutations.
-
-The root JSON object contains three primary properties: `global_summary`, `audit_trail`, and `audit_dictionary`.
-
-### 1. `global_summary`
-A high-level rollup of the **active, unresolved issues** remaining on the page at the exact moment the final step concluded (deduplicated so persistent issues across steps are never double-counted).
-
-### 2. `audit_dictionary`
-To drastically reduce JSON bloat across multi-step journeys, repetitive metadata for each audit rule (such as the rule's descriptive label, "what/why/fix" instructions, WCAG tags, and official WCAG reference links) is extracted into this single root-level dictionary placed at the bottom of the JSON payload. 
-The timeline steps reference these rules solely by their `auditId` (e.g., `v-doc-title`), which you can look up in this dictionary to retrieve the full educational context and remediation steps.
-
-### 3. `audit_trail` (The Timeline Steps)
-An array of objects representing every state-change in the automated session. Each object in this array is referred to as a "step". 
-
-*   **Step 1 is always the Baseline Scan.** It represents the state of the DOM immediately after navigating to the target URL and letting initial hydration finish.
-*   **Steps 2+ are Delta Diffs.** They represent the isolated structural changes to the page's accessibility caused by a specific user interaction (like clicking a menu, filling a form, or pressing a key).
-
-#### Understanding a Step Object
-Each step in the `audit_trail` contains:
-*   `step`: The integer sequence number.
-*   `interaction`: An object detailing the action that triggered the state change (`action`, `selector`, and optional `value`). For Step 1, this defaults to `"navigate" : "Initial Page Load"`.
-*   `url`: The active URL of the page when the snapshot was taken (crucial for tracking multi-page SPA routes).
-*   `execution_time_ms`: How long the step took to settle and audit.
-*   `screenshot_base64`: A raw Base64 JPEG string of the visual viewport (only included if `-s` / `includeScreenshot: true` is passed).
-*   `health_scores`: A point-in-time snapshot of the active violation counts specifically at that step.
-*   `page_state_maps`: Optional state snapshots (such as `focus_order` when `i-focus-order` is enabled) isolated from delta math so full tab sequences remain intact without inflating violation counts.
-*   `new_findings`: Grouped accessibility violations and informative elements that were **not present** in the previous step but appeared as a result of the interaction.
-*   `resolved_findings`: Grouped accessibility violations and informative elements that **were present** in the previous step but disappeared as a result of the interaction.
-
----
-
-### The Delta-Diff: `new_findings` VS `resolved_findings`
-The core power of the WICK-AG-Lens CLI is its ability to perform **structural DOM diffing**. When you pass an interaction flag (like `--step "click::button#open-menu"`), the engine doesn't just run a brand-new, isolated scan. It compares the new DOM against the previous state and splits the results into two critical buckets.
-
-#### `new_findings` (Things that broke or appeared)
-This object lists elements that became newly visible or were dynamically injected into the DOM during this step. 
-*   *Example:* If you click `#open-menu` and the dropdown contains links missing `aria-label`s, those specific failing links will appear in `new_findings`.
-*   *Note:* Even if a page has 50 existing contrast errors from the baseline scan, they **will not** be repeated here. This bucket only contains the delta of *new* violations caused by opening the menu.
-
-#### `resolved_findings` (Things that were fixed or hidden)
-This object lists elements that were present in the previous step but are no longer active, visible, or failing in the current step. 
-*   *Example:* If Step 3 clicks `#close-modal`, all the accessibility violations that existed inside that modal will be recorded in `resolved_findings` because closing the modal successfully removed them from the active accessibility tree.
-*   *AI Agent Usage:* For AI agents trying to fix code iteratively via the MCP server, seeing violations appear in `resolved_findings` after applying a patch confirms the fix was successful.
-
-#### Audit Node Counters
-Inside both the `new_findings` and `resolved_findings` buckets, audits are grouped by Category (e.g., "Images & Media"). Each audit node contains two integer counters to help CI/CD pipelines quickly parse the diff size without iterating through the raw CSS selectors:
-*   `totalElemsNew`: The count of newly introduced elements for this specific rule during this step.
-*   `totalElemsResolved`: The count of previously existing elements for this specific rule that were cleared during this step.
-
-*Example Output Snippet:*
-```json
-{
-  "timestamp": "2026-11-14T20:15:00.000Z",
-  "global_summary": {
-    "Critical": 1,
-    "Serious": 0
-  },
-  "audit_trail": [
-    {
-      "step": 1,
-      "interaction": { "action": "navigate", "selector": "Initial Page Load" },
-      "url": "https://example.com",
-      "health_scores": { "Critical": 0, "Serious": 0 },
-      "new_findings": {},
-      "resolved_findings": {}
-    },
-    {
-      "step": 2,
-      "interaction": { "action": "click", "selector": "button#open-modal" },
-      "url": "https://example.com",
-      "health_scores": { "Critical": 1, "Serious": 0 },
-      "new_findings": {
-        "Violations & Warnings": {
-          "Forms & Controls": [
-            {
-              "auditId": "v-empty-buttons",
-              "audit": "Empty Buttons",
-              "severity": "Critical",
-              "totalElemsNew": 1,
-              "elements": [
-                {
-                  "selector": "div.modal-body > button.close",
-                  "htmlSnippet": "<button class=\"close\"> ... </button>",
-                  "issueText": "Violation",
-                  "legend": "Violation"
-                }
-              ]
-            }
-          ]
-        }
-      },
-      "resolved_findings": {}
-    }
-  ],
-  "audit_dictionary": {
-    "v-empty-buttons": {
-      "auditLabel": "Empty Buttons",
-      "info": {
-        "what": "Identifies buttons missing accessible names...",
-        "fix": "Provide a descriptive aria-label or inner text."
-      }
-    }
-  }
-}
-```
 
 ## Audit Library & Ruleset
 
-The following details the complete list of heuristic evaluations performed by the inspector, their classification, standard outputs, and the corresponding W3C WCAG guidelines.
+The following details the complete list of 55 heuristic evaluations performed by the shared `/core` inspector engine, their classification, standard outputs, and corresponding W3C WCAG guidelines.
 
 ---
 
@@ -814,10 +139,10 @@ The following details the complete list of heuristic evaluations performed by th
 | **Auto-playing Media** | Serious | `"Autoplay Media"` | [1.4.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html) | [View](#v-18) |
 | **Heading Hierarchy Errors** | Moderate | `"{TAG} (Skipped)"` or `"Fake Heading"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-19) |
 
-*   **Document Title:** Checks if the document is missing a `<title>` tag or if it is empty. **Screen readers announce the page title first.**
-*   **Page Encoding:** Checks if the document character set is defined (UTF-8). **Ensures text is parsed and pronounced correctly.**
-*   **Auto-playing Media:** Flags audio or video elements set to `autoplay`. **Unexpected audio conflicts with screen reader announcements.**
-*   **Heading Hierarchy Errors:** Flags skipped levels (e.g., `H1` to `H3`) or fake non-semantic headings. **Note: Starting a page directly with an `H2` is not flagged as a skipped level.** Skipping levels confuses screen reader navigation.
+* **Document Title:** Checks if the document is missing a `<title>` tag or if it is empty. **Screen readers announce the page title first.**
+* **Page Encoding:** Checks if the document character set is defined (UTF-8). **Ensures text is parsed and pronounced correctly.**
+* **Auto-playing Media:** Flags audio or video elements set to `autoplay`. **Unexpected audio conflicts with screen reader announcements.**
+* **Heading Hierarchy Errors:** Flags skipped levels (e.g., `H1` to `H3`) or fake non-semantic headings. **Note: Starting a page directly with an `H2` is not flagged as a skipped level.** Skipping levels confuses screen reader navigation.
 
 #### Images & Media
 
@@ -828,10 +153,10 @@ The following details the complete list of heuristic evaluations performed by th
 | **Uncaptioned Video** | Critical | `"<video> (No Captions)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#v-6) |
 | **Redundant Alt Text** | Minor | `Redundant alt: "{text}"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-7) |
 
-*   **Inaccessible SVGs:** Flags inline `<svg>` elements exposed to screen readers lacking an accessible name. **Screen readers will read out raw SVG code nodes.**
-*   **Missing Alt Text:** Flags `<img>` elements completely lacking an `alt` attribute. Explicitly segregates 1x1 tracking pixels. **Screen readers will read the raw image filename or URL** if the attribute is missing, which is highly disruptive for hidden tracking pixels.
-*   **Uncaptioned Video:** Flags `<video>` elements missing nested `<track>` elements. **Deaf or hard of hearing users require captions** for video content.
-*   **Redundant Alt Text:** Flags `alt` attributes containing words like *'image of'* or *'photo of'*. **Screen readers automatically announce images**, making these prefixes redundant.
+* **Inaccessible SVGs:** Flags inline `<svg>` elements exposed to screen readers lacking an accessible name. **Screen readers will read out raw SVG code nodes.**
+* **Missing Alt Text:** Flags `<img>` elements completely lacking an `alt` attribute. Explicitly segregates 1x1 tracking pixels. **Screen readers will read the raw image filename or URL** if the attribute is missing.
+* **Uncaptioned Video:** Flags `<video>` elements missing nested `<track>` elements. **Deaf or hard of hearing users require captions** for video content.
+* **Redundant Alt Text:** Flags `alt` attributes containing words like *'image of'* or *'photo of'*. **Screen readers automatically announce images**, making these prefixes redundant.
 
 #### Links & Navigation
 
@@ -842,10 +167,10 @@ The following details the complete list of heuristic evaluations performed by th
 | **Generic Link Text** | Moderate | `Generic link: "{text}"` | [2.4.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | [View](#v-13) |
 | **Unwarned New Window Links** | Moderate | `'target="_blank" (No Warning)'` | [3.2.5 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | [View](#v-14) |
 
-*   **Empty Links:** Flags `<a>` tags lacking readable text or accessible names. **Screen readers will read the URL**, which is often confusing. 
-*   **Suspicious Link Targets:** Flags anchor tags missing routing context acting as buttons (missing `role='button'`). **Using links to trigger JS actions confuses screen readers.** 
-*   **Generic Link Text:** Flags ambiguous link text like *'Click Here'* or *'Read More'* using exact word boundaries. **Users navigating via a Links List will lack context.** 
-*   **Unwarned New Window Links:** Flags `target='_blank'` links without text or ARIA warnings. **Unexpectedly opening new tabs disorients cognitive and screen reader users.** 
+* **Empty Links:** Flags `<a>` tags lacking readable text or accessible names. **Screen readers will read the URL**, which is often confusing. 
+* **Suspicious Link Targets:** Flags anchor tags missing routing context acting as buttons (missing `role='button'`). **Using links to trigger JS actions confuses screen readers.** 
+* **Generic Link Text:** Flags ambiguous link text like *'Click Here'* or *'Read More'* using exact word boundaries. **Users navigating via a Links List will lack context.** 
+* **Unwarned New Window Links:** Flags `target='_blank'` links without text or ARIA warnings. **Unexpectedly opening new tabs disorients cognitive and screen reader users.** 
 
 #### Forms & Controls
 
@@ -856,10 +181,10 @@ The following details the complete list of heuristic evaluations performed by th
 | **Placeholder as Label** | Serious | `"Placeholder as Label"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-10) |
 | **Invalid Autocomplete** | Moderate | `Invalid autocomplete="{val}"` | [1.3.5 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html) | [View](#v-autocomplete-invalid) |
 
-*   **Unlabeled Form Inputs:** Flags form controls missing `<label>` wrappers, `aria-label`s, or `for` attributes. **Screen readers cannot announce what the input is for.** 
-*   **Empty Buttons:** Flags buttons without readable text or an `aria-label`. **Screen readers will only announce 'Button'**, providing no context. 
-*   **Placeholder as Label:** Flags inputs relying solely on the `placeholder` attribute. **Placeholders disappear on typing** and often lack sufficient contrast.
-*   **Invalid Autocomplete:** Flags fields where `autocomplete` contains unrecognized HTML5 tokens. **Invalid tokens prevent browsers and password managers from functioning correctly.**
+* **Unlabeled Form Inputs:** Flags form controls missing `<label>` wrappers, `aria-label`s, or `for` attributes. **Screen readers cannot announce what the input is for.** 
+* **Empty Buttons:** Flags buttons without readable text or an `aria-label`. **Screen readers will only announce 'Button'**, providing no context. 
+* **Placeholder as Label:** Flags inputs relying solely on the `placeholder` attribute. **Placeholders disappear on typing** and often lack sufficient contrast.
+* **Invalid Autocomplete:** Flags fields where `autocomplete` contains unrecognized HTML5 tokens. **Invalid tokens prevent browsers and password managers from functioning correctly.**
 
 #### Keyboard Navigation
 
@@ -870,10 +195,10 @@ The following details the complete list of heuristic evaluations performed by th
 | **Accesskey Attributes** | Moderate | `accesskey="{val}"` | [2.1.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html) | [View](#v-4) |
 | **Disabled Focus Outlines (Heuristic)** | Manual | `"Manual Check: Focus Ring"` | [2.4.7 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html) | [View](#v-2) |
 
-*   **Unfocusable Clickables:** Flags generic elements with `onclick` handlers lacking a `tabindex` and a valid semantic `role`. **Keyboard users cannot tab to or activate these elements.** 
-*   **Tabindex Violations:** Flags elements dynamically forcing focus order via `tabindex > 0`. **Overrides natural DOM focus order**, creating unpredictable navigation paths. 
-*   **Accesskey Attributes:** Flags explicit `accesskey` definitions. **Often conflicts with native browser or screen reader shortcuts.** 
-*   **Disabled Focus Outlines (Heuristic):** Parses page CSS via heuristic evaluation to find focusable elements where `outline: none` or `0` is applied on the `:focus` state. **Because this is a static CSS check, it cannot account for complex CSS cascade overrides and marks findings for manual review.** Sighted keyboard users rely entirely on focus rings.
+* **Unfocusable Clickables:** Flags generic elements with `onclick` handlers lacking a `tabindex` and a valid semantic `role`. **Keyboard users cannot tab to or activate these elements.** 
+* **Tabindex Violations:** Flags elements dynamically forcing focus order via `tabindex > 0`. **Overrides natural DOM focus order**, creating unpredictable navigation paths. 
+* **Accesskey Attributes:** Flags explicit `accesskey` definitions. **Often conflicts with native browser or screen reader shortcuts.** 
+* **Disabled Focus Outlines (Heuristic):** Parses page CSS via heuristic evaluation to find focusable elements where `outline: none` or `0` is applied on the `:focus` state. **Because this is a static CSS check, it cannot account for complex CSS cascade overrides and marks findings for manual review.**
 
 #### ARIA Names (Errors)
 
@@ -884,10 +209,10 @@ The following details the complete list of heuristic evaluations performed by th
 | **Duplicate ID Attributes** | Critical | `Duplicate ID: "{id}" ({v} vis, {h} hid)` or `[Hidden]` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-duplicate-id) |
 | **Broken ARIA References** | Critical | `Broken Ref: {attr}="{id}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-broken-aria-ref) |
 
-*   **Prohibited Author Names:** Flags structural roles (like `presentation`) containing `aria-label` or `aria-labelledby`. **Adding a name to a transparent structural role breaks its semantics.**
-*   **Label in Name Mismatch:** Flags interactive elements where the visible text is completely overridden by an `aria-label` that does not include the visible text. **Voice dictation users rely on visible text commands.**
-*   **Duplicate ID Attributes:** Flags multiple elements sharing the identical `id` attribute. **Screen readers and label mappings will only find the first ID.**
-*   **Broken ARIA References:** Flags ARIA relationship attributes pointing to non-existent DOM IDs. **A broken reference means the relationship is completely lost.**
+* **Prohibited Author Names:** Flags structural roles (like `presentation`) containing `aria-label` or `aria-labelledby`. **Adding a name to a transparent structural role breaks its semantics.**
+* **Label in Name Mismatch:** Flags interactive elements where the visible text is completely overridden by an `aria-label` that does not include the visible text. **Voice dictation users rely on visible text commands.**
+* **Duplicate ID Attributes:** Flags multiple elements sharing the identical `id` attribute. **Screen readers and label mappings will only find the first ID.**
+* **Broken ARIA References:** Flags ARIA relationship attributes pointing to non-existent DOM IDs. **A broken reference means the relationship is completely lost.**
 
 #### ARIA States (Errors)
 
@@ -896,8 +221,8 @@ The following details the complete list of heuristic evaluations performed by th
 | **Focusable in Aria-Hidden** | Critical | `"aria-hidden (Focusable)"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-15) |
 | **Invalid ARIA State** | Serious | `'aria-invalid="true"'` | [3.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | [View](#v-16) |
 
-*   **Focusable in Aria-Hidden:** Flags active controls trapped in `aria-hidden='true'` trees. **Keyboard users can reach them, but screen readers cannot**, creating a severe mismatch. 
-*   **Invalid ARIA State:** Flags form controls explicitly marked `aria-invalid='true'`. **Identifies application-enforced validation errors.** 
+* **Focusable in Aria-Hidden:** Flags active controls trapped in `aria-hidden='true'` trees. **Keyboard users can reach them, but screen readers cannot.**
+* **Invalid ARIA State:** Flags form controls explicitly marked `aria-invalid='true'`. **Identifies application-enforced validation errors.** 
 
 #### Visual & Contrast
 
@@ -905,7 +230,7 @@ The following details the complete list of heuristic evaluations performed by th
 | :--- | :--- | :--- | :--- | :--- |
 | **Text Color Contrast** | Critical | `AA Fail`, `AAA Fail`, `Manual Check` | [1.4.3 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [1.4.6 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html) | [View](#v-20) |
 
-*   **Text Color Contrast:** Traverses the DOM to calculate the effective contrast ratio between text and its background. Dynamically evaluates `font-size` and `font-weight` against WCAG large-text thresholds. Elements over images/gradients are flagged for manual review. 
+* **Text Color Contrast:** Traverses the DOM to calculate the effective contrast ratio between text and its background. Dynamically evaluates `font-size` and `font-weight` against WCAG large-text thresholds. Elements over images/gradients are flagged for manual review. 
 
 ---
 
@@ -921,11 +246,11 @@ The following details the complete list of heuristic evaluations performed by th
 | **Lists and List Items** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-20) |
 | **Language Definitions** | Informative | `"Missing Root Lang"`, `Root lang="{val}"`, or `lang="{val}"` | [3.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html) | [View](#i-21) |
 
-*   **Valid Heading Order:** Standard `H1-H6` structural outline. **Verifies the logical outline of the page.** 
-*   **Landmark Regions:** HTML5 and ARIA structural landmark containers. **Allows screen reader users to jump quickly between page sections.** 
-*   **Table & Grid Structure:** Native `<table>` and ARIA data grids. **Visually maps data structures and verifies custom UI grids implement semantic headers.** 
-*   **Lists and List Items:** Unordered (`<ul>`), ordered (`<ol>`), and definition lists (`<dl>`). **Ensures related items are programmatically grouped.** 
-*   **Language Definitions:** Phonetic shifts and root `lang` declarations. **Screen readers rely on the language tag to load the correct accent and pronunciation rules.** 
+* **Valid Heading Order:** Standard `H1-H6` structural outline. **Verifies the logical outline of the page.** 
+* **Landmark Regions:** HTML5 and ARIA structural landmark containers. **Allows screen reader users to jump quickly between page sections.** 
+* **Table & Grid Structure:** Native `<table>` and ARIA data grids. **Visually maps data structures and verifies custom UI grids implement semantic headers.** 
+* **Lists and List Items:** Unordered (`<ul>`), ordered (`<ol>`), and definition lists (`<dl>`). **Ensures related items are programmatically grouped.** 
+* **Language Definitions:** Phonetic shifts and root `lang` declarations. **Screen readers rely on the language tag to load the correct accent and pronunciation rules.** 
 
 #### Images & Media
 
@@ -935,9 +260,9 @@ The following details the complete list of heuristic evaluations performed by th
 | **Captioned Video** | Informative | `"<video> (Captioned)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#i-4) |
 | **Iframe Context & Titles** | Informative | `title="{title}"`, `"Hidden Iframe"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-5) |
 
-*   **Display Image Alternatives:** Extracts and visually prints the `alt` text directly over all `<img>` elements, explicitly segregating 1x1 tracking pixels. **Allows rapid visual auditing of alternative text descriptions.**
-*   **Captioned Video:** Videos containing `<track>` elements. **Confirms proper multimedia accessibility setup.** 
-*   **Iframe Context & Titles:** Analyzes third-party embed context and `title` attributes. **Screen readers announce the title to inform the user** what the sub-document contains. 
+* **Display Image Alternatives:** Extracts and visually prints the `alt` text directly over all `<img>` elements, explicitly segregating 1x1 tracking pixels. **Allows rapid visual auditing of alternative text descriptions.**
+* **Captioned Video:** Videos containing `<track>` elements. **Confirms proper multimedia accessibility setup.** 
+* **Iframe Context & Titles:** Analyzes third-party embed context and `title` attributes. **Screen readers announce the title to inform the user** what the sub-document contains. 
 
 #### Links & Navigation
 
@@ -945,7 +270,7 @@ The following details the complete list of heuristic evaluations performed by th
 | :--- | :--- | :--- | :--- | :--- |
 | **Warned New Window Links** | Informative | `'target="_blank" (Warned)'` | [3.2.5 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | [View](#i-9) |
 
-*   **Warned New Window Links:** `target='_blank'` links with proper warning. **Confirms proper communication of context shifts to assistive technologies.** 
+* **Warned New Window Links:** `target='_blank'` links with proper warning. **Confirms proper communication of context shifts to assistive technologies.** 
 
 #### Forms & Controls
 
@@ -955,9 +280,9 @@ The following details the complete list of heuristic evaluations performed by th
 | **Touch Target Sizes** | Informative | `{width}x{height}px` | [2.5.8 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | [View](#i-8) |
 | **Read-Only Fields** | Informative | `"readonly"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-readonly-fields) |
 
-*   **Fieldsets & Captions:** Visual grouping containers (`<fieldset>`). **Crucial for grouping related radio buttons or complex form sections.** 
-*   **Touch Target Sizes:** Calculates interactive pixel bounds (`width` / `height`). **Undersized targets prevent users with fine motor impairments from activating controls accurately.** 
-*   **Read-Only Fields:** Inputs marked as `readonly` or `aria-readonly`. **Read-only fields must remain focusable** (unlike disabled fields) so screen readers can access their content.
+* **Fieldsets & Captions:** Visual grouping containers (`<fieldset>`). **Crucial for grouping related radio buttons or complex form sections.** 
+* **Touch Target Sizes:** Calculates interactive pixel bounds (`width` / `height`). **Undersized targets prevent users with fine motor impairments from activating controls accurately.** 
+* **Read-Only Fields:** Inputs marked as `readonly` or `aria-readonly`. **Read-only fields must remain focusable** (unlike disabled fields) so screen readers can access their content.
 
 #### Keyboard Navigation
 
@@ -966,8 +291,8 @@ The following details the complete list of heuristic evaluations performed by th
 | **Tabindex (Comparison)** | Informative | `tabindex="{val}"` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-1) |
 | **Display Focus Order** | Informative | `#{num}: <{tag}>` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-2) |
 
-*   **Tabindex (Comparison):** Visual comparison of all `tabindex` usages. **Provides a sweeping visual map of the programmatic focus strategy.** 
-*   **Display Focus Order:** Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., `[Iframe] #4.1`) for isolated DOM boundaries, connected by dynamic SVG paths and numerical pills. **Simulates the exact path of the `TAB` key route.** 
+* **Tabindex (Comparison):** Visual comparison of all `tabindex` usages. **Provides a sweeping visual map of the programmatic focus strategy.** 
+* **Display Focus Order:** Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., `[Iframe] #4.1`) for isolated DOM boundaries, connected by dynamic SVG paths and numerical pills. **Simulates the exact path of the `TAB` key route.** 
 
 #### ARIA Roles (Identity)
 
@@ -976,8 +301,8 @@ The following details the complete list of heuristic evaluations performed by th
 | **ARIA Roles & Attributes** | Informative | `role="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-11) |
 | **Aria-Roledescription** | Informative | `roledescription="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-roledescription) |
 
-*   **ARIA Roles & Attributes:** Maps explicit `role` definitions. **Allows rapid structural auditing of custom widget semantics.**
-*   **Aria-Roledescription:** Custom semantic overrides via `aria-roledescription`. **Overrides the native role announcement** (e.g., turning 'button' into 'slide').
+* **ARIA Roles & Attributes:** Maps explicit `role` definitions. **Allows rapid structural auditing of custom widget semantics.**
+* **Aria-Roledescription:** Custom semantic overrides via `aria-roledescription`. **Overrides the native role announcement** (e.g., turning 'button' into 'slide').
 
 #### ARIA Names & Relationships
 
@@ -990,12 +315,12 @@ The following details the complete list of heuristic evaluations performed by th
 | **Aria-Owns** | Informative | `"aria-owns"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-16) |
 | **List Set & Position** | Informative | `"Item X of Y"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-aria-setsize) |
 
-*   **Accessible Name Resolution:** Computes the final accessible name by simulating the browser's fallback calculation sequence: `aria-labelledby`, then `aria-label`, then native associated labels/text, and finally `title`. **Reveals exactly what a screen reader will announce.** 
-*   **Form Field Descriptions:** Supplemental instructional text (`aria-describedby`). **Ensures extended hints or error messages are programmatically tied to inputs.** 
-*   **Aria-Details:** Highlights elements utilizing `aria-details`. **Links complex, rich explanations to an element** (allows structured HTML in the description).
-*   **Aria-Controls:** Remote DOM visibility targets (`aria-controls`). **Links trigger mechanisms to their targets.** 
-*   **Aria-Owns:** Remote programmatic ownership (`aria-owns`). **Reconstructs accessibility tree hierarchy for disjointed widgets.** 
-*   **List Set & Position:** Virtual list mapping (`aria-setsize`, `aria-posinset`). **Tells screen readers the total size of a list and the element's position**, even if all items aren't in the DOM.
+* **Accessible Name Resolution:** Computes the final accessible name by simulating the browser's fallback calculation sequence: `aria-labelledby`, then `aria-label`, then native associated labels/text, and finally `title`. **Reveals exactly what a screen reader will announce.** 
+* **Form Field Descriptions:** Supplemental instructional text (`aria-describedby`). **Ensures extended hints or error messages are programmatically tied to inputs.** 
+* **Aria-Details:** Highlights elements utilizing `aria-details`. **Links complex, rich explanations to an element** (allows structured HTML in the description).
+* **Aria-Controls:** Remote DOM visibility targets (`aria-controls`). **Links trigger mechanisms to their targets.** 
+* **Aria-Owns:** Remote programmatic ownership (`aria-owns`). **Reconstructs accessibility tree hierarchy for disjointed widgets.** 
+* **List Set & Position:** Virtual list mapping (`aria-setsize`, `aria-posinset`). **Tells screen readers the total size of a list and the element's position**, even if all items aren't in the DOM.
 
 #### ARIA States (Conditions)
 
@@ -1008,188 +333,111 @@ The following details the complete list of heuristic evaluations performed by th
 | **Aria-Value Properties** | Informative | `value="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-value) |
 | **Aria-Haspopup** | Informative | `haspopup="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-haspopup) |
 
-*   **ARIA Live Regions:** Maps dynamic `aria-live` injection containers. **Ensures dynamic content updates are announced to screen readers.** 
-*   **Required Fields:** Mandatory input enforcement (`required` / `aria-required`). **Ensures required status is programmatically available.** 
-*   **Aria-Expanded State:** Expandable/collapsible widget states (`aria-expanded`). **Visualizes the current programmatic state of accordions and menus.** 
-*   **Aria-Pressed State:** Toggle button states (`aria-pressed`). **Visualizes the programmatic state of toggle buttons** (e.g., Mute/Unmute, Play/Pause).
-*   **Aria-Value Properties:** Slider & progress bar states (`valuenow`, `valuetext`). **Ensures visual slider values match their programmatic data.**
-*   **Aria-Haspopup:** Elements triggering overlays (`aria-haspopup`). **Prepares users for a context shift** by announcing an interactive overlay.
+* **ARIA Live Regions:** Maps dynamic `aria-live` injection containers. **Ensures dynamic content updates are announced to screen readers.** 
+* **Required Fields:** Mandatory input enforcement (`required` / `aria-required`). **Ensures required status is programmatically available.** 
+* **Aria-Expanded State:** Expandable/collapsible widget states (`aria-expanded`). **Visualizes the current programmatic state of accordions and menus.** 
+* **Aria-Pressed State:** Toggle button states (`aria-pressed`). **Visualizes the programmatic state of toggle buttons** (e.g., Mute/Unmute, Play/Pause).
+* **Aria-Value Properties:** Slider & progress bar states (`valuenow`, `valuetext`). **Ensures visual slider values match their programmatic data.**
+* **Aria-Haspopup:** Elements triggering overlays (`aria-haspopup`). **Prepares users for a context shift** by announcing an interactive overlay.
+
+---
 
 ## Search Predicates and Logic Definitions
 
 Elements hidden via CSS parameters like `display: none` or `visibility: hidden`, or by using the HTML `inert` attribute, are excluded by the global DOM processing logic before the specific audits run.
 
-**DOM Traversal:** The extension utilizes a custom deep `querySelectorAll` function combined with bottom-up ancestor mapping. This allows the scanner to properly pierce standard (open) Shadow DOM boundaries and fully traverse the internal DOM of same-origin iframes, guaranteeing accurate visibility tracking across complex widget architectures.
+**DOM Traversal:** WICK-AG-Lens utilizes a custom deep `querySelectorAll` function (`querySelectorAllDeep`) combined with bottom-up ancestor mapping. This allows the scanner to pierce standard (open) Shadow DOM boundaries and fully traverse the internal DOM of same-origin iframes, guaranteeing accurate visibility tracking across complex widget architectures.
 
-**Self-Auditing Guard:** The injected extension UI elements (like the overlay boxes and the information toast panels) are specifically excluded from audits to prevent false positives.
+**Self-Auditing Guard:** Injected extension UI elements (overlay boxes and information toast panels) are explicitly excluded from audits to prevent false positives.
 
 ### Tab 1: Violations & Warnings
 
-*   <a id="v-doc-title"></a>**Document Title:** Uses the CSS selector `html`. The logic checks if `document.title` is missing or entirely empty strings.
-*   <a id="v-page-encoding"></a>**Page Encoding:** Uses the CSS selector `html`. The logic evaluates `document.characterSet` to ensure it is defined and set to UTF-8.
-*   <a id="v-18"></a>**Auto-playing Media:** Uses the CSS selector `audio[autoplay], video[autoplay]`. Elements matching the selector are flagged.
-*   <a id="v-19"></a>**Heading Hierarchy Errors:** Uses the CSS selector `h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']`. The logic tracks the integer level of headings, intentionally ignoring missing H1s at the start of the document. It flags an element if the current heading level skips sequentially past the previous tracked level. It also flags generic elements without a role attribute if the text length is under 80 characters, utilizing a heuristic wrapper safeguard to actively ignore generic containers that correctly wrap (or are wrapped by) valid native headings to prevent false positives. Outputs are separated into distinct "Skipped Level" and "Fake Heading" legends.
-*   <a id="v-svg-accessible"></a>**Inaccessible SVGs:** Uses the CSS selector `svg:not([aria-hidden='true']):not([aria-hidden='1'])`. The logic ignores SVGs explicitly hidden from screen readers. For exposed SVGs, it checks if it lacks an `aria-label`, lacks a nested `<title>`, and is not nested within an interactive parent (like a `<button>`) that already provides an accessible name.
-*   <a id="v-5"></a>**Missing Alt Text:** Uses the CSS selector `img:not([alt])`. Evaluates `getBoundingClientRect()` to distinctly categorize sub-2px tracking pixels apart from standard image violations to reduce UI noise.
-*   <a id="v-6"></a>**Uncaptioned Video:** Uses the CSS selector `video`. The logic queries descendants for `track[kind="captions"], track[kind="subtitles"]`. If the result length is 0, the video is flagged.
-*   <a id="v-7"></a>**Redundant Alt Text:** Uses the CSS selector `img[alt]`. The logic reads the alt attribute and uses the regular expression `/\b(image|img|photo|picture|graphic)\b/i` to identify redundant terms before flagging.
-*   <a id="v-11"></a>**Empty Links:** Uses the CSS selector `a[href]`. The logic evaluates the text content, ARIA labels, and child image alt text. If all sources of accessible names are empty, it triggers a violation.
-*   <a id="v-12"></a>**Suspicious Link Targets:** Uses the CSS selector `a[href='#'], a[href^='javascript:']`. The logic ignores elements that possess `role="button"`. It categorizes the remaining matches based on whether the `href` prefix is javascript or a hash.
-*   <a id="v-13"></a>**Generic Link Text:** Uses the CSS selector `a[href]`. The logic trims the text content and applies an exact word boundary regular expression `/\b(click here|read more|learn more|more|link|here)\b/i` to flag matching elements.
-*   <a id="v-14"></a>**Unwarned New Window Links:** Uses the CSS selector `a[target='_blank']`. The logic concatenates the text content and `aria-label` to test against the regular expression `/new (window|tab)/`. If no match is found, it flags a violation.
-*   <a id="v-8"></a>**Unlabeled Form Inputs:** Uses the CSS selector `input:not([type='hidden']):not([type='submit']):not([type='button']), select, textarea`. The logic searches the document for a `<label>` with a `for` attribute matching the input ID. It also checks the element for `aria-label` or `aria-labelledby` attributes, or if it is nested directly inside a `label` element. If all checks fail, it is flagged.
-*   <a id="v-9"></a>**Empty Buttons:** Uses the CSS selector `button, [role='button']`. The logic checks the text content of the element, the presence of `aria-label` or `aria-labelledby`, and the presence of child `img[alt]` elements. If the trimmed text is empty and alternative names are missing, it flags a violation.
-*   <a id="v-10"></a>**Placeholder as Label:** Uses the CSS selector `input[placeholder], textarea[placeholder]`. The logic checks if the element lacks a `label[for]` referencing its ID and lacks `aria-label` or `aria-labelledby` attributes.
-*   <a id="v-autocomplete-invalid"></a>**Invalid Autocomplete:** Uses the CSS selector `input[autocomplete], select[autocomplete], textarea[autocomplete]`. The logic splits the token values and validates them against the official W3C HTML5 autocomplete token registry.
-*   <a id="v-1"></a>**Unfocusable Clickables:** Uses the CSS selector `div[onclick], span[onclick], section[onclick]`. The Javascript logic evaluates each element to ensure it lacks a `role` attribute or lacks a `tabindex` attribute before flagging a violation.
-*   <a id="v-3"></a>**Tabindex Violations:** Uses the CSS selector `[tabindex]`. The logic parses the attribute value as a base 10 integer and triggers a violation if the value is strictly greater than 0.
-*   <a id="v-4"></a>**Accesskey Attributes:** Uses the CSS selector `[accesskey]`. All elements matching this selector are flagged.
-*   <a id="v-2"></a>**Disabled Focus Outlines (Heuristic):** Uses the base CSS selector `a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])`. The Javascript logic iterates through `document.styleSheets` and checks each `CSSRule.STYLE_RULE` to see if the selector includes `:focus` or `:focus-visible`. It reads the `outline`, `outlineWidth`, `boxShadow`, and `border` properties. If outline rules contain `none` or `0px` and no fallback border or shadow is provided in the same rule, the selector is recorded. Any interactive element matching that recorded selector is flagged for manual review, as the script cannot natively account for subsequent CSS cascade overrides.
-*   <a id="v-17"></a>**Prohibited Author Names:** Uses the CSS selector `[role='presentation'], [role='none'], [role='generic']`. The logic triggers a violation if the matched element has an `aria-label` or `aria-labelledby` attribute.
-*   <a id="v-label-in-name"></a>**Label in Name Mismatch:** Uses the CSS selector `button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]`. The logic normalizes whitespace, strips punctuation, and lowercases both the visible `innerText` and the computed `aria-label`. If the visible text is not found as a substring within the `aria-label`, it throws a violation.
-*   <a id="v-duplicate-id"></a>**Duplicate ID Attributes:** Uses the CSS selector `[id]`. The logic tracks processed IDs to prevent redundant processing. When a duplicate is found, it uses `document.querySelectorAll` with `CSS.escape()` to fetch all colliding nodes. It evaluates `offsetWidth/offsetHeight` to categorize each node as visible or hidden, explicitly registering hidden duplicates with a lighter-colored legend so they appear distinctly in the Details Modal without rendering layout-breaking zero-pixel boxes on the screen.
-*   <a id="v-broken-aria-ref"></a>**Broken ARIA References:** Targets elements using `[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]`. The logic splits the attribute values by whitespace into individual ID strings and checks if `document.getElementById()` returns null. Flags the element if any referenced ID is missing from the DOM.
-*   <a id="v-15"></a>**Focusable in Aria-Hidden:** Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses `aria-hidden='true'`. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.
-*   <a id="v-16"></a>**Invalid ARIA State:** Uses the CSS selector `[aria-invalid='true']`. Elements matching the selector are flagged.
-*   <a id="v-20"></a>**Text Color Contrast:** Uses the CSS selector targeting standard text elements like `h1`, `p`, `span`, `button`. The logic verifies child text nodes exist. It uses `window.getComputedStyle` to retrieve colors, dynamically factoring in `font-size` and `font-weight` against WCAG large-text thresholds. It calculates the WCAG relative luminance formula and dynamically evaluates failures against the user's active UI filters (AA vs AAA) so strict AAA failures are correctly caught even when AA filters are unchecked. Elements over background images or CSS gradients are automatically flagged for manual review.
+* <a id="v-doc-title"></a>**Document Title:** Uses the CSS selector `html`. The logic checks if `document.title` is missing or entirely empty strings.
+* <a id="v-page-encoding"></a>**Page Encoding:** Uses the CSS selector `html`. The logic evaluates `document.characterSet` to ensure it is defined and set to UTF-8.
+* <a id="v-18"></a>**Auto-playing Media:** Uses the CSS selector `audio[autoplay], video[autoplay]`. Elements matching the selector are flagged.
+* <a id="v-19"></a>**Heading Hierarchy Errors:** Uses the CSS selector `h1, h2, h3, h4, h5, h6, [role='heading'], [class*='heading'], [class*='title']`. The logic tracks the integer level of headings, intentionally ignoring missing H1s at the start of the document. It flags an element if the current heading level skips sequentially past the previous tracked level. It also flags generic elements without a role attribute if the text length is under 80 characters, utilizing a heuristic wrapper safeguard to actively ignore generic containers that correctly wrap (or are wrapped by) valid native headings to prevent false positives. Outputs are separated into distinct "Skipped Level" and "Fake Heading" legends.
+* <a id="v-svg-accessible"></a>**Inaccessible SVGs:** Uses the CSS selector `svg:not([aria-hidden='true']):not([aria-hidden='1'])`. The logic ignores SVGs explicitly hidden from screen readers. For exposed SVGs, it checks if it lacks an `aria-label`, lacks a nested `<title>`, and is not nested within an interactive parent (like a `<button>`) that already provides an accessible name.
+* <a id="v-5"></a>**Missing Alt Text:** Uses the CSS selector `img:not([alt])`. Evaluates `getBoundingClientRect()` to distinctly categorize sub-2px tracking pixels apart from standard image violations to reduce UI noise.
+* <a id="v-6"></a>**Uncaptioned Video:** Uses the CSS selector `video`. The logic queries descendants for `track[kind="captions"], track[kind="subtitles"]`. If the result length is 0, the video is flagged.
+* <a id="v-7"></a>**Redundant Alt Text:** Uses the CSS selector `img[alt]`. The logic reads the alt attribute and uses the regular expression `/\b(image|img|photo|picture|graphic)\b/i` to identify redundant terms before flagging.
+* <a id="v-11"></a>**Empty Links:** Uses the CSS selector `a[href]`. The logic evaluates the text content, ARIA labels, and child image alt text. If all sources of accessible names are empty, it triggers a violation.
+* <a id="v-12"></a>**Suspicious Link Targets:** Uses the CSS selector `a[href='#'], a[href^='javascript:']`. The logic ignores elements that possess `role="button"`. It categorizes the remaining matches based on whether the `href` prefix is javascript or a hash.
+* <a id="v-13"></a>**Generic Link Text:** Uses the CSS selector `a[href]`. The logic trims the text content and applies an exact word boundary regular expression `/\b(click here|read more|learn more|more|link|here)\b/i` to flag matching elements.
+* <a id="v-14"></a>**Unwarned New Window Links:** Uses the CSS selector `a[target='_blank']`. The logic concatenates the text content and `aria-label` to test against the regular expression `/new (window|tab)/`. If no match is found, it flags a violation.
+* <a id="v-8"></a>**Unlabeled Form Inputs:** Uses the CSS selector `input:not([type='hidden']):not([type='submit']):not([type='button']), select, textarea`. The logic searches the document for a `<label>` with a `for` attribute matching the input ID. It also checks the element for `aria-label` or `aria-labelledby` attributes, or if it is nested directly inside a `label` element. If all checks fail, it is flagged.
+* <a id="v-9"></a>**Empty Buttons:** Uses the CSS selector `button, [role='button']`. The logic checks the text content of the element, the presence of `aria-label` or `aria-labelledby`, and the presence of child `img[alt]` elements. If the trimmed text is empty and alternative names are missing, it flags a violation.
+* <a id="v-10"></a>**Placeholder as Label:** Uses the CSS selector `input[placeholder], textarea[placeholder]`. The logic checks if the element lacks a `label[for]` referencing its ID and lacks `aria-label` or `aria-labelledby` attributes.
+* <a id="v-autocomplete-invalid"></a>**Invalid Autocomplete:** Uses the CSS selector `input[autocomplete], select[autocomplete], textarea[autocomplete]`. The logic splits the token values and validates them against the official W3C HTML5 autocomplete token registry.
+* <a id="v-1"></a>**Unfocusable Clickables:** Uses the CSS selector `div[onclick], span[onclick], section[onclick]`. The Javascript logic evaluates each element to ensure it lacks a `role` attribute or lacks a `tabindex` attribute before flagging a violation.
+* <a id="v-3"></a>**Tabindex Violations:** Uses the CSS selector `[tabindex]`. The logic parses the attribute value as a base 10 integer and triggers a violation if the value is strictly greater than 0.
+* <a id="v-4"></a>**Accesskey Attributes:** Uses the CSS selector `[accesskey]`. All elements matching this selector are flagged.
+* <a id="v-2"></a>**Disabled Focus Outlines (Heuristic):** Uses the base CSS selector `a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])`. The Javascript logic iterates through `document.styleSheets` and checks each `CSSRule.STYLE_RULE` to see if the selector includes `:focus` or `:focus-visible`. It reads the `outline`, `outlineWidth`, `boxShadow`, and `border` properties. If outline rules contain `none` or `0px` and no fallback border or shadow is provided in the same rule, the selector is recorded. Any interactive element matching that recorded selector is flagged for manual review, as the script cannot natively account for subsequent CSS cascade overrides.
+* <a id="v-17"></a>**Prohibited Author Names:** Uses the CSS selector `[role='presentation'], [role='none'], [role='generic']`. The logic triggers a violation if the matched element has an `aria-label` or `aria-labelledby` attribute.
+* <a id="v-label-in-name"></a>**Label in Name Mismatch:** Uses the CSS selector `button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]`. The logic normalizes whitespace, strips punctuation, and lowercases both the visible `innerText` and the computed `aria-label`. If the visible text is not found as a substring within the `aria-label`, it throws a violation.
+* <a id="v-duplicate-id"></a>**Duplicate ID Attributes:** Uses the CSS selector `[id]`. The logic tracks processed IDs to prevent redundant processing. When a duplicate is found, it uses `document.querySelectorAll` with `CSS.escape()` to fetch all colliding nodes. It evaluates `offsetWidth/offsetHeight` to categorize each node as visible or hidden, explicitly registering hidden duplicates with a lighter-colored legend so they appear distinctly in the Details Modal without rendering layout-breaking zero-pixel boxes on the screen.
+* <a id="v-broken-aria-ref"></a>**Broken ARIA References:** Targets elements using `[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]`. The logic splits the attribute values by whitespace into individual ID strings and checks if `document.getElementById()` returns null. Flags the element if any referenced ID is missing from the DOM.
+* <a id="v-15"></a>**Focusable in Aria-Hidden:** Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses `aria-hidden='true'`. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.
+* <a id="v-16"></a>**Invalid ARIA State:** Uses the CSS selector `[aria-invalid='true']`. Elements matching the selector are flagged.
+* <a id="v-20"></a>**Text Color Contrast:** Uses the CSS selector targeting standard text elements like `h1`, `p`, `span`, `button`. The logic verifies child text nodes exist. It uses `window.getComputedStyle` to retrieve colors, dynamically factoring in `font-size` and `font-weight` against WCAG large-text thresholds. It calculates the WCAG relative luminance formula and dynamically evaluates failures against the user's active UI filters (AA vs AAA) so strict AAA failures are correctly caught even when AA filters are unchecked. Elements over background images or CSS gradients are automatically flagged for manual review.
 
 ### Tab 2: Informative & Structure
 
-*   <a id="i-17"></a>**Valid Heading Order:** Uses the CSS selector `h1, h2, h3, h4, h5, h6`. Elements matching the selector are highlighted.
-*   <a id="i-18"></a>**Landmark Regions:** Uses the CSS selector `main, nav, header, footer, aside, [role='main'], [role='navigation'], [role='banner'], [role='contentinfo']`. The logic retrieves the role attribute or the HTML tag name for the badge output.
-*   <a id="i-19"></a>**Table & Grid Structure:** Uses the CSS selector `table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']`. The logic applies a dashed style to header roles and tags, and applies a solid style for grid and table containers.
-*   <a id="i-20"></a>**Lists and List Items:** Uses the CSS selector `ul, ol, li, dl, dt, dd`. Elements matching the selector are highlighted.
-*   <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
-*   <a id="i-3"></a>**Display Image Alternatives:** Uses the CSS selector `img`. The logic calculates bounding box dimensions to isolate tracking pixels, and assigns distinct legends based on whether the `alt` attribute is completely missing, present but empty, or populated.
-*   <a id="i-4"></a>**Captioned Video:** Uses the CSS selector `video`. The logic checks for child `track[kind="captions"]` or `track[kind="subtitles"]` elements to highlight the video.
-*   <a id="i-5"></a>**Iframe Context & Titles:** Uses the CSS selector `iframe`. The logic checks if the iframe has `aria-hidden` set to true or `tabindex` set to -1. It flags missing titles if the `title` attribute is missing or empty, otherwise, it outputs the title text.
-*   <a id="i-9"></a>**Warned New Window Links:** Uses the CSS selector `a[target='_blank']`. The logic combines the text content and `aria-label` to test against the regular expression `/new (window|tab)/`. Matches are highlighted.
-*   <a id="i-7"></a>**Fieldsets & Captions:** Uses the CSS selector `fieldset, legend`. Elements matching the selector are highlighted.
-*   <a id="i-8"></a>**Touch Target Sizes:** Uses a CSS selector targeting interactive elements and roles like `button`, `link`, `checkbox`, `slider`. The logic uses `getBoundingClientRect()` to compute width and height. It finds the minimum of the two dimensions and categorizes the element based on strict WCAG thresholds: < 24px (WCAG 2.2 AA Fail), 24-43px (WCAG 2.1 AAA Fail), and 44px+ (WCAG 2.1 AAA Pass).
-*   <a id="i-readonly-fields"></a>**Read-Only Fields:** Uses the CSS selector `[readonly], [aria-readonly='true']`. Highlights controls marked as read-only.
-*   <a id="i-1"></a>**Tabindex (Comparison):** Uses the CSS selector `[tabindex]`. The logic parses the attribute as an integer and assigns different visual legends based on whether the value is equal to 0, less than 0, or greater than 0.
-*   <a id="i-2"></a>**Display Focus Order:** Traces and numbers the natural sequential path of focusable elements using hierarchical decimal prefixing for cross-frame focus tracking. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies via `aria-hidden='true'` on the element or an ancestor.
-*   <a id="i-11"></a>**ARIA Roles & Attributes:** Uses the CSS selector `[role]`. The logic retrieves the value of the role attribute for display.
-*   <a id="i-aria-roledescription"></a>**Aria-Roledescription:** Uses the CSS selector `[aria-roledescription]`. Retrieves the value of the attribute for display.
-*   <a id="i-10"></a>**Accessible Name Resolution:** Uses a CSS selector targeting interactive widgets. The logic simulates the browser's native fallback sequence, sequentially checking `aria-labelledby`, `aria-label`, native associated labels/inner text, and finally the `title` attribute to print exactly what the screen reader will announce.
-*   <a id="i-6"></a>**Form Field Descriptions:** Uses the CSS selector `[aria-describedby], [title]`. The logic outputs the presence of these specific attributes to the badge.
-*   <a id="i-aria-details"></a>**Aria-Details:** Uses the CSS selector `[aria-details]`. Elements matching the selector are highlighted.
-*   <a id="i-15"></a>**Aria-Controls:** Uses the CSS selector `[aria-controls]`. Elements matching the selector are highlighted.
-*   <a id="i-16"></a>**Aria-Owns:** Uses the CSS selector `[aria-owns]`. Elements matching the selector are highlighted.
-*   <a id="i-aria-setsize"></a>**List Set & Position:** Uses the CSS selector `[aria-setsize], [aria-posinset]`. The logic retrieves the position and set size values for the badge output.
-*   <a id="i-12"></a>**ARIA Live Regions:** Uses the CSS selector `[aria-live]`. The logic retrieves the value of the aria-live attribute for display.
-*   <a id="i-13"></a>**Required Fields:** Uses the CSS selector `[required], [aria-required='true']`. The logic distinguishes between HTML required attributes and ARIA required attributes for the output.
-*   <a id="i-14"></a>**Aria-Expanded State:** Uses the CSS selector `[aria-expanded]`. The logic categorizes the element based on whether the attribute equals true or false.
-*   <a id="i-aria-pressed"></a>**Aria-Pressed State:** Uses the CSS selector `[aria-pressed]`. The logic categorizes the toggle button state based on whether the attribute equals true, false, or mixed.
-*   <a id="i-aria-value"></a>**Aria-Value Properties:** Uses the CSS selector `[aria-valuenow], [aria-valuetext]`. Retrieves the active numerical or text value of the slider/progress bar.
-*   <a id="i-aria-haspopup"></a>**Aria-Haspopup:** Uses the CSS selector `[aria-haspopup]`. Retrieves the overlay type parameter for display.
+* <a id="i-17"></a>**Valid Heading Order:** Uses the CSS selector `h1, h2, h3, h4, h5, h6`. Elements matching the selector are highlighted.
+* <a id="i-18"></a>**Landmark Regions:** Uses the CSS selector `main, nav, header, footer, aside, [role='main'], [role='navigation'], [role='banner'], [role='contentinfo']`. The logic retrieves the role attribute or the HTML tag name for the badge output.
+* <a id="i-19"></a>**Table & Grid Structure:** Uses the CSS selector `table, caption, th, [role='table'], [role='grid'], [role='treegrid'], [role='columnheader'], [role='rowheader']`. The logic applies a dashed style to header roles and tags, and applies a solid style for grid and table containers.
+* <a id="i-20"></a>**Lists and List Items:** Uses the CSS selector `ul, ol, li, dl, dt, dd`. Elements matching the selector are highlighted.
+* <a id="i-21"></a>**Language Definitions:** Uses the CSS selector `html, [lang], [xml\\:lang]`. The logic checks if the element is the root html tag. It flags the element if the root tag is missing a language attribute. It categorizes root language declarations separately from inline phonetic shifts.
+* <a id="i-3"></a>**Display Image Alternatives:** Uses the CSS selector `img`. The logic calculates bounding box dimensions to isolate tracking pixels, and assigns distinct legends based on whether the `alt` attribute is completely missing, present but empty, or populated.
+* <a id="i-4"></a>**Captioned Video:** Uses the CSS selector `video`. The logic checks for child `track[kind="captions"]` or `track[kind="subtitles"]` elements to highlight the video.
+* <a id="i-5"></a>**Iframe Context & Titles:** Uses the CSS selector `iframe`. The logic checks if the iframe has `aria-hidden` set to true or `tabindex` set to -1. It flags missing titles if the `title` attribute is missing or empty, otherwise, it outputs the title text.
+* <a id="i-9"></a>**Warned New Window Links:** Uses the CSS selector `a[target='_blank']`. The logic combines the text content and `aria-label` to test against the regular expression `/new (window|tab)/`. Matches are highlighted.
+* <a id="i-7"></a>**Fieldsets & Captions:** Uses the CSS selector `fieldset, legend`. Elements matching the selector are highlighted.
+* <a id="i-8"></a>**Touch Target Sizes:** Uses a CSS selector targeting interactive elements and roles like `button`, `link`, `checkbox`, `slider`. The logic uses `getBoundingClientRect()` to compute width and height. It finds the minimum of the two dimensions and categorizes the element based on strict WCAG thresholds: `< 24px` (WCAG 2.2 AA Fail), `24-43px` (WCAG 2.1 AAA Fail), and `44px+` (WCAG 2.1 AAA Pass).
+* <a id="i-readonly-fields"></a>**Read-Only Fields:** Uses the CSS selector `[readonly], [aria-readonly='true']`. Highlights controls marked as read-only.
+* <a id="i-1"></a>**Tabindex (Comparison):** Uses the CSS selector `[tabindex]`. The logic parses the attribute as an integer and assigns different visual legends based on whether the value is equal to 0, less than 0, or greater than 0.
+* <a id="i-2"></a>**Display Focus Order:** Traces and numbers the natural sequential path of focusable elements using hierarchical decimal prefixing for cross-frame focus tracking. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies via `aria-hidden='true'` on the element or an ancestor.
+* <a id="i-11"></a>**ARIA Roles & Attributes:** Uses the CSS selector `[role]`. The logic retrieves the value of the role attribute for display.
+* <a id="i-aria-roledescription"></a>**Aria-Roledescription:** Uses the CSS selector `[aria-roledescription]`. Retrieves the value of the attribute for display.
+* <a id="i-10"></a>**Accessible Name Resolution:** Uses a CSS selector targeting interactive widgets. The logic simulates the browser's native fallback sequence, sequentially checking `aria-labelledby`, `aria-label`, native associated labels/inner text, and finally the `title` attribute to print exactly what the screen reader will announce.
+* <a id="i-6"></a>**Form Field Descriptions:** Uses the CSS selector `[aria-describedby], [title]`. The logic outputs the presence of these specific attributes to the badge.
+* <a id="i-aria-details"></a>**Aria-Details:** Uses the CSS selector `[aria-details]`. Elements matching the selector are highlighted.
+* <a id="i-15"></a>**Aria-Controls:** Uses the CSS selector `[aria-controls]`. Elements matching the selector are highlighted.
+* <a id="i-16"></a>**Aria-Owns:** Uses the CSS selector `[aria-owns]`. Elements matching the selector are highlighted.
+* <a id="i-aria-setsize"></a>**List Set & Position:** Uses the CSS selector `[aria-setsize], [aria-posinset]`. The logic retrieves the position and set size values for the badge output.
+* <a id="i-12"></a>**ARIA Live Regions:** Uses the CSS selector `[aria-live]`. The logic retrieves the value of the aria-live attribute for display.
+* <a id="i-13"></a>**Required Fields:** Uses the CSS selector `[required], [aria-required='true']`. The logic distinguishes between HTML required attributes and ARIA required attributes for the output.
+* <a id="i-14"></a>**Aria-Expanded State:** Uses the CSS selector `[aria-expanded]`. The logic categorizes the element based on whether the attribute equals true or false.
+* <a id="i-aria-pressed"></a>**Aria-Pressed State:** Uses the CSS selector `[aria-pressed]`. The logic categorizes the toggle button state based on whether the attribute equals true, false, or mixed.
+* <a id="i-aria-value"></a>**Aria-Value Properties:** Uses the CSS selector `[aria-valuenow], [aria-valuetext]`. Retrieves the active numerical or text value of the slider/progress bar.
+* <a id="i-aria-haspopup"></a>**Aria-Haspopup:** Uses the CSS selector `[aria-haspopup]`. Retrieves the overlay type parameter for display.
 
-## Disability Simulation Engine (Logic & Assumptions)
+---
 
-The Simulate Mode provides an empathetic heuristic overlay to help developers identify critical contrast and layout barriers by simulating severe visual impairments directly in the DOM. These modules map to documented mathematical approximations rather than applying arbitrary color tints.
+## Shared Limitations & Technical Bounds
 
-### Color Vision Deficiencies (CVD)
-*   **Achromatopsia (Monochromacy):** Simulates a complete absence of color perception. Rather than a basic grayscale filter, it utilizes a standard SVG `feColorMatrix` mapped strictly to the WCAG relative luminance formula `(0.2126 R + 0.7152 G + 0.0722 B)` to ensure colors are converted to grayscale in direct proportion to their perceived brightness.
-*   **Protanopia & Deuteranopia (Red/Green Blindness):** Simulates the physiological lack of L-cones and M-cones, respectively. It applies the precise mathematical linearRGB Viénot model matrices via an SVG `feColorMatrix`.
-*   **Tritanopia (Blue-Blindness):** Simulates the lack of S-cones. While a perfect simulation requires a 3D dual-plane mapping (Brettel 1997), WICK-AG-Lens utilizes an optimized SVG linear least-squares approximation matrix to maintain high-performance, real-time rendering within the browser compositor.
+The following technical bounds apply to the core DOM inspection engine across both the visual extension and headless automation environments (see [`extension/README.md`](./extension/README.md#limitations--technical-bounds) and [`cli/README.md`](./cli/README.md#limitations--technical-bounds) for environment-specific constraints):
 
-### Impaired Vision Physiology
-*   **Double Vision (Diplopia):** Simulates perceiving a secondary ghosted image offset from the original content. It renders a highly accurate secondary ghost image using an SVG `feOffset` function combined with an alpha reduction (`feFuncA`) and composites it using `feBlend` directly into the page layer.
-*   **Loss of Contrast:** Reduces the ability to distinguish between text and its surrounding background. It utilizes the native CSS `contrast()` function to reduce the luminance amplitude difference between elements while purposefully maintaining structural color (unlike other tools that biologically misrepresent contrast loss by aggressively converting the page to grayscale).
-*   **Yellowing (Aging Lens / Nuclear Sclerosis):** Simulates the natural yellowing of the eye crystalline lens over time. Rather than utilizing a generic CSS `sepia()` tone (which unrealistically paints everything brown), it uses a custom SVG `feColorMatrix` that fundamentally degrades the blue channel to replicate the actual biological absorption of short-wavelength light.
-*   **Cataracts:** Simulates the progressive clouding of the eye lens. It employs an approximate combinatorial filter simulating light scattering and opacity by mathematically intertwining a Gaussian blur function alongside a proportional drop in visual contrast and minor short-wavelength light absorption.
-*   **Field of Vision Loss:** Simulates both Central Loss (Macular Degeneration) and Peripheral Loss (Glaucoma/Tunnel Vision). It employs a non-interactive overlay bounded by a static CSS radial gradient. Central Loss creates a localized central scotoma constrained correctly to a 20% limit of the visual angle, while Peripheral Loss aggressively restricts outer inputs, shrinking the clear tunnel down to 5%.
+* **Visibility Filtering:** Elements hidden via `display: none`, `visibility: hidden`, `hidden`, or `inert` are strictly excluded from all analysis to match native accessibility tree behavior.
+* **Z-Index Occlusion:** Visibility calculations rely on computed CSS properties. The engine does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high `z-index` modal).
+* **Focus Order:** Mirrors standard browser `Tab` execution, prioritizing `tabindex > 0`, respecting native Radio Group bundling, and tracing hierarchical paths inside nested iframes.
+* **Shadow DOMs:** Standard (open) Web Components are fully traversed and supported. Explicitly `closed` Shadow Roots remain inaccessible by browser design.
+* **Iframes & Cross-Origin Policies:** Both the visual extension and headless Playwright scanner traverse active iframes to aggregate findings, though strict browser Same-Origin Policies restrict cross-origin frame DOM injection when blocked by frame sandboxing headers.
 
-## PDF Accessibility Engine (Logic & Assumptions)
-
-The PDF Mode provides a programmatic structural verification of essential PDF/UA and WCAG gatekeeper indicators directly from the active binary stream. 
-
-*   **Tagged PDF (Structure Tree):** Scans the Document Catalog for the `/MarkInfo` dictionary. Ensures `/Marked true` is present and `/Marked false` is not. A missing tag tree prevents screen readers from understanding reading order and semantics (WCAG 1.3.1 & ISO 14289-1).
-*   **Document Title:** Uses a heuristic metadata scanner to search the Info dictionary for literal or hex-encoded `/Title` metadata, and verifies if `/DisplayDocTitle` is enforced (WCAG 2.4.2). 
-*   **Primary Language:** Strict Catalog property validation. Scans for the root `/Lang` ISO language code identifier to ensure speech synthesizers load the correct phonetic dictionary (WCAG 3.1.1).
-*   **Accessibility Extraction Permission:** Strict bitmask calculation. Evaluates User Security Access Permissions (`/P`). Evaluates Bit 10 (value 512, `0x200`) to ensure assistive technologies are mathematically permitted to extract text contents if the document is encrypted (Robust Principle).
-
-
-## SPA Rendering & State Handling
-
-Automated accessibility testing in modern Single Page Applications (SPAs) introduces a classic race condition: the gap between when a script *thinks* the page is ready and when the DOM has *actually* finished hydrating. WICK-AG-Lens utilizes a hybrid approach to ensure no elements are missed during rapid state changes.
-
-### Who Decides When the Page is Rendered? (The Hybrid Approach)
-It is a coordinated handoff between the browser automation and the WICK heuristic engine:
-
-*   **Action Readiness (Playwright):** Playwright decides if an element is ready to be *touched*. Before it executes a `--step "click::#submit"`, its internal engine waits for the target to exist, become visible, stop animating, and become capable of receiving pointer events. 
-*   **Audit Readiness (WICK-AG-Lens):** Once Playwright successfully interacts with the page, it passes control to the WICK engine to decide when the page is ready to be *scanned*. The engine hooks directly into an internal double-debounce event to wait for the SPA router to fully settle before evaluating the DOM.
-*   **The Failsafe:** Because some enterprise SPAs use CSS animations or detached DOM nodes that evade standard observer hooks, the CLI exposes explicit `--wait-ms` and `--wait-for-selector` flags so you can manually force Playwright to wait for specific client-side routing to finish before triggering the audit.
-
-### How the Systems Handle Fast, Sequential Clicks
-The visual extension and the headless CLI handle rapid state changes in completely different ways, optimized for their specific environments:
-
-**The Visual Extension (Asynchronous Human Interaction)**
-Humans click unpredictably. To prevent the extension from scanning half-rendered states or crashing the main thread during rapid clicks, it relies entirely on a Dual-Debounce `MutationObserver`. 
-*   If a user clicks a tab, then instantly clicks a dropdown, the DOM mutates repeatedly. 
-*   Every single mutation resets an internal 750ms countdown timer. 
-*   The WICK audit engine does not fire until the user stops clicking and the DOM remains completely quiet for that full 750ms window. It guarantees the scan only captures the final, settled layout.
-
-**The Headless CLI (Synchronous Script Execution)**
-Scripts click faster than humans, which would normally break SPAs. The CLI prevents missing elements by forcing strict, blocking sequential execution.
-*   When you pass multiple `--step` flags, they do not execute simultaneously.
-*   Step 1 executes its click. The script physically halts and waits for the debounce/settle logic to clear, and then waits for the WICK scanner to return the JSON payload.
-*   Step 2 is completely blocked from finding its target or executing its click until Step 1's accessibility delta-diff is fully calculated and recorded in the timeline. You cannot "outrun" the scanner in the CLI because the pipeline is strictly synchronous.
-
-
-## Limitations & Technical Bounds
-
-### Inspect Mode
-*   **Dynamic Content & SPAs:** The inspector listens to DOM mutations to provide real-time updates. However, rapidly mutating animations or heavily throttled browser threads may occasionally delay the soft-update rescan (debounced to 750ms).
-*   **Visibility Filtering:** Elements hidden via `display: none`, `visibility: hidden`, `hidden`, or `inert` are strictly excluded from all analysis to match native accessibility tree behavior.
-*   **Clipping & X-Ray Vision:** Elements scrolled off-screen or hidden inside `overflow: hidden` containers (like carousels) are successfully detected and rendered with a ghosted X-Ray hatched pattern.
-*   **Z-Index Occlusion:** Visibility calculations rely on CSS properties. The tool does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high `z-index` modal).
-*   **Focus Order:** Mirrors standard browser `Tab` execution, prioritizing `tabindex > 0`, respecting native Radio Group bundling, and tracing hierarchical paths inside nested iframes.
-*   **Shadow DOMs:** Standard (open) Web Components are fully traversed and supported. Explicitly 'closed' Shadow Roots remain inaccessible by browser design.
-*   **Iframes & Cross-Origin Policies:** The tool successfully aggregates data across all active iframes (including nested cross-origin embeds) for reporting and element listings. However, it cannot bypass strict Same-Origin Policies to force browser scroll events inside cross-origin windows.
-
-### Simulate Mode
-*   **Hardware & Monitor Limitations:** All visual simulations are inherently constrained by the physical hardware of the screen. Absolute accuracy is limited by your monitor's specific color calibration, backlight brightness, viewing angle, and ambient room lighting.
-*   **Color Blindness Models:** Protanopia and Deuteranopia use strict linearRGB Viénot physiological matrices, while Tritanopia utilizes an optimized linear least-squares approximation. Achromatopsia strictly follows the WCAG relative luminance formula rather than modeling biological rod-monochromacy.
-*   **Impaired Vision Approximations:** Conditions like Cataracts and Loss of Contrast are generated using mathematical CSS filter combinations. They mimic the optical experience to identify severe contrast issues but do not perfectly replicate the physiological deterioration of the human eye.
-*   **Field Loss Topography:** Central (Macular) and Peripheral (Glaucoma) visual field losses are simulated using CSS radial gradients bounded by static angles/percentages. These are 2D geometric approximations and do not account for physical biological blind-spot mapping, head movement, or dynamic pupil dilation.
-
-### PDF Mode
-*   **Native PDF Viewer Sandbox:** Chrome strictly isolates PDF rendering inside an internal plugin layer. The DOM cannot be directly traversed or highlighted with visual overlays.
-*   **Binary Stream Analysis:** Checks are performed programmatically via static byte inspection of the raw PDF Document Catalog, which may skip deeply compressed object streams (`/ObjStm`).
-*   **Scope & Coverage:** Programmatic validation verifies critical structural prerequisites with zero false positives. However, deep layout semantics (e.g., table header associations, correct reading order, context-accurate alternative text on vector figures) still require manual screen reader testing or PDF/UA inspection (e.g., using PAC).
-
-### Headless CLI, MCP Server & `agent-browser`
-*   **WAF Mitigation & Bot Sinkholes:** Because the CLI utilizes Headless Playwright, aggressive enterprise Web Application Firewalls (like Akamai or Cloudflare) may flag the automated session and serve a dummy 404 page. Overcoming this requires utilizing the State Injection feature (`-a` / `authState`) to pass pre-authenticated, human-verified cookies (or cookies exported from `agent-browser state save`).
-*   **Synchronous Step Execution:** Unlike the visual extension which handles erratic, asynchronous human clicking via a persistent 750ms debounce timer, the CLI executes interaction steps (`--step`) in a strictly synchronous, blocking pipeline. It will not execute Step 2 until Step 1 has fully settled and completed its accessibility delta-diff.
-*   **Cross-Origin Iframe Interactions:** While the WICK engine can successfully audit the *DOM* of cross-origin iframes, Playwright's strict execution context prevents the generic `--step` interaction flags (like `click::iframe-button`) from targeting elements deeply nested inside cross-origin sandbox frames without writing a custom `--auth-script` escape.
-*   **JSON Payload Size (Screenshots):** Using the `-s` (`includeScreenshot: true`) flag encodes a full 1280x800 layout into a raw Base64 string at every single step. In multi-step user journeys (e.g., 10+ steps), this can dramatically bloat the final JSON file size and increase LLM token usage in AI workflows.
+---
 
 ## Compatibility
-*   **Browser:** Compatible with Google Chrome version 100.0 or higher.
-*   **Permissions:** Operates on all URLs permitted by the user using the `activeTab` and `storage` permissions.
 
-## License
-WICK-AG-Lens is available under the MIT License. Reference the [LICENSE.md](./LICENSE.md) file for standard permissions and limitations.
+### Visual Chrome Extension
+* **Browser:** Google Chrome `100.0` or higher (and Chromium-based browsers supporting Manifest V3 DevTools panels).
+* **Permissions:** Operates on user-permitted URLs using `storage` and host permissions (`<all_urls>`).
 
-## Contributing
+### Headless CLI, MCP Server & `agent-browser`
+* **Runtime:** Node.js `18.0.0` or higher (ES Modules support and `fs.cpSync` build compatibility).
+* **Browser Engine:** Playwright Chromium (`playwright >= 1.40.1`).
+* **Operating Systems:** Windows, macOS, and Linux (including headless CI/CD containers).
+* **AI Clients & Companions:** Compatible with any MCP-compliant client (Claude Desktop, Claude Code CLI/VS Code Extension, Cursor, Windsurf, Cline) and Vercel's [`agent-browser`](https://agent-browser.dev/) CLI.
 
-First off, thanks for taking the time to contribute!
-
-To contribute, please follow the process described in **[CONTRIBUTING.md](CONTRIBUTING.md "CONTRIBUTING.md")**
-Any PR need to be done over the current *develop-next* branch.
-
-And if you like the project but just don't have the time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
-- Star the project
-- Promote it on social media
-- Refer this project in your project's readme
-- Mention the project at local meetups and tell your friends/colleagues
-- Buying me a coffee or contributing to a training session, so I can keep learning and sharing cool stuff with all of you.
-
-<a href="https://www.buymeacoffee.com/sclavijosuero" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 150px !important;" ></a>
-
-Thank you for your support!
-
+---
 
 ## Development & Testing Sites
 
@@ -1205,6 +453,40 @@ The following deliberately inaccessible and accessible demonstration websites we
 * **[https://www.w3.org/WAI/WCAG21/working-examples/pdf-headers-footers/headers-footers-word.pdf](https://www.w3.org/WAI/WCAG21/working-examples/pdf-headers-footers/headers-footers-word.pdf)**
 * **[https://www.w3.org/WAI/WCAG20/Techniques/working-examples/PDF4/decorative-image.pdf](https://www.w3.org/WAI/WCAG20/Techniques/working-examples/PDF4/decorative-image.pdf)**
 
+---
+
+## License
+WICK-AG-Lens is available under the MIT License. Reference the [LICENSE.md](./LICENSE.md) file for standard permissions and limitations.
+
+---
+
+## Contributing
+
+First off, thanks for taking the time to contribute!
+
+To contribute, please follow the process described in **[CONTRIBUTING.md](CONTRIBUTING.md "CONTRIBUTING.md")**
+Any PR needs to be done over the current *develop-next* branch.
+
+And if you like the project but just don't have the time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
+- Star the project
+- Promote it on social media
+- Refer this project in your project's readme
+- Mention the project at local meetups and tell your friends/colleagues
+- Buying me a coffee or contributing to a training session, so I can keep learning and sharing cool stuff with all of you.
+
+<a href="https://www.buymeacoffee.com/sclavijosuero" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 150px !important;" ></a>
+
+Thank you for your support!
+
+### Credits
+
+Special thanks to the following individuals whose work, feedback, and testing resources contributed to WICK-AG-Lens:
+
+* **[Abigail Armijo](https://www.linkedin.com/in/abigailarmijo/):** For valuable accessibility and usability feedback, and as the author of the [**ABI Testing Dojo Demo**](https://abi-testing-dojo-demo.azurewebsites.net/) website, which was extensively used during testing—especially for validating enterprise authentication workflows and SPA interactions.
+* **[Rocio Alvarado](https://www.linkedin.com/in/rocioalvarado/):** For valuable accessibility and usability feedback throughout development.
+* **[Russ Weakley](https://www.linkedin.com/in/russweakley/):** Whose article, [*Using the browser console for accessibility testing - Part 2*](https://www.maxdesign.com.au/articles/console2.html), inspired the original creation of the WICK-AG-Lens Chrome extension, and his website [**Intopia Accessibility Testing Playground**](https://intopia.github.io/exercise/testing.html) served as a key testing reference during the project's development.
+
+---
 
 ## Changelog
 
@@ -1219,7 +501,6 @@ The following deliberately inaccessible and accessible demonstration websites we
 - **Optimized JSON Timeline & Dictionary Schema:** Streamlined report payloads with deduplicated `global_summary` tracking, isolated `page_state_maps` (`focus_order`), structured `interaction` metadata objects, per-audit `totalElemsNew` / `totalElemsResolved` element counters, and a root-level `audit_dictionary`.
 - **Integrated Visual State Capture:** Added raw Base64 JPEG screenshot generation (`-s`) synchronized perfectly with the audit timeline to provide multimodal AI agents and visual regression reports with exact layout context.
 - **Engine & Package Optimization:** Centralized DOM traversal (`querySelectorAllDeep`) to guarantee perfect mathematical parity between the visual browser extension and headless environments, while optimizing the Chrome Web Store and npm package payloads.
-
 
 ### v2.5.0: The Structural Expansion, DOM Integrity, & PDF Update
 * **Introduced PDF Gatekeeper Auditing Engine (PDF Mode):** Analyzes raw PDF binary streams directly in the browser to evaluate structural WCAG and PDF/UA prerequisites (Tags, Title, Language, Extraction Permissions).

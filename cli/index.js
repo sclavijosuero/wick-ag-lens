@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Command } from 'commander';
 import { WICKScanner } from './scanner.js';
 
@@ -28,6 +29,8 @@ program.command('audit <url>')
   .option('-w, --width <pixels>', 'Sets the viewport width to test responsive layouts (defaults to 1280)', parseInt)
   .option('-H, --height <pixels>', 'Sets the viewport height to test responsive layouts (defaults to 800)', parseInt)
   .option('-s, --screenshot', 'Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output')
+  .option('-q, --screenshot-quality <quality>', 'JPEG quality setting from 1 to 100 when -s is enabled (defaults to 70)', parseInt)
+  .option('--screenshot-quality <quality>', 'Sets the JPEG screenshot quality from 1 to 100 (defaults to 70)', parseInt)
   .option('--wait-ms <milliseconds>', 'Explicit pause duration in milliseconds after networkidle to let client-side routers or slow animations settle', parseInt)
   .option('--wait-for-selector <selector>', 'Halts audit execution until a specific CSS selector mounts in the DOM')
   .option('--step <step>', 'Repeatable post-baseline interaction step (e.g., "click::#btn", "fill::#q::text"). Can be repeated', collectSteps, [])
@@ -85,19 +88,21 @@ program.command('audit <url>')
           wcagVersions: options.wcagVersion ? options.wcagVersion.split(',').map(s => s.trim().toUpperCase()) : [],
           wcagLevels: options.wcagLevel ? options.wcagLevel.split(',').map(s => s.trim().toUpperCase()) : []
       };
+
+      const screenshotQuality = options.screenshotQuality ?? 70;
       
       // 3. Execute Baseline Audit (Step 1)
       await scanner.runBaseline(url, filters, options.screenshot, {
           waitMs: options.waitMs,
           waitForSelector: options.waitForSelector
-      });
+      }, screenshotQuality);
       
       // 4. Execute Post-Baseline Audited Interaction Steps (Step 2+)
       if (options.step && options.step.length > 0) {
           const interactionSteps = options.step.map(parseStep);
           for (const step of interactionSteps) {
               console.log(`[Audit] Executing step (${step.action}): ${step.target || 'active'}...`);
-              await scanner.interactAndAudit(step, filters, options.screenshot);
+              await scanner.interactAndAudit(step, filters, options.screenshot, screenshotQuality);
           }
       }
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -35,6 +36,7 @@ server.tool(
     wcagLevels: z.array(z.string()).optional().describe("Optional WCAG levels to filter by (e.g., ['A', 'AA', 'AAA'])."),
     // Viewport, screenshots & SPA timing
     includeScreenshot: z.boolean().optional().describe("If true, includes a Base64 JPEG screenshot of the rendered page."),
+    screenshotQuality: z.number().min(1).max(100).optional().describe("JPEG screenshot quality from 1 to 100 (defaults to 70)."),
     viewportWidth: z.number().optional().describe("Viewport width in pixels (defaults to 1280)."),
     viewportHeight: z.number().optional().describe("Viewport height in pixels (defaults to 800)."),
     waitMs: z.number().optional().describe("Optional pause duration in milliseconds after load for SPA hydration."),
@@ -91,7 +93,8 @@ server.tool(
         args.url, 
         filters, 
         args.includeScreenshot || false,
-        timingOpts
+        timingOpts,
+        args.screenshotQuality ?? 70
       );
 
       return {
@@ -116,7 +119,8 @@ server.tool(
     requestedAudits: z.array(z.string()).optional(),
     wcagVersions: z.array(z.string()).optional(),
     wcagLevels: z.array(z.string()).optional(),
-    includeScreenshot: z.boolean().optional()
+    includeScreenshot: z.boolean().optional(),
+    screenshotQuality: z.number().min(1).max(100).optional().describe("JPEG screenshot quality from 1 to 100 (defaults to 70).")
   },
   async (args) => {
     try {
@@ -139,7 +143,8 @@ server.tool(
       const diffLog = await activeScanner.interactAndAudit(
         step, 
         filters, 
-        args.includeScreenshot || false
+        args.includeScreenshot || false,
+        args.screenshotQuality ?? 70
       );
 
       return {
