@@ -50,6 +50,7 @@ npx wick-ag-lens audit "<URL>" \
   --auth-step "click::#btn-login" \
   --step "click::<SELECTOR>" > /tmp/wick-report.json
 ```
+If the user wants a visual report, tell them to open `node_modules/wick-ag-lens/report-template/wick-ag-lens-viewer.html` in a browser and drop the saved JSON file onto it (leading `[Audit]` log lines are tolerated).
 
 ---
 

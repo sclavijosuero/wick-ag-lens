@@ -18,7 +18,8 @@ The **WICK-AG-Lens CLI & MCP Package** utilizes Playwright to inject the shared 
 9. [AI Agent Skill Setup (`SKILL.md`)](#ai-agent-skill-setup-skillmd)
 10. [Integrating with `agent-browser` & Playwright MCP](#integrating-with-agent-browser--playwright-mcp)
 11. [CLI & MCP JSON Output Format](#cli--mcp-json-output-format)
-12. [CLI & MCP Limitations & Technical Bounds](#cli--mcp-limitations--technical-bounds)
+12. [Visual HTML Report Viewer](#visual-html-report-viewer)
+13. [CLI & MCP Limitations & Technical Bounds](#cli--mcp-limitations--technical-bounds)
 
 ---
 
@@ -867,6 +868,43 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
   }
 }
 ```
+---
+
+## Visual HTML Report Viewer
+
+The package ships a self-contained, offline viewer that turns the JSON output into a browsable report (step timeline, severity filters, search, per-element details). It is a single HTML file with no dependencies; the JSON is read locally in your browser and is never uploaded.
+
+**Where to find it** (included in the npm package and tarball):
+
+| Install type | Path |
+| :--- | :--- |
+| Local install | `node_modules/wick-ag-lens/report-template/wick-ag-lens-viewer.html` |
+| Global install | `<npm root -g>/wick-ag-lens/report-template/wick-ag-lens-viewer.html` (run `npm root -g` to get the folder) |
+| Source repo | `cli/report-template/wick-ag-lens-viewer.html` |
+
+**How to use it:**
+1. Save an audit to a file. Progress lines (`[Audit] ...`) printed before the JSON are ignored by the viewer, so plain redirection works:
+   ```bash
+   npx wick-ag-lens audit "https://example.com" --step "click::#menu" > report.json
+   ```
+   For MCP, save the JSON returned by `get_audit_trail` to a `.json` file.
+2. Open `wick-ag-lens-viewer.html` in any browser (double-click it, or use a `file:///` URL).
+3. Drag `report.json` onto the page, or click **Open JSON file**.
+
+When first opened, the viewer waits for a file (drag & drop area):
+
+![WICK-AG-Lens report viewer, empty state with the drag and drop area](./assets/images/report-viewer-empty.png)
+
+Once a report is loaded, it shows the step timeline, severity filters, search and per-element details:
+
+![WICK-AG-Lens report viewer with an audit report loaded](./assets/images/report-viewer-loaded.png)
+
+The viewer also has a dark theme (toggle it with the **Theme** button):
+
+![WICK-AG-Lens report viewer with an audit report loaded, dark theme](./assets/images/report-viewer-loaded-dark.png)
+
+> Any file containing an `audit_trail` array is accepted.
+
 ---
 
 ## CLI & MCP Limitations & Technical Bounds

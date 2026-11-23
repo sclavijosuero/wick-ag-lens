@@ -223,7 +223,13 @@
     reader.onerror = () => showError('Could not read file.');
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result);
+        // CLI stdout redirected to a file starts with "[Audit] ..." log lines before the JSON; skip them.
+        let text = String(reader.result).replace(/^﻿/, '');
+        if (!/^\s*\{/.test(text)) {
+          const start = text.search(/^\{\s*$/m);
+          if (start !== -1) text = text.slice(start);
+        }
+        const data = JSON.parse(text);
         if (!data || !Array.isArray(data.audit_trail)) throw new Error('No "audit_trail" array found in this file.');
         data.derived = derive(data);
         Object.assign(state, { data, idx: 0, tab: 'new', sev: '', q: '' });

@@ -1,0 +1,23 @@
+{
+  "name": "wick-ag-lens-workspace",
+  "private": true,
+  "version": "3.0.0",
+  "description": "Dev workspace for wick-ag-lens: build + Playwright test framework. Never published.",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node build.js",
+    "setup": "npm install && npm install --prefix cli && npx playwright install chromium",
+    "pretest": "node build.js",
+    "test": "playwright test",
+    "test:cli": "playwright test --project=cli",
+    "test:mcp": "playwright test --project=mcp",
+    "test:package": "playwright test --project=package",
+    "test:viewer": "playwright test --project=viewer",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "pack:tarball": "node build.js && node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && npm pack ./cli --pack-destination ./dist"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.1"
+  }
+}

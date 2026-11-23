@@ -20,7 +20,7 @@ Designed for modern web applications, WICK-AG-Lens features a real-time sync eng
 | :--- | :--- | :--- |
 | **[Root `README.md`](./README.md)** *(This File)* | All Users & Contributors | Suite overview, monorepo architecture, SPA rendering internals, the 55-rule Audit Library & Search Predicates, system compatibility, and changelog. |
 | **[Chrome Extension Guide](./extension/README.md)** | Web Developers & Manual QA | Chrome Web Store installation, DevTools UI controls, Disability Simulation Mode, PDF Gatekeeper Mode, X-Ray vision, and extension-specific bounds. |
-| **[CLI, MCP & AI Guide](./cli/README.md)** | Automation QA, DevOps & AI Agents | Headless CLI flags & examples, 5 auth strategies, MCP Server tools, `agent-browser` integration, bundled `SKILL.md`, and JSON delta-diff schema. |
+| **[CLI, MCP & AI Guide](./cli/README.md)** | Automation QA, DevOps & AI Agents | Headless CLI flags & examples, 5 auth strategies, MCP Server tools, `agent-browser` integration, bundled `SKILL.md`, JSON delta-diff schema, and an offline HTML report viewer. |
 
 ---
 

@@ -40,6 +40,7 @@
     "cli-adapter.js",
     "core/",
     "skills/",
+    "report-template/",
     "README.md"
   ],
   "scripts": {
