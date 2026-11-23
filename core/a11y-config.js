@@ -690,7 +690,7 @@ window.A11Y_CONFIG = {
                             desc: "Active controls trapped in <code>aria-hidden='true'</code> trees",
                             severity: "Critical",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])",
+                            selector: "a[href], area[href], button, input:not([type='hidden']), select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable='false']), [tabindex]",
                             legends: [{ label: "Violation", color: "#d93025", type: "bad" }],
                             info: {
                                 what: "Flags elements that receive keyboard focus but are hidden from Assistive Technologies via <code>aria-hidden='true'</code>.",
@@ -699,6 +699,15 @@ window.A11Y_CONFIG = {
                             },
                             customHighlight: (el, drawHighlight) => {
                                 if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
+                                // Removed from the tab order (the recommended fix) -> not a violation
+                                const tabAttr = el.getAttribute("tabindex");
+                                if (tabAttr !== null && parseInt(tabAttr, 10) < 0) return false;
+                                // Inert or not rendered -> cannot receive focus
+                                if (el.closest("[inert]")) return false;
+                                const rendered = typeof el.checkVisibility === "function"
+                                    ? el.checkVisibility({ visibilityProperty: true })
+                                    : (el.offsetWidth > 0 || el.offsetHeight > 0);
+                                if (!rendered) return false;
                                 let isHiddenFromAT = false;
                                 let currentElement = el;
                                 while (currentElement && currentElement !== document) {
@@ -1205,7 +1214,7 @@ window.A11Y_CONFIG = {
                             label: "Display Focus Order",
                             desc: "Sequential trace of naturally focusable elements",
                             wcag: [{ version: "2.0", level: "A" }],
-                            selector: "a[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex='-1'])",
+                            selector: "a[href], area[href], button, input:not([type='hidden']), select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable='false']), [tabindex]:not([tabindex='-1'])",
                             options: [
                                 { id: "opt-show-path", label: "Draw sequential focus path & numbered steps", default: true }
                             ],
@@ -1270,7 +1279,10 @@ window.A11Y_CONFIG = {
                             preprocessElements: (elements) => {
                                 let focusable = elements.filter(el => {
                                     if (el.disabled || el.getAttribute("aria-disabled") === "true") return false;
-                                    if (el.tabIndex < 0) return false;
+                                    const tabAttr = el.getAttribute("tabindex");
+                                    // An explicit tabindex wins; otherwise trust the native default (a bare contenteditable reports -1 but is tabbable)
+                                    if (tabAttr !== null && !isNaN(parseInt(tabAttr, 10))) { if (parseInt(tabAttr, 10) < 0) return false; }
+                                    else if (el.tabIndex < 0 && !el.isContentEditable) return false;
                                     if (el.tagName.toLowerCase() === 'input' && el.type === 'radio' && el.name) {
                                         const group = elements.filter(r => r.tagName.toLowerCase() === 'input' && r.type === 'radio' && r.name === el.name);
                                         const checkedRadio = group.find(r => r.checked);

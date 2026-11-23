@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Focus order rule cases</title></head>
+<body>
+  <main>
+    <h1>Focus order rule cases</h1>
+    <button id="first">First</button>
+    <button id="gone" style="display:none">display:none</button>
+    <button id="invisible" style="visibility:hidden">visibility:hidden</button>
+    <input id="hidden-input" type="hidden" value="x">
+    <div id="inert-box" inert><button id="inert-btn">Inert</button></div>
+    <div id="editable" contenteditable="true">Editable</div>
+    <details><summary id="summary">Summary</summary>Body</details>
+    <audio id="audio" controls></audio>
+    <div id="neg" tabindex="-1">Programmatic only</div>
+    <a id="last" href="/good.html">Last</a>
+  </main>
+</body>
+</html>

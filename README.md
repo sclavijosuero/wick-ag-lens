@@ -18,7 +18,7 @@ Designed for modern web applications, WICK-AG-Lens features a real-time sync eng
 
 | Guide | Target Audience | Covers |
 | :--- | :--- | :--- |
-| **[Root `README.md`](./README.md)** *(This File)* | All Users & Contributors | Suite overview, monorepo architecture, SPA rendering internals, the 55-rule Audit Library & Search Predicates, system compatibility, and changelog. |
+| **[Root `README.md`](./README.md)** *(This File)* | All Users & Contributors | Suite overview, monorepo architecture, SPA rendering internals, the 55-rule Audit Library & Search Predicates, system compatibility, the Playwright test suite, and changelog. |
 | **[Chrome Extension Guide](./extension/README.md)** | Web Developers & Manual QA | Chrome Web Store installation, DevTools UI controls, Disability Simulation Mode, PDF Gatekeeper Mode, X-Ray vision, and extension-specific bounds. |
 | **[CLI, MCP & AI Guide](./cli/README.md)** | Automation QA, DevOps & AI Agents | Headless CLI flags & examples, 5 auth strategies, MCP Server tools, `agent-browser` integration, bundled `SKILL.md`, JSON delta-diff schema, and an offline HTML report viewer. |
 
@@ -32,10 +32,11 @@ Designed for modern web applications, WICK-AG-Lens features a real-time sync eng
 5. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
 6. [Shared Limitations & Technical Bounds](#shared-limitations--technical-bounds)
 7. [Compatibility](#compatibility)
-8. [Development & Testing Sites](#development--testing-sites)
-9. [License](#license)
-10. [Contributing](#contributing)
-11. [Changelog](#changelog)
+8. [Automated Test Suite (Playwright)](#automated-test-suite-playwright)
+9. [Development & Testing Sites](#development--testing-sites)
+10. [License](#license)
+11. [Contributing](#contributing)
+12. [Changelog](#changelog)
 
 ---
 
@@ -376,7 +377,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 * <a id="v-label-in-name"></a>**Label in Name Mismatch:** Uses the CSS selector `button[aria-label], a[href][aria-label], [role='button'][aria-label], [role='link'][aria-label]`. The logic normalizes whitespace, strips punctuation, and lowercases both the visible `innerText` and the computed `aria-label`. If the visible text is not found as a substring within the `aria-label`, it throws a violation.
 * <a id="v-duplicate-id"></a>**Duplicate ID Attributes:** Uses the CSS selector `[id]`. The logic tracks processed IDs to prevent redundant processing. When a duplicate is found, it uses `document.querySelectorAll` with `CSS.escape()` to fetch all colliding nodes. It evaluates `offsetWidth/offsetHeight` to categorize each node as visible or hidden, explicitly registering hidden duplicates with a lighter-colored legend so they appear distinctly in the Details Modal without rendering layout-breaking zero-pixel boxes on the screen.
 * <a id="v-broken-aria-ref"></a>**Broken ARIA References:** Targets elements using `[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [aria-errormessage], [aria-details], [aria-activedescendant]`. The logic splits the attribute values by whitespace into individual ID strings and checks if `document.getElementById()` returns null. Flags the element if any referenced ID is missing from the DOM.
-* <a id="v-15"></a>**Focusable in Aria-Hidden:** Uses a bottom-up DOM traversal to check if any naturally focusable element (or its ancestors) possesses `aria-hidden='true'`. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.
+* <a id="v-15"></a>**Focusable in Aria-Hidden:** Uses the CSS selector `a[href], area[href], button, input:not([type='hidden']), select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable='false']), [tabindex]`. The logic skips disabled or `aria-disabled='true'` controls, controls removed from the tab order with a negative `tabindex` (e.g. `-1`), and controls that are `inert` or not rendered (`display: none`, `visibility: hidden`), since none of them can receive keyboard focus. For the remaining controls, it uses a bottom-up DOM traversal to check if the element or any ancestor possesses `aria-hidden='true'`. Pierces Shadow DOMs and iframes to ensure accurate detection of ghost focus traps.
 * <a id="v-16"></a>**Invalid ARIA State:** Uses the CSS selector `[aria-invalid='true']`. Elements matching the selector are flagged.
 * <a id="v-20"></a>**Text Color Contrast:** Uses the CSS selector targeting standard text elements like `h1`, `p`, `span`, `button`. The logic verifies child text nodes exist. It uses `window.getComputedStyle` to retrieve colors, dynamically factoring in `font-size` and `font-weight` against WCAG large-text thresholds. It calculates the WCAG relative luminance formula and dynamically evaluates failures against the user's active UI filters (AA vs AAA) so strict AAA failures are correctly caught even when AA filters are unchecked. Elements over background images or CSS gradients are automatically flagged for manual review.
 
@@ -395,7 +396,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 * <a id="i-8"></a>**Touch Target Sizes:** Uses a CSS selector targeting interactive elements and roles like `button`, `link`, `checkbox`, `slider`. The logic uses `getBoundingClientRect()` to compute width and height. It finds the minimum of the two dimensions and categorizes the element based on strict WCAG thresholds: `< 24px` (WCAG 2.2 AA Fail), `24-43px` (WCAG 2.1 AAA Fail), and `44px+` (WCAG 2.1 AAA Pass).
 * <a id="i-readonly-fields"></a>**Read-Only Fields:** Uses the CSS selector `[readonly], [aria-readonly='true']`. Highlights controls marked as read-only.
 * <a id="i-1"></a>**Tabindex (Comparison):** Uses the CSS selector `[tabindex]`. The logic parses the attribute as an integer and assigns different visual legends based on whether the value is equal to 0, less than 0, or greater than 0.
-* <a id="i-2"></a>**Display Focus Order:** Traces and numbers the natural sequential path of focusable elements using hierarchical decimal prefixing for cross-frame focus tracking. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies via `aria-hidden='true'` on the element or an ancestor.
+* <a id="i-2"></a>**Display Focus Order:** Uses the CSS selector `a[href], area[href], button, input:not([type='hidden']), select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable='false']), [tabindex]:not([tabindex='-1'])`, skipping disabled controls and anything with a negative `tabindex`. Traces and numbers the natural sequential path of focusable elements using hierarchical decimal prefixing for cross-frame focus tracking. It dynamically flags elements that receive keyboard focus but are hidden from Assistive Technologies via `aria-hidden='true'` on the element or an ancestor.
 * <a id="i-11"></a>**ARIA Roles & Attributes:** Uses the CSS selector `[role]`. The logic retrieves the value of the role attribute for display.
 * <a id="i-aria-roledescription"></a>**Aria-Roledescription:** Uses the CSS selector `[aria-roledescription]`. Retrieves the value of the attribute for display.
 * <a id="i-10"></a>**Accessible Name Resolution:** Uses a CSS selector targeting interactive widgets. The logic simulates the browser's native fallback sequence, sequentially checking `aria-labelledby`, `aria-label`, native associated labels/inner text, and finally the `title` attribute to print exactly what the screen reader will announce.
@@ -436,6 +437,53 @@ The following technical bounds apply to the core DOM inspection engine across bo
 * **Browser Engine:** Playwright Chromium (`playwright >= 1.40.1`).
 * **Operating Systems:** Windows, macOS, and Linux (including headless CI/CD containers).
 * **AI Clients & Companions:** Compatible with any MCP-compliant client (Claude Desktop, Claude Code CLI/VS Code Extension, Cursor, Windsurf, Cline) and Vercel's [`agent-browser`](https://agent-browser.dev/) CLI.
+
+---
+
+## Automated Test Suite (Playwright)
+
+The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **37 tests across 7 spec files**.
+
+![Playwright UI running the WICK-AG-Lens test suite](tests/images/playwright-ui.png)
+*The Playwright UI (`npm run test:ui`) running the suite: tests grouped by project, with a timeline, action log and an attached screenshot for each step.*
+
+> **Dev only:** the tests live at the repository root, outside `cli/` and `extension/`. The `cli/package.json` `files` whitelist guarantees nothing from `tests/` is published, and a test enforces that.
+
+### What is covered
+
+| Project | What it verifies | Examples |
+| :--- | :--- | :--- |
+| **`cli`** | The headless CLI end to end: flags, rule results and multi-step delta reporting. | Known violations are reported on an inaccessible page and **none** on an accessible one; `--audits` limits the rules; `--step click::#btn` reports only the *new* findings; `-s` embeds a valid JPEG per step. |
+| **`cli`: focus order** | `i-focus-order` maps the exact Tab sequence, as a full snapshot at every step. | A step that reveals a control re-maps the whole sequence (4 stops, then 5); it only lists stops the Tab key can reach (no `display:none`, `inert`, `input[type=hidden]` or `tabindex="-1"`); it walks into iframes (`[Iframe] #4.1`) and open shadow roots. |
+| **`cli`: `v-aria-hidden-focus`** | The rule flags only controls a keyboard user can really reach inside `aria-hidden`. | Flags `button`, `a[href]`, `contenteditable`, `summary` and `tabindex="0"`; skips `tabindex="-1"`, disabled, `inert` and non-rendered controls; sees through shadow hosts. |
+| **`cli`: frames & shadow DOM** | Findings and focus order cross iframe and shadow boundaries. | Violations are found in a child and a nested grandchild frame, and only on the bad elements inside shadow roots. |
+| **`mcp`** | The MCP server over stdio. | Exposes the expected tools; `audit_baseline` finds violations; `get_audit_trail` returns the accumulated trail. |
+| **`viewer`** | The offline HTML report viewer, driven in a real browser from real CLI output. | Per-step screenshots, timeline, and the **Display Focus Order** tab showing the full tab sequence per step, plus "Hidden from AT" stops. |
+| **`package`** | What actually gets published to npm. | Runtime files, `core` and `SKILL.md` are included; tests, the extension and dev tooling are not. |
+
+### Showcase: focus order across steps
+
+One viewer test audits a realistic storefront page (`tests/fixtures/pages/focus-demo.html`) through three steps and checks the report after each one:
+
+| Step | Interaction | New findings | Tab stops |
+| :--- | :--- | :--- | :--- |
+| 1 | Page as loaded | none | 14 |
+| 2 | Click **Show more options** | an icon-only button with no name, an image with no alt text | 16 |
+| 3 | Click **Shop new arrivals** | an icon-only link with no name | 18 |
+
+Each step attaches a screenshot of the rendered report (audited page, totals, new findings and the first rows of the focus-order table) to the Playwright report.
+
+### Running the tests
+
+```bash
+npm run setup         # one-time: root deps + cli deps + Chromium
+npm test              # builds, then runs every project
+npm run test:ui       # interactive Playwright UI (as pictured above)
+npm run test:cli      # also: test:mcp | test:package | test:viewer
+npx playwright show-report   # HTML report with screenshots and CLI output attached
+```
+
+See [`tests/README.md`](./tests/README.md) for the layout of the suite, the fixture pages and how to run it against another copy of the package.
 
 ---
 

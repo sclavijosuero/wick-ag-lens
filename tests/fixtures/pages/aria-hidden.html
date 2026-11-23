@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Aria-hidden page</title></head>
+<body>
+  <main>
+    <h1>Aria-hidden page</h1>
+    <button id="visible">Visible button</button>
+    <div id="closed-dialog" aria-hidden="true">
+      <button id="hidden-btn">Close dialog</button>
+      <a id="hidden-link" href="/good.html">Hidden link</a>
+      <button id="hidden-safe" tabindex="-1">Safely removed from tab order</button>
+    </div>
+    <a id="last" href="/good.html">Last link</a>
+  </main>
+</body>
+</html>

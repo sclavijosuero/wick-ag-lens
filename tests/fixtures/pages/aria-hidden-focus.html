@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Aria-hidden focus rule cases</title></head>
+<body>
+  <main>
+    <h1>Aria-hidden focus rule cases</h1>
+    <button id="visible">Visible button</button>
+
+    <div id="hidden-tree" aria-hidden="true">
+      <!-- Violations: focusable and rendered -->
+      <button id="v-button">Button</button>
+      <a id="v-link" href="/good.html">Link</a>
+      <div id="v-editable" contenteditable="true">Editable</div>
+      <details><summary id="v-summary">Summary</summary>Body</details>
+      <div id="v-tabindex0" tabindex="0">Custom control</div>
+
+      <!-- Not violations -->
+      <button id="ok-tabindex-neg1" tabindex="-1">tabindex -1</button>
+      <a id="ok-link-neg2" href="/good.html" tabindex="-2">tabindex -2</a>
+      <div id="ok-div-neg1" tabindex="-1">div tabindex -1</div>
+      <input id="ok-hidden-input" type="hidden" value="x">
+      <button id="ok-disabled" disabled>Disabled</button>
+      <button id="ok-aria-disabled" aria-disabled="true">Aria-disabled</button>
+      <button id="ok-display-none" style="display:none">display:none</button>
+      <button id="ok-visibility-hidden" style="visibility:hidden">visibility:hidden</button>
+      <div id="ok-not-editable" contenteditable="false">Not editable</div>
+      <a id="ok-no-href">No href</a>
+    </div>
+
+    <div id="inert-tree" aria-hidden="true" inert>
+      <button id="ok-inert">Inert button</button>
+    </div>
+  </main>
+</body>
+</html>

@@ -4,7 +4,8 @@
 <body>
   <main>
     <h1>Interactive page</h1>
-    <button id="add" onclick="document.getElementById('out').innerHTML='<img src=&quot;data:image/gif;base64,R0lGODlhAQABAAAAACw=&quot;>'">Add image without alt</button>
+    <button id="add" onclick="document.getElementById('out').insertAdjacentHTML('beforeend','<img src=&quot;data:image/gif;base64,R0lGODlhAQABAAAAACw=&quot;>')">Add image without alt</button>
+    <button id="add-link" onclick="document.getElementById('out').insertAdjacentHTML('beforeend','<a href=&quot;/good.html&quot;></a>')">Add link without text</button>
     <div id="out"></div>
   </main>
 </body>

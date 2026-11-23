@@ -1,5 +1,5 @@
-const path = require('path');
 const { pathToFileURL } = require('url');
+const { test } = require('@playwright/test');
 const { mcpEntry, pkgDir } = require('./paths');
 
 // Use the MCP SDK shipped with the package under test (its own node_modules).
@@ -16,11 +16,17 @@ async function connectMcp() {
   return client;
 }
 
-// MCP tools return JSON as a text content block.
-function parseToolResult(result) {
-  const text = result.content.find((c) => c.type === 'text')?.text ?? '';
-  return { isError: !!result.isError, text, json: safeJson(text) };
+// Calls a tool as a visible step, attaching the request and response.
+function callTool(client, name, args) {
+  return test.step(`MCP ${name}`, async () => {
+    const info = test.info();
+    await info.attach(`${name}-request`, { body: JSON.stringify(args, null, 2), contentType: 'application/json' });
+    const result = await client.callTool({ name, arguments: args });
+    const text = result.content.find((c) => c.type === 'text')?.text ?? '';
+    await info.attach(`${name}-response`, { body: text || '(empty)', contentType: 'text/plain' });
+    return { isError: !!result.isError, text, json: safeJson(text) };
+  });
 }
 const safeJson = (t) => { try { return JSON.parse(t); } catch { return undefined; } };
 
-module.exports = { connectMcp, parseToolResult };
+module.exports = { connectMcp, callTool };

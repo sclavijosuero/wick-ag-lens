@@ -8,9 +8,12 @@ Playwright Test suite for the `wick-ag-lens` npm package. Lives at the repo root
 npm run setup          # one-time: root deps + cli deps + chromium
 npm test               # builds (pretest), then runs everything
 npm run test:cli | test:mcp | test:package | test:viewer
+npm run test:ui        # interactive Playwright UI
+npx playwright show-report
 npm run pack:tarball   # builds and writes dist/wick-ag-lens-<version>.tgz
 ```
 
+- `images/playwright-ui.png` — screenshot of the Playwright UI used in the root `README.md` (currently a placeholder: replace it, keeping the file name).
 - `fixtures/pages/` — static pages with known a11y problems, served locally (offline, deterministic).
 - `helpers/` — CLI runner, MCP stdio client, path resolution.
 - `WICK_PKG_DIR=<dir>` runs the CLI/MCP projects against another copy of the package (e.g. an extracted tarball).

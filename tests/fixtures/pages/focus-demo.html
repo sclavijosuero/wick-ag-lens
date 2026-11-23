@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northwind Outdoors - Gear for every trail</title>
+  <style>
+    :root { --ink:#1b2430; --muted:#566376; --brand:#0b6e4f; --brand-dark:#084c37; --accent:#f4a259; --bg:#f5f7fa; --card:#fff; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; color:var(--ink); background:var(--bg); }
+    a { color: var(--brand); }
+    :focus-visible { outline: 3px solid #1a73e8; outline-offset: 2px; }
+
+    header { display:flex; align-items:center; gap:24px; padding:14px 40px; background:#fff; border-bottom:1px solid #e3e8ef; }
+    .logo { font-weight:800; font-size:20px; text-decoration:none; color:var(--brand-dark); letter-spacing:-.3px; }
+    nav { display:flex; gap:22px; margin-right:auto; }
+    nav a { text-decoration:none; color:var(--ink); font-weight:600; font-size:15px; }
+    nav a:hover { color:var(--brand); }
+    .search { display:flex; gap:8px; }
+    .search input { width:220px; padding:9px 12px; border:1px solid #c4cdd9; border-radius:8px; font-size:14px; }
+    button { font:inherit; cursor:pointer; }
+    .btn { padding:9px 18px; border:0; border-radius:8px; background:var(--brand); color:#fff; font-weight:600; }
+    .btn:hover { background:var(--brand-dark); }
+    .btn.ghost { background:transparent; color:var(--brand-dark); border:2px solid var(--brand); }
+
+    .hero { display:grid; grid-template-columns: 1.2fr 1fr; gap:32px; align-items:center; padding:44px 40px 28px;
+            background:linear-gradient(120deg,#e6f4ee 0%,#f5f7fa 70%); }
+    .hero h1 { margin:0 0 10px; font-size:40px; line-height:1.1; letter-spacing:-1px; }
+    .hero p { margin:0 0 22px; color:var(--muted); font-size:17px; max-width:520px; }
+    .hero .actions { display:flex; gap:12px; }
+    .art { height:190px; border-radius:18px; background:
+            radial-gradient(circle at 75% 25%, var(--accent) 0 14%, transparent 15%),
+            linear-gradient(160deg,#2f8f6b 0%, #0b6e4f 55%, #084c37 100%); position:relative; overflow:hidden; }
+    .art::after { content:""; position:absolute; left:-10%; right:-10%; bottom:-30%; height:75%;
+                  background:#063a2a; clip-path:polygon(0 100%,18% 30%,34% 70%,55% 10%,78% 65%,100% 25%,100% 100%); }
+
+    #extra-panel { margin:0 40px; padding:18px 20px; background:#fff7ec; border:1px solid #f1d3ab; border-radius:14px;
+                   display:flex; align-items:center; gap:18px; }
+    #extra-panel img { width:96px; height:64px; border-radius:10px; object-fit:cover; }
+    #extra-panel .icon-btn { width:40px; height:40px; border-radius:50%; border:1px solid #d9a766; background:#fff; display:grid; place-items:center; }
+    #extra-panel p { margin:0; color:#6a4a1b; }
+
+    #arrivals { margin:16px 40px 0; padding:14px 20px; background:#e6f4ee; border:1px solid #bfe0d0; border-radius:14px;
+                display:flex; align-items:center; gap:16px; }
+    #arrivals .icon-link { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:#fff; }
+    .cards { display:grid; grid-template-columns: repeat(3,1fr); gap:22px; padding:28px 40px; }
+    .card { background:var(--card); border-radius:16px; padding:22px; box-shadow:0 1px 3px rgba(20,30,50,.08); }
+    .card .thumb { height:70px; border-radius:10px; margin-bottom:14px; }
+    .t1 { background:linear-gradient(135deg,#9bd3b8,#2f8f6b); }
+    .t2 { background:linear-gradient(135deg,#f9d29d,#f4a259); }
+    .t3 { background:linear-gradient(135deg,#a9c7f5,#4a7fd4); }
+    .card h2 { margin:0 0 6px; font-size:18px; }
+    .card p { margin:0 0 12px; color:var(--muted); font-size:14px; }
+    .card a { font-weight:700; text-decoration:none; }
+
+    footer { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 40px; background:var(--brand-dark); color:#e6f4ee; }
+    footer form { display:flex; gap:8px; }
+    footer input { width:240px; padding:9px 12px; border:0; border-radius:8px; }
+    footer .btn { background:var(--accent); color:#3b2606; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo" id="logo" href="/good.html">Northwind Outdoors</a>
+    <nav aria-label="Main">
+      <a id="nav-home" href="/good.html">Home</a>
+      <a id="nav-gear" href="/good.html">Gear</a>
+      <a id="nav-guides" href="/good.html">Guides</a>
+      <a id="nav-contact" href="/good.html">Contact</a>
+    </nav>
+    <form class="search" role="search" onsubmit="return false">
+      <input id="search" type="search" aria-label="Search the shop" placeholder="Search tents, boots, packs">
+      <button class="btn" id="search-btn" type="button">Search</button>
+    </form>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Gear that goes the distance</h1>
+        <p>Lightweight tents, trail-tested boots and packs built for long weekends and longer summers.</p>
+        <div class="actions">
+          <button class="btn" id="get-started" type="button"
+                  onclick="document.getElementById('arrivals').hidden=false;">Shop new arrivals</button>
+          <button class="btn ghost" id="show-more" type="button" aria-expanded="false" aria-controls="extra-panel"
+                  onclick="document.getElementById('extra-panel').hidden=false; this.setAttribute('aria-expanded','true');">
+            Show more options
+          </button>
+        </div>
+      </div>
+      <div class="art" role="img" aria-label="Illustration of a sunlit mountain ridge"></div>
+    </section>
+
+    <!-- Revealed by the "Show more options" step. Contains deliberate defects for the audit to find. -->
+    <section id="extra-panel" hidden aria-label="More options">
+      <img id="promo" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64'%3E%3Crect width='96' height='64' fill='%23f4a259'/%3E%3Ccircle cx='70' cy='20' r='9' fill='%23fff'/%3E%3Cpath d='M0 64 30 24 52 50 66 36 96 64z' fill='%23084c37'/%3E%3C/svg%3E">
+      <p>Weekend bundle: tent + sleeping bag + stove.</p>
+      <button class="icon-btn" id="wishlist" type="button">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b9722a" stroke-width="2"><path d="M12 21s-7-4.6-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>
+      </button>
+      <a id="compare" href="/good.html">Compare plans</a>
+    </section>
+
+    <!-- Revealed by the "Shop new arrivals" step. Contains one deliberate defect (an icon-only link with no name). -->
+    <section id="arrivals" hidden aria-label="New arrivals">
+      <strong>New this week: Alpine 2P tent</strong>
+      <a class="icon-link" id="arrivals-icon" href="/good.html">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b6e4f" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a id="arrivals-all" href="/good.html">View all new arrivals</a>
+    </section>
+
+    <section class="cards" aria-label="Featured guides">
+      <article class="card"><div class="thumb t1"></div><h2>Pick the right tent</h2><p>Three-season or four? A quick guide to weight, space and weather.</p><a id="card-1" href="/good.html">Read the tent guide</a></article>
+      <article class="card"><div class="thumb t2"></div><h2>Break in your boots</h2><p>Avoid blisters with a simple two-week plan before the big hike.</p><a id="card-2" href="/good.html">Read the boot guide</a></article>
+      <article class="card"><div class="thumb t3"></div><h2>Pack like a pro</h2><p>Balance the load and keep the essentials one zip away.</p><a id="card-3" href="/good.html">Read the packing guide</a></article>
+    </section>
+  </main>
+
+  <footer>
+    <span>Join the trail letter for monthly deals.</span>
+    <form onsubmit="return false">
+      <input id="email" type="email" aria-label="Email address" placeholder="you@example.com">
+      <button class="btn" id="subscribe" type="button">Subscribe</button>
+    </form>
+  </footer>
+</body>
+</html>

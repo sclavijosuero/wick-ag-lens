@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Shadow DOM page</title></head>
+<body>
+  <main>
+    <h1>Shadow DOM page</h1>
+    <button id="light-before">Before</button>
+    <my-widget id="widget"></my-widget>
+    <my-hidden id="hidden-host" aria-hidden="true"></my-hidden>
+    <button id="light-after">After</button>
+  </main>
+  <script>
+    customElements.define('my-widget', class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' }).innerHTML =
+          '<button id="shadow-empty"></button><img id="shadow-img" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><button id="shadow-ok">Shadow OK</button>';
+      }
+    });
+    customElements.define('my-hidden', class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' }).innerHTML = '<button id="shadow-hidden-btn">Hidden in shadow</button>';
+      }
+    });
+  </script>
+</body>
+</html>
