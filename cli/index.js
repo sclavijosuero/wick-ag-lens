@@ -57,7 +57,7 @@ program.command('audit <url>')
 
           if (authSteps.length === 0 && options.user && options.pass) {
               authSteps = [
-                  { action: 'fill', target: 'input[type="text"], input[type="email"]', value: options.user },
+                  { action: 'fill', target: 'input[type="text"], input[type="email"], input[type="user"]', value: options.user },
                   { action: 'fill', target: 'input[type="password"]', value: options.pass },
                   { action: 'click', target: 'button[type="submit"], input[type="submit"]' }
               ];

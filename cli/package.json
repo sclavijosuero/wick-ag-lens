@@ -8,6 +8,14 @@
     "wick-ag-lens": "./index.js",
     "wick-mcp": "./mcp-server.js"
   },
+  "files": [
+    "index.js",
+    "mcp-server.js",
+    "scanner.js",
+    "cli-adapter.js",
+    "core/",
+    "skills/"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.1",
     "commander": "^11.1.0",

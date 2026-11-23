@@ -1,8 +1,8 @@
 # WICK-AG-Lens: Accessibility Inspector & MCP Server
 
-WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA, now expanded into a full monorepo suite. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, a **Headless Node.js CLI** for automated testing, and an **MCP (Model Context Protocol) Server** to empower AI agents with real-time DOM accessibility diffing. 
+WICK-AG-Lens is a professional visual accessibility inspector for Web Developers and QA, now expanded into a full monorepo suite. It operates as a **Chrome browser extension** that generates visual overlays on elements to indicate accessibility violations, a **Headless Node.js CLI** for automated testing, and an **MCP (Model Context Protocol) Server** (with native session handoff support for Playwright and **`agent-browser`**, plus a bundled **AI Agent Skill**) to empower AI agents with real-time DOM accessibility diffing.
 
-Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a simulation Mode and a PDF Gatekeeper Auditing engine.
+Designed for modern web applications, it features a real-time sync engine that automatically re-audits the page when new elements are injected or made visible, seamlessly handling Single Page Application (SPA) routing and navigation without requiring a manual refresh. Also includes a Simulation Mode and a PDF Gatekeeper Auditing engine.
 
 You can install the visual extension from the Chrome Web Store: **[Install Here](https://chromewebstore.google.com/detail/accessibility-inspector/fjbgedagallcokpkfdlmpafcffblmlhd)**.
 
@@ -16,7 +16,7 @@ You can install the visual extension from the Chrome Web Store: **[Install Here]
 3. [Monorepo Architecture & Building](#monorepo-architecture--building)
 4. [Visual Extension Installation](#visual-extension-installation)
 5. [Headless CLI Automation](#headless-cli-automation)
-6. [MCP Server (AI Integration)](#mcp-server-ai-integration)
+6. [MCP Server & AI Agent Integration](#mcp-server--ai-agent-integration)
 7. [CLI & MCP JSON Output Format](#cli--mcp-json-output-format)
 8. [Audit Library & Ruleset](#audit-library--ruleset)
 9. [Search Predicates and Logic Definitions](#search-predicates-and-logic-definitions)
@@ -33,10 +33,10 @@ You can install the visual extension from the Chrome Web Store: **[Install Here]
 ## Features Overview
 WICK-AG-Lens is built for developers, QA engineers, and AI agents. It runs static analysis against the DOM and computed CSS styles to highlight accessibility patterns, while also offering dynamic rendering filters to simulate specific user conditions and a binary scanner for PDF documents.
 
-*   **Headless CLI & AI MCP Server:** Automate your accessibility testing via Playwright or provide AI agents with a robust tool to audit and diff structural DOM changes dynamically. *(New in v3.0.0)*
+*   **Headless CLI, AI MCP Server & `agent-browser` Support:** Automate your accessibility testing via Playwright, connect AI agents directly via the MCP Server, or pair with Vercel's token-efficient `agent-browser` CLI and our bundled **AI Agent Skill (`SKILL.md`)** for rapid UI scouting, encrypted credential vault / live session handoffs, and real-time structural DOM delta diffing. *(New in v3.0.0)*
 *   **Real-Time SPA & DOM Sync:** Automatically detects Single Page Application (SPA) client-side routing and dynamic DOM injections (like modals), seamlessly re-auditing the page in real-time without requiring a manual refresh.
 *   **Comprehensive Audits:** Divided into actionable violations and structural information checks covering many of the most common issues identified across WCAG 2.0, 2.1, and 2.2 at the A, AA, and AAA conformance levels.
-*   **Disability Simulation Engine:** Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout.  *(New in v2.4.0)*
+*   **Disability Simulation Engine:** Toggle strictly modeled color vision deficiencies (CVD) and interactive physiological impairments (like cataracts, diplopia, and field loss) to empathetically audit your layout. *(New in v2.4.0)*
 *   **PDF Gatekeeper Auditing:** Zero-dependency binary scanner to evaluate critical structural WCAG and PDF/UA prerequisites (Tags, Title, Language, Extraction Permissions) directly from the active tab. *(New in v2.5.0)*
 *   **WCAG Criteria Filtering:** Dynamically restrict audits and legend items by specific WCAG versions (2.0, 2.1, 2.2) and conformance levels (A, AA, AAA).
 *   **Visual Highlighting & Focus Tracing:** Draws bounding boxes and badges over target elements, and utilizes SVG paths to map out sequential, cross-iframe keyboard focus order.
@@ -130,41 +130,48 @@ Accessibility auditing shouldn't require constantly hunting for internet resourc
 The extension's DevTools panel fully respects your system and browser theme preferences, automatically switching between light and dark modes. It utilizes strictly WCAG 2.2 AAA compliant color contrast variables across both themes, ensuring that the auditing tool itself is accessible and easy on the eyes during long debugging sessions.
 
 ## Monorepo Architecture & Building
-To maintain a single source of truth and keep the Chrome Web Store artifact clean of heavy Node dependencies (like Playwright), this project utilizes a lightweight monorepo architecture. 
 
-*   `/core`: The central heuristic logic (`a11y-config.js` and `shared-utils.js`).
-*   `/extension`: The visual Chrome extension artifact.
-*   `/cli`: The Node.js Playwright environment and MCP server.
+> **Note for End-Users:** This section describes the internal repository structure of `wick-ag-lens` for contributors and maintainers. If you are using the Chrome extension, CLI, MCP server, or `agent-browser` to audit your own applications, you do **not** need to run these build steps—skip directly to [Visual Extension Installation](#visual-extension-installation), [Headless CLI Automation](#headless-cli-automation), or [MCP Server & AI Agent Integration](#mcp-server--ai-agent-integration).
 
-### 1. The Dual Build Process
-Whenever you make changes to the heuristic rules in the root `/core` folder, you must build the project to propagate those changes to the specific environments.
+To maintain a single source of truth across all execution environments—and keep the Chrome Web Store extension clean of heavy Node dependencies like Playwright—this repository uses a lightweight monorepo architecture. The browser extension, Headless CLI, MCP Server, and `agent-browser` workflows all run against the exact same underlying heuristic ruleset:
 
-Run the build script from the root directory:
+-   `/core`: The central heuristic rules and DOM traversal engine (`a11y-config.js` and `shared-utils.js`).
+-   `/extension`: The visual Chrome DevTools extension artifact.
+-   `/cli`: The Node.js Playwright runner, Headless CLI (`index.js`), and MCP Server (`mcp-server.js`) used for automated pipelines and `agent-browser` handoffs.
+-   `/skills`: Portable AI Agent Skills (`skills/wick-ag-lens/SKILL.md`) for token-efficient browser and accessibility orchestration.
+
+### 1. The Monorepo Build Process (Contributors Only)
+Whenever changes are made to the heuristic rules in the root `/core` folder or the agent instructions in `/skills`, the repository must be built to propagate those updates into the target packages.
+
+Run the build script from the repository root:
 ```bash
 node build.js
 ```
-This script automatically copies the `/core` logic into both `/extension/core` (for the Chrome extension) and `/cli/core` (for the headless package).
+This script copies `/core` into both `/extension/core` (for the Chrome extension) and `/cli/core` (for the headless package), and copies `/skills` into `/cli/skills` so the skill is bundled inside the published npm package.
 
 ### 2. Version Control (Gitignore)
-To prevent Git from tracking duplicate files and bloating the repository history, the copied core folders are explicitly ignored. If you are developing locally, ensure your root `.gitignore` contains:
+To prevent Git from tracking duplicate build artifacts and bloating repository history, the generated folders are explicitly ignored. The root `.gitignore` excludes:
 ```text
-/extension/core/
-/cli/core/
 /cli/node_modules/
+/cli/core/
+/cli/skills/
+/extension/core/
+/reports/
+*-state.json
 ```
-*Note: Only the root `/core` folder is ever committed to GitHub.*
+*Note: Only the root `/core` and `/skills` folders are committed to GitHub.*
 
 ### 3. Publishing & Distribution
 **Publishing the Extension:**
-Once built, the `/extension` folder is completely standalone. You can load it locally via `chrome://extensions/` (Developer Mode) or zip it directly for the Chrome Web Store.
+Once built, the `/extension` folder is completely standalone. It can be loaded locally via `chrome://extensions/` (Developer Mode) or zipped directly for the Chrome Web Store.
 
-**Publishing the CLI & MCP Server (npm):**
-The Headless CLI and MCP Server are distributed as an npm package. To publish a new version:
-1. Ensure you have run `node build.js` in the root so the CLI has the latest core engine.
+**Publishing the CLI, MCP Server & Bundled Skill (npm):**
+The Headless CLI, MCP Server, and bundled `skills/` directory are distributed together as a single npm package. To publish a new release:
+1. Run `node build.js` in the repository root so `/cli` contains the latest `/core` engine and `/skills` directory.
 2. Navigate into the CLI directory: `cd cli`
 3. Publish to the registry: `npm publish`
-Users and AI agents can then execute the tool on the fly using `npx wick-ag-lens`.
 
+End-users and AI agents can then run the CLI (`npx wick-ag-lens`), launch the MCP server (`npx -y --package=wick-ag-lens wick-mcp`), or copy the bundled skill from `node_modules/wick-ag-lens/skills/wick-ag-lens/SKILL.md` into their own projects.
 ## Visual Extension Installation
 Installing WICK-AG-Lens takes just a few clicks from the official Chrome Web Store.
 
@@ -209,7 +216,7 @@ You can pass several arguments to customize the run:
 -   `--auth-step <step>`: Executable pre-audit auth pipeline step (e.g., `fill::#company::Acme`). Can be repeated.
 -   `--auth-script <path>`: Path to a custom JavaScript module exporting an async login function.
 -   `-i, --interactive`: Launches a visible browser for 30 seconds to manually solve Captchas/MFA or Cookie banners.
--   `-a, --auth-state <path>`: Path to save (or load) a Playwright storage state JSON file (cookies/localStorage).
+-   `-a, --auth-state <path>`: Path to save (or load) a Playwright storage state JSON file (cookies/localStorage) — compatible with Playwright and `agent-browser state save`.
 
 ---
 
@@ -362,13 +369,13 @@ node index.js audit "https://example.com/workspace" \
 ---
 
 ### Authentication Strategies
-WICK-AG-Lens supports four distinct methods to bypass login screens, ranging from simple shorthand flags to fully customized JavaScript modules.
+WICK-AG-Lens supports **five distinct methods** to authenticate and bypass login screens across both the CLI (`-u`/`-p`, `--auth-step`, `--auth-script`, `-i`/`-a`) and the MCP Server (`user`/`pass`, `authSteps`, `authScript`, `authState`).
 
 #### 1. Standard 2-Field Login (Shorthand)
-Use `-u` and `-p` alongside `--login-url` for straightforward single-page login forms.
+Use `-u` and `-p` alongside `--login-url` (or `loginUrl`, `user`, and `pass` in MCP `audit_baseline`) for straightforward single-page login forms.
 
 * **When to use:** Simple forms consisting of a username or email field, a password field, and a submit button on a single page. Under the hood, this automatically compiles into a 3-step pipeline targeting:
-  1. **Username / Email:** `input[type="text"], input[type="email"]`
+  1. **Username / Email:** `input[type="text"], input[type="email"], input[type="user"]`
   2. **Password:** `input[type="password"]`
   3. **Submit:** `button[type="submit"], input[type="submit"]`
 
@@ -381,8 +388,8 @@ node index.js audit "https://example.com/account" \
 
 #### 2. Complex & Multi-Step Action Pipeline
 **When to use:** Forms that require extra fields (like "Company" or "Tenant ID"), or Single Sign-On (SSO) flows (like Okta or Microsoft) where you must submit an email on screen one and enter a password on screen two.
-You can chain multiple `--auth-step` flags using a `action::selector::value` delimiter format.
-*Supported actions: `fill`, `select`, `click`, `press`, `wait` (accepts milliseconds or a CSS selector).*
+You can chain multiple `--auth-step` flags using the `action::selector::value` format (or pass an `authSteps` array in MCP `audit_baseline`).
+*Supported actions: `fill`, `select`, `click`, `press`, `hover`, `wait` (accepts milliseconds or a CSS selector).*
 
 *Example (Multi-Field Form - Username, Password, and Company):*
 ```bash
@@ -405,7 +412,7 @@ node index.js audit https://app.com/dashboard \
   --auth-step "click::#submit-btn"
 ```
 
-#### 3. Custom Authentication Script (`--auth-script`)
+#### 3. Custom Authentication Script (`--auth-script` / `authScript`)
 For complex enterprise authentication flows—such as multi-page SSO redirects (Okta, Microsoft Entra ID / Azure AD), OAuth handshakes, or conditional prompts—pass a custom ES module exporting an `async (page) => { ... }` function. The scanner passes the active Playwright `page` instance directly into your function before navigating to the target audit URL.
 
 * **CLI Command:**
@@ -447,8 +454,47 @@ export default async function (page) {
 ```
 
 #### 4. Interactive State Capture (The "Human Bypass")
-**When to use:** Sites with aggressive bot mitigation (Akamai, Cloudflare), invisible reCAPTCHAs, or MFA push notifications to your phone. 
+**When to use:** Sites with aggressive bot mitigation (Akamai, Cloudflare), invisible reCAPTCHAs, or MFA push notifications to your phone. Launches a visible browser for 30 seconds (`-i`) and exports cookies and `localStorage` to a reusable JSON file (`-a`).
 *(See the "Handling Enterprise Firewalls & Cookie Banners" section below for full instructions).*
+
+#### 5. External Browser & `agent-browser` State Handoff (`-a` / `authState`)
+**When to use:** AI-driven workflows, encrypted credential vaults, or reusing an active Chrome session you are already logged into without writing login scripts or waiting on a 30-second interactive timer.
+
+Because `agent-browser` and Playwright share the standard `storageState` JSON format (`cookies` and `localStorage`), you can authenticate externally using any of three protocols and pass the exported file straight into WICK-AG-Lens via `-a <path>` (CLI) or `authState` (MCP):
+
+* **Protocol A — AI-Driven Interactive Login (`agent-browser state save`):** An AI agent navigates unfamiliar login forms using compact `@e` accessibility snapshots and saves the resulting session state:
+  ```bash
+  agent-browser open https://app.example.com/login
+  agent-browser snapshot -i
+  agent-browser fill @e1 "jdoe@example.com"
+  agent-browser fill @e2 "SuperSecret123"
+  agent-browser click @e3
+  agent-browser wait --url "**/dashboard"
+  agent-browser state save auth-state.json
+
+  # Hand off session state to WICK-AG-Lens
+  node index.js audit "https://app.example.com/dashboard" -a auth-state.json
+  ```
+* **Protocol B — Encrypted Credential Vault (`agent-browser auth login`):** Store credentials once in `agent-browser`'s AES-256-GCM encrypted vault (`~/.agent-browser/auth/`) so raw passwords never appear in CLI flags or AI prompts, then export the session state:
+  ```bash
+  # One-time encrypted profile setup
+  echo "SuperSecret123" | agent-browser auth save my-app \
+    --url "https://app.example.com/login" \
+    --username "jdoe@example.com" \
+    --password-stdin
+
+  # Replay login & export storageState for WICK-AG-Lens
+  agent-browser auth login my-app
+  agent-browser state save auth-state.json
+  node index.js audit "https://app.example.com/dashboard" -a auth-state.json
+  ```
+* **Protocol C — Live Chrome Session Reuse (`--auto-connect`):** Attach `agent-browser` to an already-authenticated local Chrome window (launched with remote debugging) to extract cookies/storage past corporate SSO, hardware security keys, or 2FA:
+  ```bash
+  agent-browser --auto-connect state save auth-state.json
+  node index.js audit "https://app.example.com/dashboard" -a auth-state.json
+  ```
+
+*(Security Note: Saved `storageState` files contain live session tokens in plaintext—always exclude `*-state.json` in `.gitignore` and delete temporary state files after your audit completes).*
 
 ---
 
@@ -512,30 +558,31 @@ Complex Single Page Applications (SPAs) may momentarily display a skeleton scree
 node index.js audit https://www.example.com/ --wait-ms 3000 -a "example-state.json"
 ```
 
-## MCP Server (AI Integration)
-The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to navigate pages, click elements, and receive delta logs of accessibility barriers created or resolved by their actions.
+## MCP Server & AI Agent Integration
+The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to authenticate, navigate pages, execute full user interactions, and receive delta logs of accessibility barriers created or resolved by their actions. It also pairs seamlessly with external browser automation tools—including Vercel's **`agent-browser`** CLI and the official **Playwright MCP**—via standard session state handoffs.
 
-### Exposed Tools
-* `audit_baseline`: Runs a full baseline scan on a target URL. Accepts `url`, an optional array of `requestedAudits`, an `includeScreenshot` boolean for multimodal visual context, and `viewportWidth`/`viewportHeight` parameters to test mobile layouts dynamically.
-* `interact_and_diff`: Clicks a CSS selector, waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of new or resolved violations. Accepts an `includeScreenshot` boolean.
-* `get_audit_trail`: Returns the full chronological Action-State timeline log with global metadata and health scores.
+### Exposed MCP Tools
+* `audit_baseline`: Authenticates (if configured) and runs a full baseline scan on a target URL. Supports:
+  * **Authentication:** `loginUrl`, shorthand `user`/`pass`, ordered `authSteps` (`[{ action, target, value }]`), `authScript` (custom JS module path), and `authState` (path to a saved Playwright/`agent-browser` storageState JSON file).
+  * **Scope & Filtering:** `requestedAudits`, `wcagVersions`, and `wcagLevels`.
+  * **Viewport & Timing:** `viewportWidth`, `viewportHeight`, `waitMs`, `waitForSelector`, and `includeScreenshot` (Base64 JPEG visual context).
+* `interact_and_diff`: Executes a post-baseline interaction (`action`: `"click" | "fill" | "select" | "press" | "hover" | "wait"`, `target`, `value`), waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of `new_findings` and `resolved_findings`. Also supports `requestedAudits`, `wcagVersions`, `wcagLevels`, and `includeScreenshot`.
+* `get_audit_trail`: Returns the full chronological Action-State timeline log with `global_summary`, `page_state_maps` (`focus_order`), and `audit_dictionary`.
 
 ### Handling Cookie Banners Dynamically with AI
 When building CLI tools for humans, workarounds like 30-second pauses and interactive (`-i`) flags are necessary to handle obstacles like Cookie Consent banners. However, when exposing these same tools via an MCP Server, **the AI becomes the human.** 
 
-If you hook this up to a multimodal AI agent (like Claude Desktop) that has access to browser automation tools, the AI can handle banners and firewalls dynamically, eliminating the need for manual state injection.
-
-Here is how an AI agent handles this automatically using the WICK MCP tools:
+If you hook this up to an AI agent that has access to WICK-AG-Lens MCP tools, the AI can handle banners and firewalls dynamically, eliminating the need for manual state injection:
 
 1. **The AI Discovers the Banner (Baseline)**
-   The AI calls the `audit_baseline` tool. It looks at the returned JSON (and the screenshot base64) and realizes, *"Ah, there is a giant cookie consent banner blocking the footer, and my element count is low."*
+   The AI calls `audit_baseline`. It inspects the returned JSON (and optional screenshot) and identifies a cookie consent banner blocking the underlying page structure.
 
 2. **The AI Uses the Diff Tool to Clear the Banner**
-   The AI dynamically finds the CSS selector for the "Accept Cookies" button (e.g., `#onetrust-accept-btn-handler`) and calls the interaction tool:
-   `interact_and_diff(actionName: "Accept Cookies", selector: "#onetrust-accept-btn-handler")`
+   The AI dynamically locates the CSS selector for the "Accept Cookies" button (e.g., `#onetrust-accept-btn-handler`) and calls the interaction tool:
+   `interact_and_diff(action: "click", target: "#onetrust-accept-btn-handler")`
 
 3. **The Clean State is Achieved**
-   Under the hood, the WICK script clicks that exact button, waits for the DOM to settle (which removes the banner and shifts the DOM back to its proper structure), and generates the new accessibility snapshot automatically. The AI can now visually perceive the roadblock is gone and capture the fully hydrated, clean element state entirely on its own!
+   Under the hood, WICK-AG-Lens clicks that exact button, waits for the DOM to settle (removing the banner and restoring the page structure), and generates the new accessibility delta snapshot automatically.
 
 ### Running & Testing the MCP Server
 To test the server locally using the Anthropic MCP Inspector:
@@ -544,44 +591,115 @@ cd cli
 npx @modelcontextprotocol/inspector node mcp-server.js
 ```
 
-To configure in Claude Desktop, add the following to your `claude_desktop_config.json`:
+To configure in Claude Desktop (or `.mcp.json`), add the following to your `mcpServers` configuration:
 ```json
-"mcpServers": {
-  "wick-ag-lens": {
-    "command": "node",
-    "args": ["/absolute/path/to/wick-ag-lens/cli/mcp-server.js"]
+{
+  "mcpServers": {
+    "wick-ag-lens": {
+      "command": "node",
+      "args": ["/absolute/path/to/wick-ag-lens/cli/mcp-server.js"]
+    }
   }
 }
 ```
 
+### AI Agent Skill Setup (Claude Code, Cursor, Windsurf, Copilot)
+WICK-AG-Lens includes a portable, token-efficient **Agent Skill** (`skills/wick-ag-lens/SKILL.md`) that teaches AI coding assistants how to orchestrate **WICK-AG-Lens MCP/CLI**, **`agent-browser`**, and **Playwright MCP** while preventing Base64 screenshot bloat and noisy informative payloads from exhausting context windows.
+
+#### How the Skill Routes Tasks
+*   **Tier 1 — Direct WICK-AG-Lens MCP (Fastest):** Used when target URLs and CSS selectors (including login forms) are known, passing authentication steps directly into `audit_baseline` and chaining `interact_and_diff`.
+*   **Tier 2 — `agent-browser` CLI + WICK-AG-Lens (Token-Efficient Scouting):** Used in terminal-enabled environments when exploring unfamiliar SPAs—scouting with compact `@e` accessibility snapshots (~70% fewer tokens than Playwright MCP), exporting session state via `agent-browser state save`, and handing off to WICK-AG-Lens for deep DOM delta audits.
+*   **Tier 3 — Playwright MCP + WICK-AG-Lens MCP (Sandboxed Fallback):** Used in environments without shell access (such as Claude Desktop) when dynamic page discovery is needed before running WICK-AG-Lens audits.
+
+#### Option 1: Install via Skills CLI (Recommended)
+Run the following command in your project or global environment to install the skill automatically across supported AI tools:
+```bash
+npx skills add sclavijosuero/wick-ag-lens
+```
+
+#### Option 2: Copy from the npm Package or Repository
+If you installed `wick-ag-lens` via npm, the skill file is bundled directly inside the package at:
+```text
+node_modules/wick-ag-lens/skills/wick-ag-lens/SKILL.md
+```
+Copy `SKILL.md` into your AI assistant's skills directory:
+*   **Claude Code (Global):** `~/.claude/skills/wick-ag-lens/SKILL.md` (or `%USERPROFILE%\.claude\skills\wick-ag-lens\SKILL.md` on Windows)
+*   **Project-Scoped (Claude Code / Cursor / Copilot / Codex):** `.claude/skills/wick-ag-lens/SKILL.md` or `.agents/skills/wick-ag-lens/SKILL.md`
+
+#### Recommended Multi-Tool MCP Configuration
+When pairing `wick-ag-lens` with `agent-browser` and Playwright MCP, keep `agent-browser` out of `mcpServers` (it runs via CLI with zero upfront schema tokens) and pass `--caps=core` to Playwright MCP to minimize tool schema overhead:
+```json
+{
+  "mcpServers": {
+    "wick-ag-lens": {
+      "command": "npx",
+      "args": ["-y", "--package=wick-ag-lens", "wick-mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless", "--caps=core"]
+    }
+  }
+}
+```
+*(In VS Code, you can run this directly via the **Claude Code** extension or integrated terminal without needing the web console, and inspect exact token usage per MCP server and skill using `/context` or `/cost`.)*
+
+### Integrating with `agent-browser` (Token-Efficient AI Scouting)
+[`agent-browser`](https://agent-browser.dev/) is an open-source browser automation CLI built for AI agents that reads the browser's accessibility tree and outputs compact text snapshots with short element references (such as `@e1`), cutting LLM token consumption significantly compared to raw DOM dumps.
+
+Because `agent-browser` operates on the **accessibility tree** while WICK-AG-Lens inspects the **full raw HTML/CSS DOM**, the two tools complement each other in a bidirectional AI workflow:
+
+1. **Scout & Session Handoff (`agent-browser` → WICK-AG-Lens):**
+   * **Lightweight Navigation & Auth Protocols:** An AI agent uses `agent-browser` (`open`, `snapshot -i`, `click @e1`, `fill @e2 "..."`), `agent-browser auth login <profile>` (AES-256-GCM encrypted credential vault), or `agent-browser --auto-connect` (attaching to an already-authenticated Chrome session) to bypass complex login flows using minimal tokens.
+   * **Zero-Conversion State Sharing:** Running `agent-browser state save auth-state.json` exports a standard Playwright `storageState` JSON file (cookies and `localStorage`).
+   * **Deep DOM Audit:** The AI passes `auth-state.json` directly into WICK-AG-Lens via the CLI (`-a auth-state.json`) or MCP (`audit_baseline` with `authState: "auth-state.json"`) to run all 55 heuristic DOM/CSS audits without repeating the login flow.
+
+2. **Accessibility Blind-Spot Resolution (WICK-AG-Lens → `agent-browser`):**
+   * Because `agent-browser` relies on semantic roles and accessible names to generate `@e` tags, poorly coded interactive controls (such as `<div onclick="...">` without a `role`, or unlabeled inputs) can be invisible or ambiguous in its snapshots.
+   * When an agent gets stuck because a control is missing from `agent-browser`'s accessibility snapshot, it can invoke WICK-AG-Lens on that URL. WICK-AG-Lens inspects the raw DOM and returns the exact CSS `selector` and `htmlSnippet` of the inaccessible element (e.g., `v-unfocusable-clickables` or `v-unlabeled-inputs`), allowing the AI to target the raw selector and unblock the workflow.
+
+**Example Workflow (`agent-browser` + WICK-AG-Lens):**
+```bash
+# 1. Authenticate via AI scouting (or `agent-browser auth login my-app`)
+agent-browser open https://shop.example.com/login
+agent-browser snapshot -i
+agent-browser fill @e1 "jdoe@example.com"
+agent-browser fill @e2 "SuperSecret123"
+agent-browser click @e3
+agent-browser wait --url "**/dashboard"
+
+# 2. Export authenticated session state (cookies & localStorage)
+agent-browser state save auth-state.json
+
+# 3. Hand off session state to WICK-AG-Lens CLI (or pass authState to MCP audit_baseline)
+node index.js audit "https://shop.example.com/dashboard" \
+  -a auth-state.json \
+  --wcag-version="2.0,2.1" \
+  --wcag-level="A,AA"
+```
+
 ### Integrating with Third-Party Playwright MCP Servers
-Because the WICK-AG-Lens MCP Server uses Playwright under the hood for DOM traversal and screenshots, it can run autonomously for basic audits. However, if your AI agent is already using a dedicated, general-purpose browser automation server (like the official Playwright MCP or Puppeteer MCP) to manage complex tasks (like filling out multi-page shopping carts before auditing), you can orchestrate handoffs between the two servers.
+If your AI agent uses a general-purpose browser automation MCP server (such as the official `@playwright/mcp`) in environments without shell access, you can orchestrate the same session handoff between the two MCP servers:
 
-**Architecture Concept: The Handoff**
-1. **The Navigation Agent (Playwright MCP):** Your AI uses a general browser MCP to navigate the web, bypass captchas, log into complex portals, and establish the session state.
-2. **State Sharing:** The AI instructs the Playwright MCP to export the current browser session state (Cookies and LocalStorage) to a file (e.g., `auth-state.json`).
-3. **The Audit Agent (WICK-AG-Lens MCP):** The AI then calls the WICK-AG-Lens `audit_baseline` tool, passing the path to that saved state file. WICK-AG-Lens boots its own headless Playwright instance, injects the cookies, and runs the audit on the exact page the first agent left off on.
+1. **The Navigation Agent (Playwright MCP):** Your AI uses Playwright MCP to navigate the web, bypass captchas, log into complex portals, and establish the session state.
+2. **State Sharing:** The AI instructs Playwright MCP to export the current browser session state (`cookies` and `localStorage`) to a file (e.g., `state.json`).
+3. **The Audit Agent (WICK-AG-Lens MCP):** The AI calls `wick-ag-lens:audit_baseline`, passing `authState: "state.json"`. WICK-AG-Lens boots its own headless Playwright instance, injects the cookies, and runs the audit on the exact page the first agent left off on.
 
-**Example Handoff Workflow (Claude Desktop)**
-If you have both servers configured in your `claude_desktop_config.json`, the AI can execute a workflow like this:
-
-*   *AI Action 1 (Playwright MCP):* `navigate(url: "https://shop.example.com")`
-*   *AI Action 2 (Playwright MCP):* `fill(selector: "#user", value: "admin")`, `click(selector: "#login")`
-*   *AI Action 3 (Playwright MCP):* `evaluate(script: "require('fs').writeFileSync('state.json', JSON.stringify(await context.storageState()))")`
-*   *AI Action 4 (WICK-AG-Lens MCP):* `audit_baseline(url: "https://shop.example.com/dashboard", auth_state_path: "state.json")`
-
-This allows the AI to use its preferred, robust tools for driving the browser, while seamlessly tagging in WICK-AG-Lens specifically for capturing structural accessibility delta-diffs.
+**Example Handoff Workflow (MCP):**
+*   *AI Action 1 (Playwright MCP):* `browser_navigate(url: "https://shop.example.com")`
+*   *AI Action 2 (Playwright MCP):* Authenticate and export storage state to `state.json`.
+*   *AI Action 3 (WICK-AG-Lens MCP):* `audit_baseline(url: "https://shop.example.com/dashboard", authState: "state.json")`
 
 ## CLI & MCP JSON Output Format
 When executing WICK-AG-Lens programmatically via the Headless CLI or consuming it as an AI agent through the MCP Server, the output is generated as a structured JSON payload. This payload provides a complete historical timeline of the session, tracking the accessibility state across multiple pages, interactions, and DOM mutations.
 
-The root JSON object contains three primary properties: `global_summary`, `audit_dictionary`, and the chronological `audit_trail`.
+The root JSON object contains three primary properties: `global_summary`, `audit_trail`, and `audit_dictionary`.
 
 ### 1. `global_summary`
-A high-level rollup of the **active, unresolved issues** remaining on the page at the exact moment the final step concluded. This is calculated by taking the initial baseline scan and applying the cumulative math of all subsequent delta-diffs (adding new issues and subtracting resolved ones).
+A high-level rollup of the **active, unresolved issues** remaining on the page at the exact moment the final step concluded (deduplicated so persistent issues across steps are never double-counted).
 
 ### 2. `audit_dictionary`
-To drastically reduce JSON bloat across multi-step journeys, repetitive metadata for each audit rule (such as the rule's descriptive label, its severity, "what/why/fix" instructions, and official WCAG reference links) is extracted into this single root-level dictionary placed at the bottom of the JSON payload. 
+To drastically reduce JSON bloat across multi-step journeys, repetitive metadata for each audit rule (such as the rule's descriptive label, "what/why/fix" instructions, WCAG tags, and official WCAG reference links) is extracted into this single root-level dictionary placed at the bottom of the JSON payload. 
 The timeline steps reference these rules solely by their `auditId` (e.g., `v-doc-title`), which you can look up in this dictionary to retrieve the full educational context and remediation steps.
 
 ### 3. `audit_trail` (The Timeline Steps)
@@ -593,11 +711,12 @@ An array of objects representing every state-change in the automated session. Ea
 #### Understanding a Step Object
 Each step in the `audit_trail` contains:
 *   `step`: The integer sequence number.
-*   `interaction`: An object detailing the action that triggered the state change (`action`, `selector`, and `value`). For Step 1, this defaults to `"navigate" : "Initial Page Load"`.
+*   `interaction`: An object detailing the action that triggered the state change (`action`, `selector`, and optional `value`). For Step 1, this defaults to `"navigate" : "Initial Page Load"`.
 *   `url`: The active URL of the page when the snapshot was taken (crucial for tracking multi-page SPA routes).
 *   `execution_time_ms`: How long the step took to settle and audit.
-*   `screenshot_base64`: A raw Base64 JPEG string of the visual viewport (only included if the `-s` flag is passed).
+*   `screenshot_base64`: A raw Base64 JPEG string of the visual viewport (only included if `-s` / `includeScreenshot: true` is passed).
 *   `health_scores`: A point-in-time snapshot of the active violation counts specifically at that step.
+*   `page_state_maps`: Optional state snapshots (such as `focus_order` when `i-focus-order` is enabled) isolated from delta math so full tab sequences remain intact without inflating violation counts.
 *   `new_findings`: Grouped accessibility violations and informative elements that were **not present** in the previous step but appeared as a result of the interaction.
 *   `resolved_findings`: Grouped accessibility violations and informative elements that **were present** in the previous step but disappeared as a result of the interaction.
 
@@ -668,8 +787,11 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
   ],
   "audit_dictionary": {
     "v-empty-buttons": {
-      "what": "Identifies buttons missing accessible names...",
-      "fix": "Provide a descriptive aria-label or inner text."
+      "auditLabel": "Empty Buttons",
+      "info": {
+        "what": "Identifies buttons missing accessible names...",
+        "fix": "Provide a descriptive aria-label or inner text."
+      }
     }
   }
 }
@@ -1037,11 +1159,11 @@ Scripts click faster than humans, which would normally break SPAs. The CLI preve
 *   **Binary Stream Analysis:** Checks are performed programmatically via static byte inspection of the raw PDF Document Catalog, which may skip deeply compressed object streams (`/ObjStm`).
 *   **Scope & Coverage:** Programmatic validation verifies critical structural prerequisites with zero false positives. However, deep layout semantics (e.g., table header associations, correct reading order, context-accurate alternative text on vector figures) still require manual screen reader testing or PDF/UA inspection (e.g., using PAC).
 
-### Headless CLI & MCP Server
-*   **WAF Mitigation & Bot Sinkholes:** Because the CLI utilizes Headless Playwright, aggressive enterprise Web Application Firewalls (like Akamai or Cloudflare) may flag the automated session and serve a dummy 404 page. Overcoming this requires utilizing the CLI's State Injection feature (`-a`) to pass pre-authenticated, human-verified cookies.
+### Headless CLI, MCP Server & `agent-browser`
+*   **WAF Mitigation & Bot Sinkholes:** Because the CLI utilizes Headless Playwright, aggressive enterprise Web Application Firewalls (like Akamai or Cloudflare) may flag the automated session and serve a dummy 404 page. Overcoming this requires utilizing the State Injection feature (`-a` / `authState`) to pass pre-authenticated, human-verified cookies (or cookies exported from `agent-browser state save`).
 *   **Synchronous Step Execution:** Unlike the visual extension which handles erratic, asynchronous human clicking via a persistent 750ms debounce timer, the CLI executes interaction steps (`--step`) in a strictly synchronous, blocking pipeline. It will not execute Step 2 until Step 1 has fully settled and completed its accessibility delta-diff.
 *   **Cross-Origin Iframe Interactions:** While the WICK engine can successfully audit the *DOM* of cross-origin iframes, Playwright's strict execution context prevents the generic `--step` interaction flags (like `click::iframe-button`) from targeting elements deeply nested inside cross-origin sandbox frames without writing a custom `--auth-script` escape.
-*   **JSON Payload Size (Screenshots):** Using the `-s` (screenshot) flag encodes a full 1280x800 layout into a raw Base64 string at every single step. In multi-step user journeys (e.g., 10+ steps), this can dramatically bloat the final JSON file size and significantly increase execution time due to IPC memory transfer constraints.
+*   **JSON Payload Size (Screenshots):** Using the `-s` (`includeScreenshot: true`) flag encodes a full 1280x800 layout into a raw Base64 string at every single step. In multi-step user journeys (e.g., 10+ steps), this can dramatically bloat the final JSON file size and increase LLM token usage in AI workflows.
 
 ## Compatibility
 *   **Browser:** Compatible with Google Chrome version 100.0 or higher.
@@ -1087,15 +1209,16 @@ The following deliberately inaccessible and accessible demonstration websites we
 ## Changelog
 
 ### v3.0.0: The Automation Update
-- **Transformed into a Comprehensive Monorepo:** Restructured the project into a unified suite (`/core`, `/extension`, `/cli`), establishing a single source of truth for the heuristic rules engine.
+- **Transformed into a Comprehensive Monorepo:** Restructured the project into a unified suite (`/core`, `/extension`, `/cli`, `/skills`), establishing a single source of truth for the heuristic rules engine and portable AI agent skills.
 - **Launched Headless CLI for CI/CD:** Introduced a robust Node.js/Playwright CLI for automated accessibility testing, featuring interactive state-injection (`-i`, `-a`) to seamlessly bypass enterprise WAFs, Captchas, and intrusive cookie banners.
-- **Introduced AI MCP Server:** Empowered AI agents (like Claude) with native tools (`audit_baseline`, `interact_and_diff`) to autonomously navigate pages, trigger DOM changes, and process structural accessibility delta-diffs in real time.
-- **Advanced Enterprise Authentication:** Engineered generic multi-step authentication pipelines (`--auth-step`) and custom script escapes (`--auth-script`) to automate complex SSO, multi-page, and multi-field enterprise logins.
+- **Introduced AI MCP Server & Bundled Agent Skill:** Empowered AI agents (like Claude) with native tools (`audit_baseline`, `interact_and_diff`, `get_audit_trail`) and a portable, npm-bundled `SKILL.md` (`skills/wick-ag-lens/SKILL.md`) enforcing token-efficient multi-tool routing across WICK-AG-Lens, `agent-browser`, and Playwright MCP.
+- **Added `agent-browser` Integration & Session State Handoffs:** Enabled seamless interoperability with Vercel's `agent-browser` CLI via Playwright-compatible `storageState` exports (`agent-browser state save`, `agent-browser auth login`, and `--auto-connect` → `-a` / `authState`), supporting low-token AI scouting and raw DOM blind-spot resolution.
+- **Advanced Enterprise Authentication:** Engineered five authentication strategies including 2-field shorthand (`-u`/`-p`), multi-step authentication pipelines (`--auth-step`), custom script escapes (`--auth-script`), interactive capture (`-i`), and external session state handoffs (`-a` / `authState`).
 - **Generic Multi-Step Interactions & SPA Support:** Added repeatable user-journey testing via the `--step` flag (`click`, `fill`, `select`, `press`, `hover`, `wait`) to capture step-by-step delta diffs of new or resolved violations, backed by explicit SPA hydration timing controls (`--wait-ms`, `--wait-for-selector`).
 - **Engine-Level WCAG Filtering:** Added `--wcag-version` and `--wcag-level` parameters to filter heuristic rules at the core engine level prior to DOM execution.
-- **Optimized JSON Timeline & Dictionary Schema:** Streamlined report payloads with structured `interaction` metadata objects, per-audit `totalElemsNew` / `totalElemsResolved` element counters, and a deduplicated root-level `audit_dictionary`.
+- **Optimized JSON Timeline & Dictionary Schema:** Streamlined report payloads with deduplicated `global_summary` tracking, isolated `page_state_maps` (`focus_order`), structured `interaction` metadata objects, per-audit `totalElemsNew` / `totalElemsResolved` element counters, and a root-level `audit_dictionary`.
 - **Integrated Visual State Capture:** Added raw Base64 JPEG screenshot generation (`-s`) synchronized perfectly with the audit timeline to provide multimodal AI agents and visual regression reports with exact layout context.
-- **Engine & Package Optimization:** Centralized DOM traversal (`querySelectorAllDeep`) to guarantee perfect mathematical parity between the visual browser extension and headless environments, while optimizing the Chrome Web Store package payload.
+- **Engine & Package Optimization:** Centralized DOM traversal (`querySelectorAllDeep`) to guarantee perfect mathematical parity between the visual browser extension and headless environments, while optimizing the Chrome Web Store and npm package payloads.
 
 
 ### v2.5.0: The Structural Expansion, DOM Integrity, & PDF Update

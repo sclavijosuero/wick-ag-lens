@@ -6,8 +6,10 @@ const fs = require('fs');
 const path = require('path');
 
 const sourceDir = path.join(__dirname, 'core');
+const skillsSourceDir = path.join(__dirname, 'skills');
 const extensionDest = path.join(__dirname, 'extension', 'core');
 const cliDest = path.join(__dirname, 'cli', 'core');
+const cliSkillsDest = path.join(__dirname, 'cli', 'skills');
 
 function buildTarget(src, dest, targetName) {
   try {
@@ -32,8 +34,9 @@ console.log('Starting WICK-AG-Lens build process...\n');
 
 buildTarget(sourceDir, extensionDest, 'Extension');
 buildTarget(sourceDir, cliDest, 'CLI');
+buildTarget(skillsSourceDir, cliSkillsDest, 'CLI Skills');
 
 // Final Success Messages
 console.log('✅ WICK-AG-Lens v3.0.0 Build Complete.');
 console.log('   📦 The /extension folder is ready for the Chrome Web Store.');
-console.log('   🚀 The /cli folder is ready for npm publishing.');
+console.log('   🚀 The /cli folder (with /core and /skills) is ready for npm publishing.');
