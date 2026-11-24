@@ -427,9 +427,74 @@ The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to A
 * `audit_baseline`: Authenticates (if configured) and runs a full baseline scan on a target URL. Supports:
   * **Authentication:** `loginUrl`, shorthand `user`/`pass`, ordered `authSteps` (`[{ action, target, value }]`), `authScript` (custom JS module path), and `authState` (path to a saved Playwright/`agent-browser` storageState JSON file).
   * **Scope & Filtering:** `requestedAudits`, `wcagVersions`, and `wcagLevels`.
-  * **Viewport & Timing:** `viewportWidth`, `viewportHeight`, `waitMs`, `waitForSelector`, and `includeScreenshot` (Base64 JPEG visual context).
-* `interact_and_diff`: Executes a post-baseline interaction (`action`: `"click" | "fill" | "select" | "press" | "hover" | "wait"`, `target`, `value`), waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of `new_findings` and `resolved_findings`. Also supports `requestedAudits`, `wcagVersions`, `wcagLevels`, and `includeScreenshot`.
+  * **Viewport & Timing:** `viewportWidth`, `viewportHeight`, `waitMs`, `waitForSelector`, `includeScreenshot` (Base64 JPEG visual context) and `screenshotQuality` (`1`-`100`, defaults to `70`).
+* `interact_and_diff`: Executes a post-baseline interaction (`action`: `"click" | "fill" | "select" | "press" | "hover" | "wait"`, `target`, `value`), waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of `new_findings` and `resolved_findings`. Also supports `requestedAudits`, `wcagVersions`, `wcagLevels`, `includeScreenshot` and `screenshotQuality`.
 * `get_audit_trail`: Returns the full chronological Action-State timeline log with `global_summary`, `page_state_maps` (`focus_order`), and `audit_dictionary`.
+
+### Session Protocol & Reading the Results
+
+The server keeps **one stateful browser session**. Call the tools in this order:
+
+1. **`audit_baseline`: always first.** Opens a fresh browser, authenticates if configured, loads the `url` and runs the baseline scan. Calling it again **closes the previous session** and starts a new one.
+2. **`interact_and_diff`: zero or more times.** Each call performs one interaction on the page the baseline opened and audits what changed. Interactions never run concurrently. Calling it before a baseline returns an error (`No active baseline found. Please run 'audit_baseline' first.`).
+3. **`get_audit_trail`: any time after the baseline.** Returns the whole session so far.
+
+#### What each tool returns
+
+Every tool replies with a single MCP `content` item of `type: "text"` whose `text` is a **JSON string**. Parse `content[0].text` to get the object. If something fails, `isError` is `true` and the text is an error message (with a stack trace) instead of JSON, so check `isError` before parsing.
+
+| Tool | Parsed JSON | Use it for |
+| :--- | :--- | :--- |
+| `audit_baseline` | The **full trail**: `global_summary`, `audit_trail` (one step), `audit_dictionary` | The starting state of the page |
+| `interact_and_diff` | **One step object** only: `step`, `interaction`, `url`, `execution_time_ms`, `health_scores`, `new_findings`, `resolved_findings` (+ `page_state_maps`, `screenshot_base64` when requested) | What this interaction broke or fixed. It does **not** repeat earlier steps |
+| `get_audit_trail` | The **full trail** again, with every step so far | The complete session, e.g. to write a report |
+
+The full trail has the structure described in [CLI & MCP JSON Output Format](#cli--mcp-json-output-format). Rule descriptions and remediation text live once in `audit_dictionary`: look up a finding's `auditId` there. To keep an agent's context small, leave `includeScreenshot` off unless you need it, and filter with `requestedAudits`, `wcagVersions` and `wcagLevels`.
+
+#### Example: driving the protocol from a Playwright test
+
+This is how the package's own test suite calls the server (see [`tests/mcp/server.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/mcp/server.spec.js)). It uses the official MCP SDK client, so it talks to the server exactly as an AI agent would. No Playwright MCP is involved: Playwright is only the test runner.
+
+```js
+import { test, expect } from '@playwright/test';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+
+// Call a tool and parse the JSON text it returns
+async function call(client, name, args) {
+  const res = await client.callTool({ name, arguments: args });
+  const text = res.content.find((c) => c.type === 'text')?.text ?? '';
+  return { isError: !!res.isError, text, json: res.isError ? undefined : JSON.parse(text) };
+}
+
+test('baseline -> interact_and_diff -> get_audit_trail', async () => {
+  const client = new Client({ name: 'my-tests', version: '1.0.0' });
+  await client.connect(new StdioClientTransport({
+    command: 'node', args: ['/absolute/path/to/wick-ag-lens/cli/mcp-server.js'],
+  }));
+
+  try {
+    // 1. Baseline: full trail with a single step
+    const baseline = await call(client, 'audit_baseline', {
+      url: 'https://example.com/shop', requestedAudits: ['v-empty-buttons'],
+    });
+    expect(baseline.isError).toBe(false);
+    expect(baseline.json.audit_trail).toHaveLength(1);
+
+    // 2. Interact: a single step object containing only what this click changed
+    const diff = await call(client, 'interact_and_diff', { action: 'click', target: '#show-more' });
+    expect(diff.json.step).toBe(2);
+    expect(Object.keys(diff.json.new_findings).length).toBeGreaterThan(0);
+
+    // 3. Trail: the whole session, with the shared rule dictionary
+    const trail = await call(client, 'get_audit_trail', {});
+    expect(trail.json.audit_trail.map((s) => s.step)).toEqual([1, 2]);
+    expect(trail.json.audit_dictionary).toHaveProperty('v-empty-buttons');
+  } finally {
+    await client.close(); // stops the server and its browser
+  }
+});
+```
 
 ### Handling Cookie Banners Dynamically with AI
 When building CLI tools for humans, workarounds like 30-second pauses and interactive (`-i`) flags are necessary to handle obstacles like Cookie Consent banners. However, when exposing these same tools via an MCP Server, **the AI becomes the human.** 
@@ -584,7 +649,7 @@ Each step in the `audit_trail` contains:
 * `interaction`: An object detailing the action that triggered the state change (`action`, `selector`, and optional `value`). For Step 1, this defaults to `"navigate" : "Initial Page Load"`.
 * `url`: The active URL of the page when the snapshot was taken (crucial for tracking multi-page SPA routes).
 * `execution_time_ms`: How long the step took to settle and audit.
-* `screenshot_base64`: A raw Base64 JPEG string (`quality: 60`) of the visual viewport (only included if `-s` / `includeScreenshot: true` is passed).
+* `screenshot_base64`: A raw Base64 JPEG string (JPEG quality `70` by default; set it with `-q` / `screenshotQuality`) of the visual viewport (only included if `-s` / `includeScreenshot: true` is passed).
 * `health_scores`: A point-in-time snapshot of the active violation counts specifically at that step.
 * `page_state_maps`: Optional state snapshots (such as `focus_order` when `i-focus-order` is enabled) isolated from delta math so full tab sequences remain intact without inflating violation counts.
 * `new_findings`: Grouped accessibility violations and informative elements that were **not present** in the previous step but appeared as a result of the interaction.

@@ -8,6 +8,9 @@ const selectors = (step) => step.page_state_maps.focus_order.elements.map((e) =>
 test.describe('i-focus-order', () => {
   test('maps the full tab sequence in order at the baseline', async ({ baseURL }) => {
     const { report } = await audit(`${baseURL}/focus.html`, ['--audits', 'i-focus-order']);
+    console.log('------------------------- REPORT')
+    console.log(report)
+
     const map = report.audit_trail[0].page_state_maps.focus_order;
 
     expect(map.auditId).toBe('i-focus-order');
@@ -19,12 +22,18 @@ test.describe('i-focus-order', () => {
 
   test('is isolated from findings and health scores', async ({ baseURL }) => {
     const { report } = await audit(`${baseURL}/focus.html`, ['--audits', 'i-focus-order']);
+    console.log('------------------------- REPORT')
+    console.log(report)
+
     expect(idsOf(report.audit_trail[0])).not.toContain('i-focus-order');
     expect(report.global_summary.Critical).toBe(0);
   });
 
   test('re-maps the whole sequence after a step reveals a control', async ({ baseURL }) => {
     const { report } = await audit(`${baseURL}/focus.html`, ['--audits', 'i-focus-order', '--step', 'click::#reveal']);
+    console.log('------------------------- REPORT')
+    console.log(report)
+
     expect(report.audit_trail).toHaveLength(2);
 
     expect(selectors(report.audit_trail[0])).toEqual(['#first', '#second', '#third', '#reveal']);
@@ -35,12 +44,17 @@ test.describe('i-focus-order', () => {
 
   test('only maps stops the Tab key can actually reach', async ({ baseURL }) => {
     const { report } = await audit(`${baseURL}/focus-rules.html`, ['--audits', 'i-focus-order']);
+    console.log('------------------------- REPORT')
+    console.log(report)
+
     // excluded: display:none, visibility:hidden, input[type=hidden], inert, tabindex="-1"
     expect(selectors(report.audit_trail[0])).toEqual(['#first', '#editable', '#summary', '#audio', '#last']);
   });
 
   test('is not reported when the audit is not requested', async ({ baseURL }) => {
     const { report } = await audit(`${baseURL}/focus.html`, ['--audits', 'v-doc-title']);
+    console.log('------------------------- REPORT')
+    console.log(report)
     expect(report.audit_trail[0].page_state_maps).toBeUndefined();
   });
 });

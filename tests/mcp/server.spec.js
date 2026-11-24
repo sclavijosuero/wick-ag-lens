@@ -8,6 +8,9 @@ test.describe('wick-mcp server', () => {
 
   test('exposes the expected tools', async () => {
     const { tools } = await test.step('MCP listTools', () => client.listTools());
+    console.log('------------------------- TOOLS')
+    console.log(tools)
+
     await test.info().attach('tools', { body: tools.map((t) => t.name).join('\n'), contentType: 'text/plain' });
     expect(tools.map((t) => t.name)).toEqual(
       expect.arrayContaining(['audit_baseline', 'interact_and_diff', 'get_audit_trail']));
@@ -16,6 +19,9 @@ test.describe('wick-mcp server', () => {
   test('audit_baseline finds violations', async ({ baseURL }) => {
     const res = await callTool(client, 'audit_baseline',
       { url: `${baseURL}/bad.html`, requestedAudits: ['v-doc-title', 'v-missing-alt'] });
+    console.log('------------------------- AUDIT BASELINE')
+    console.log(res)
+
     expect(res.isError).toBe(false);
     expect(res.text).toContain('v-doc-title');
     expect(res.text).toContain('v-missing-alt');
@@ -24,7 +30,53 @@ test.describe('wick-mcp server', () => {
   test('get_audit_trail returns the accumulated trail', async ({ baseURL }) => {
     await callTool(client, 'audit_baseline', { url: `${baseURL}/bad.html`, requestedAudits: ['v-doc-title'] });
     const res = await callTool(client, 'get_audit_trail', {});
+    console.log('------------------------- AUDIT TRAIL')
+    console.log(res)
+
     expect(res.isError).toBe(false);
     expect(res.text).toContain('v-doc-title');
+  });
+
+  // The documented session protocol: audit_baseline -> interact_and_diff (repeat) -> get_audit_trail.
+  test('baseline -> interact_and_diff -> get_audit_trail follows the session protocol', async ({ baseURL }) => {
+    const ids = (step) => Object.values(step.new_findings || {})
+      .flatMap((groups) => Object.values(groups).flat()).map((f) => f.auditId);
+
+    // 1. Baseline: returns the full trail (1 step). Nothing is wrong on the page yet.
+    const baseline = await callTool(client, 'audit_baseline',
+      { url: `${baseURL}/focus-demo.html`, requestedAudits: ['v-empty-buttons'] });
+    console.log('------------------------- AUDIT BASELINE')
+    console.log(baseline)    
+
+    expect(baseline.isError).toBe(false);
+    expect(baseline.json.audit_trail).toHaveLength(1);
+    expect(ids(baseline.json.audit_trail[0])).not.toContain('v-empty-buttons');
+
+    // 2. Interaction: returns ONE step object (not the whole trail) with only what changed.
+    const diff = await callTool(client, 'interact_and_diff', { action: 'click', target: '#show-more' });
+    console.log('------------------------- INTERACT AND DIFF')
+    console.log(diff)
+
+    expect(diff.isError).toBe(false);
+    expect(diff.json.step).toBe(2);
+    expect(diff.json.interaction).toMatchObject({ action: 'click', selector: '#show-more' });
+    expect(ids(diff.json)).toContain('v-empty-buttons');
+
+    // 3. Trail: the whole session, baseline plus the interaction, with the shared dictionary.
+    const trail = await callTool(client, 'get_audit_trail', {});
+    console.log('------------------------- AUDIT TRAIL')
+    console.log(trail)
+
+    expect(trail.json.audit_trail.map((s) => s.step)).toEqual([1, 2]);
+    expect(trail.json.audit_dictionary).toHaveProperty('v-empty-buttons');
+  });
+
+  test('interact_and_diff without a baseline returns an error', async () => {
+    const res = await callTool(client, 'interact_and_diff', { action: 'click', target: '#x' });
+    console.log('------------------------- ERROR')
+    console.log(res)
+
+    expect(res.isError).toBe(true);
+    expect(res.text).toContain("Please run 'audit_baseline' first");
   });
 });

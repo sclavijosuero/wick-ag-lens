@@ -1,17 +1,17 @@
 // Guards the "tests are never shipped" requirement by inspecting what `npm pack` would publish.
 const { test, expect } = require('@playwright/test');
-const { execFileSync } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { repoRoot } = require('../helpers/paths');
 
-const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
 test.describe('npm package contents', () => {
   let files;
   test.beforeAll(() => {
-    const out = execFileSync(npm, ['pack', './cli', '--dry-run', '--json', '--ignore-scripts'],
-      { cwd: repoRoot, encoding: 'utf8', shell: process.platform === 'win32' });
+    // One constant command string (no user input): on Windows `npm` is a .cmd shim that needs a shell,
+    // and passing an args array together with `shell: true` triggers Node's DEP0190 deprecation warning.
+    const out = execSync('npm pack ./cli --dry-run --json --ignore-scripts',
+      { cwd: repoRoot, encoding: 'utf8' });
     files = JSON.parse(out)[0].files.map((f) => f.path.split('\\').join('/'));
   });
 

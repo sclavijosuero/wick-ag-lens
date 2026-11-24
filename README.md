@@ -442,7 +442,7 @@ The following technical bounds apply to the core DOM inspection engine across bo
 
 ## Automated Test Suite (Playwright)
 
-The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **37 tests across 7 spec files**.
+The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **39 tests across 7 spec files**.
 
 ![Playwright UI running the WICK-AG-Lens test suite](tests/images/playwright-ui.png)
 *The Playwright UI (`npm run test:ui`) running the suite: tests grouped by project, with a timeline, action log and an attached screenshot for each step.*
@@ -457,7 +457,7 @@ The `wick-ag-lens` package ships with its own automated tests, so every claim in
 | **`cli`: focus order** | `i-focus-order` maps the exact Tab sequence, as a full snapshot at every step. | A step that reveals a control re-maps the whole sequence (4 stops, then 5); it only lists stops the Tab key can reach (no `display:none`, `inert`, `input[type=hidden]` or `tabindex="-1"`); it walks into iframes (`[Iframe] #4.1`) and open shadow roots. |
 | **`cli`: `v-aria-hidden-focus`** | The rule flags only controls a keyboard user can really reach inside `aria-hidden`. | Flags `button`, `a[href]`, `contenteditable`, `summary` and `tabindex="0"`; skips `tabindex="-1"`, disabled, `inert` and non-rendered controls; sees through shadow hosts. |
 | **`cli`: frames & shadow DOM** | Findings and focus order cross iframe and shadow boundaries. | Violations are found in a child and a nested grandchild frame, and only on the bad elements inside shadow roots. |
-| **`mcp`** | The MCP server over stdio. | Exposes the expected tools; `audit_baseline` finds violations; `get_audit_trail` returns the accumulated trail. |
+| **`mcp`** | The MCP server over stdio, driven by the official MCP SDK client (the same wire protocol an AI agent uses; Playwright is only the test runner). | Exposes the expected tools; `audit_baseline` finds violations; the full `audit_baseline` → `interact_and_diff` → `get_audit_trail` session protocol returns the documented JSON shapes; `interact_and_diff` without a baseline returns an error. See the [session protocol](./cli/README.md#session-protocol--reading-the-results). |
 | **`viewer`** | The offline HTML report viewer, driven in a real browser from real CLI output. | Per-step screenshots, timeline, and the **Display Focus Order** tab showing the full tab sequence per step, plus "Hidden from AT" stops. |
 | **`package`** | What actually gets published to npm. | Runtime files, `core` and `SKILL.md` are included; tests, the extension and dev tooling are not. |
 
