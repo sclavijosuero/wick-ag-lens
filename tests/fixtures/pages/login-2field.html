@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Sign in</title></head>
+<body>
+  <main>
+    <h1>Sign in</h1>
+    <!-- Standard 2-field form: the CLI/MCP shorthand (-u / -p, user / pass) targets exactly these controls -->
+    <form method="post" action="/login">
+      <label for="user">User</label>
+      <input id="user" name="user" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Sign in</button>
+    </form>
+  </main>
+</body>
+</html>

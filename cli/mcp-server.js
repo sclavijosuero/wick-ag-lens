@@ -29,7 +29,8 @@ server.tool(
     pass: z.string().optional().describe("Optional shorthand password for standard 2-field login forms (requires loginUrl and user)."),
     authSteps: z.array(stepSchema).optional().describe("Optional ordered list of pre-audit authentication steps (requires loginUrl)."),
     authScript: z.string().optional().describe("Optional path to a custom JavaScript module exporting an async default login function."),
-    authState: z.string().optional().describe("Optional path to a Playwright storageState JSON file (cookies/localStorage) from agent-browser or Playwright."),
+    authState: z.string().optional().describe("Optional path to an existing Playwright storageState JSON file (cookies/localStorage) from agent-browser or Playwright. It is loaded, never written."),
+    saveAuthState: z.string().optional().describe("Optional path to WRITE the session to after a successful login (requires a login method: authScript, loginUrl + authSteps, or loginUrl + user/pass). Reuse the file later through authState, with no login. The file holds live session cookies: keep it out of version control."),
     // Audit scope & WCAG filters
     requestedAudits: z.array(z.string()).optional().describe("Optional list of specific audit IDs to run (e.g., ['i-focus-order', 'v-heading-errors'])."),
     wcagVersions: z.array(z.string()).optional().describe("Optional WCAG versions to filter by (e.g., ['2.0', '2.1', '2.2'])."),
@@ -44,6 +45,12 @@ server.tool(
   },
   async (args) => {
     try {
+      const hasLogin = Boolean(args.authScript) ||
+        Boolean(args.loginUrl && ((args.authSteps && args.authSteps.length > 0) || (args.user && args.pass)));
+      if (args.saveAuthState && !hasLogin) {
+        throw new Error("saveAuthState needs a login to save: pass authScript, loginUrl + authSteps, or loginUrl + user + pass.");
+      }
+
       if (activeScanner) {
         await activeScanner.close();
       }
@@ -76,6 +83,15 @@ server.tool(
         }
       }
       
+      // Headless save: persist the session created by the login above so later sessions can reuse it via authState
+      let authStateResult = null;
+      if (args.saveAuthState) {
+        authStateResult = await activeScanner.saveAuthState(args.saveAuthState);
+        if (!authStateResult.saved) {
+          authStateResult.reason = "The login produced no cookies or localStorage, so nothing was written. Check the credentials/steps.";
+        }
+      }
+
       // 2. Scope Filters & Hydration Timing
       const filters = {
         requestedAudits: args.requestedAudits || [],
@@ -97,8 +113,11 @@ server.tool(
         args.screenshotQuality ?? 70
       );
 
+      const trail = activeScanner.getAuditTrail();
+      if (authStateResult) trail.auth_state = authStateResult; // additive: only present when saveAuthState was requested
+
       return {
-        content: [{ type: "text", text: JSON.stringify(activeScanner.getAuditTrail(), null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(trail, null, 2) }],
       };
     } catch (error) {
       return {

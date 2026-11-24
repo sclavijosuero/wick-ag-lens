@@ -3,6 +3,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const { audit } = require('../helpers/cli');
 const { pkgDir } = require('../helpers/paths');
+const { COMPANY_STEPS, cliAuthSteps } = require('../helpers/auth');
 
 const viewerUrl = pathToFileURL(path.join(pkgDir, 'report-template', 'wick-ag-lens-viewer.html')).href;
 
@@ -157,5 +158,36 @@ test.describe('HTML report viewer: frames and aria-hidden in the focus map', () 
     await page.locator('button.tab.map').click();
     await expect(page.locator('#tableHost tbody tr', { hasText: '(Hidden from AT)' })).toHaveCount(2);
     await attachShot(page, testInfo, 'viewer-focus-order-aria-hidden');
+  });
+});
+
+test.describe('HTML report viewer: authenticated audit', { tag: '@auth' }, () => {
+  // An audit of a login-protected page (multi-field login via --auth-step), then one interaction.
+  // The viewer must show the protected page's URL, its screenshot and the findings of both steps.
+  test('shows an audit taken behind a login, with its findings and screenshot', async ({ page, baseURL }, testInfo) => {
+    const { stdout } = await audit(`${baseURL}/account.html`, [
+      '-s', '--audits', 'v-missing-alt,v-empty-buttons',
+      '--login-url', `${baseURL}/login-company.html`, ...cliAuthSteps(COMPANY_STEPS),
+      '--step', 'click::#open-settings',
+    ]);
+    await load(page, stdout);
+
+    const steps = page.locator('button.step');
+    await expect(steps).toHaveCount(2);
+
+    // step 1: the protected page itself (not the sign-in page), with its baseline finding
+    await expect(page.locator('#main .head.url')).toContainText('/account.html');
+    await expect(page.locator('#main img').first()).toBeVisible();
+    await expect(page.locator('#tabBody')).toContainText(/Missing Alt|v-missing-alt/);
+    await expect(page.locator('#tabBody')).toContainText('#private-img');
+    await attachShot(page, testInfo, 'viewer-auth-step-1-baseline');
+
+    // step 2: still logged in after the click, and only the new finding is listed
+    await steps.nth(1).click();
+    await expect(page.locator('#main .head.url')).toContainText('/account.html');
+    await expect(page.locator('#tabBody')).toContainText(/Empty Button|v-empty-buttons/);
+    await expect(page.locator('#tabBody')).toContainText('#icon-only');
+    await expect(page.locator('#tabBody')).not.toContainText('#private-img');
+    await attachShot(page, testInfo, 'viewer-auth-step-2-new-finding');
   });
 });

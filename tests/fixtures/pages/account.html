@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Account dashboard</title>
+  <style>[hidden]{display:none!important}</style>
+</head>
+<body>
+  <!-- Protected page: the server only serves it with the session cookie.
+       #private-img (no alt) only exists here, so finding it proves the audit ran logged in. -->
+  <main>
+    <h1>Account dashboard</h1>
+    <p id="welcome">Welcome back, John Doe.</p>
+    <img id="private-img" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+    <button id="open-settings" type="button"
+            onclick="document.getElementById('settings').hidden=false">Settings</button>
+    <section id="settings" hidden aria-label="Settings">
+      <!-- revealed by the interaction: an icon-only button with no accessible name -->
+      <button id="icon-only" type="button"><svg aria-hidden="true" width="16" height="16"><circle cx="8" cy="8" r="6"/></svg></button>
+    </section>
+  </main>
+</body>
+</html>

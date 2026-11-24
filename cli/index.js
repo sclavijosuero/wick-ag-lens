@@ -52,8 +52,10 @@ program.command('audit <url>')
       console.log(`[Audit] Preparing scan on ${url} at ${options.width || 1280}x${options.height || 800}...`);
       
       // 1. Pre-Audit Authentication Pipeline
+      let loggedInHere = false; // true when this run performed a login (script or steps)
       if (options.authScript) {
           await scanner.authenticateWithScript(options.authScript);
+          loggedInHere = true;
       } else if (options.loginUrl) {
           let authSteps = options.authStep.map(parseStep);
 
@@ -67,6 +69,17 @@ program.command('audit <url>')
 
           if (authSteps.length > 0) {
               await scanner.authenticate(options.loginUrl, authSteps);
+              loggedInHere = true;
+          }
+      }
+
+      // Headless save: a login performed by this run + -a <path> writes the session so later runs can reuse it with just -a
+      if (loggedInHere && options.authState) {
+          const saved = await scanner.saveAuthState(options.authState);
+          if (saved.saved) {
+              console.log(`[Auth] Saved session state to ${saved.path} (${saved.cookies} cookies, ${saved.origins} origins with localStorage).`);
+          } else {
+              console.log(`[Auth] Login produced no cookies or localStorage; NOT writing ${saved.path}. Check the credentials/steps.`);
           }
       }
 

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Sign in to your company</title></head>
+<body>
+  <main>
+    <h1>Sign in to your company</h1>
+    <!-- 3-field form (company + user + password), like multi-tenant apps: needs the --auth-step / authSteps pipeline -->
+    <form method="post" action="/login">
+      <label for="company">Company</label>
+      <input id="company" name="company" type="text" autocomplete="organization">
+      <label for="user">User</label>
+      <input id="user" name="user" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button id="btn-login" type="submit">Login</button>
+    </form>
+  </main>
+</body>
+</html>

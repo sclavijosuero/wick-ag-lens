@@ -442,7 +442,7 @@ The following technical bounds apply to the core DOM inspection engine across bo
 
 ## Automated Test Suite (Playwright)
 
-The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **39 tests across 7 spec files**.
+The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **76 tests across 10 spec files** (4 of them are opt-in live checks that are skipped by default).
 
 ![Playwright UI running the WICK-AG-Lens test suite](tests/images/playwright-ui.png)
 *The Playwright UI (`npm run test:ui`) running the suite: tests grouped by project, with a timeline, action log and an attached screenshot for each step.*
@@ -458,7 +458,8 @@ The `wick-ag-lens` package ships with its own automated tests, so every claim in
 | **`cli`: `v-aria-hidden-focus`** | The rule flags only controls a keyboard user can really reach inside `aria-hidden`. | Flags `button`, `a[href]`, `contenteditable`, `summary` and `tabindex="0"`; skips `tabindex="-1"`, disabled, `inert` and non-rendered controls; sees through shadow hosts. |
 | **`cli`: frames & shadow DOM** | Findings and focus order cross iframe and shadow boundaries. | Violations are found in a child and a nested grandchild frame, and only on the bad elements inside shadow roots. |
 | **`mcp`** | The MCP server over stdio, driven by the official MCP SDK client (the same wire protocol an AI agent uses; Playwright is only the test runner). | Exposes the expected tools; `audit_baseline` finds violations; the full `audit_baseline` → `interact_and_diff` → `get_audit_trail` session protocol returns the documented JSON shapes; `interact_and_diff` without a baseline returns an error. See the [session protocol](./cli/README.md#session-protocol--reading-the-results). |
-| **`viewer`** | The offline HTML report viewer, driven in a real browser from real CLI output. | Per-step screenshots, timeline, and the **Display Focus Order** tab showing the full tab sequence per step, plus "Hidden from AT" stops. |
+| **`cli` + `mcp`: authentication** `@auth` | Every supported way to log in, through both the CLI flags and the MCP `audit_baseline` arguments, against a local fake login system (a protected page that only serves a session cookie). | Shorthand `-u`/`-p` (`user`/`pass`); multi-field **company + user + password** via `--auth-step` (`authSteps`); an **SSO-style two-screen flow** with a `wait` step; a custom `--auth-script` (`authScript`) module; **auth-state handoff** (`-a` / `authState`) from a handwritten Playwright/`agent-browser` storage state and from a session recorded by a real Playwright login. **Headless save and reuse** (`-a` with a login / `saveAuthState`): log in once, save the session, then reuse it with no login, plus refreshing an expired file. Negative cases: no credentials, wrong password and an expired state all stay logged out, and a failed login never writes a state file; and the session survives a following `--step` / `interact_and_diff`. |
+| **`viewer`** | The offline HTML report viewer, driven in a real browser from real CLI output. | Per-step screenshots, timeline, and the **Display Focus Order** tab showing the full tab sequence per step, plus "Hidden from AT" stops; also an audit taken behind a login. |
 | **`package`** | What actually gets published to npm. | Runtime files, `core` and `SKILL.md` are included; tests, the extension and dev tooling are not. |
 
 ### Showcase: focus order across steps
@@ -473,6 +474,21 @@ One viewer test audits a realistic storefront page (`tests/fixtures/pages/focus-
 
 Each step attaches a screenshot of the rendered report (audited page, totals, new findings and the first rows of the focus-order table) to the Playwright report.
 
+### Authentication tests (`@auth`)
+
+All authentication tests carry the `@auth` tag, so you can run just them with `npm run test:auth` (or `npx playwright test --grep @auth`). They log in to a **local fake login system** built into the fixture server, so they are fast, offline and deterministic:
+
+* `login-2field.html`: classic user + password form (the `-u`/`-p` shorthand).
+* `login-company.html`: a 3-field company + user + password form, like multi-tenant apps.
+* `login-sso.html`: a two-screen flow where the password field appears asynchronously.
+* `account.html`: the protected page. The server only serves it with the session cookie, and it contains an image without alt text that exists nowhere else, so "that finding was reported" proves the audit ran **logged in**.
+
+**Live checks (opt-in).** Four extra tests (tagged `@auth @live`) repeat the main flows against a public training site with a real login, [Abi's Testing Dojo](https://abi-testing-dojo-demo.azurewebsites.net/), whose login page publishes its demo credentials. They are skipped unless you set `WICK_LIVE=1`, because they need internet access and the site resets every Monday:
+
+```bash
+WICK_LIVE=1 npm run test:auth      # PowerShell: $env:WICK_LIVE=1; npm run test:auth
+```
+
 ### Running the tests
 
 ```bash
@@ -480,6 +496,7 @@ npm run setup         # one-time: root deps + cli deps + Chromium
 npm test              # builds, then runs every project
 npm run test:ui       # interactive Playwright UI (as pictured above)
 npm run test:cli      # also: test:mcp | test:package | test:viewer
+npm run test:auth     # only the authentication tests (tagged @auth), across CLI, MCP and viewer
 npx playwright show-report   # HTML report with screenshots and CLI output attached
 ```
 
@@ -543,6 +560,7 @@ Special thanks to the following individuals whose work, feedback, and testing re
 - **Launched Headless CLI for CI/CD:** Introduced a robust Node.js/Playwright CLI for automated accessibility testing, featuring interactive state-injection (`-i`, `-a`) to seamlessly bypass enterprise WAFs, Captchas, and intrusive cookie banners.
 - **Introduced AI MCP Server & Bundled Agent Skill:** Empowered AI agents (like Claude) with native tools (`audit_baseline`, `interact_and_diff`, `get_audit_trail`) and a portable, npm-bundled `SKILL.md` (`skills/wick-ag-lens/SKILL.md`) enforcing token-efficient multi-tool routing across WICK-AG-Lens, `agent-browser`, and Playwright MCP.
 - **Added `agent-browser` Integration & Session State Handoffs:** Enabled seamless interoperability with Vercel's `agent-browser` CLI via Playwright-compatible `storageState` exports (`agent-browser state save`, `agent-browser auth login`, and `--auto-connect` → `-a` / `authState`), supporting low-token AI scouting and raw DOM blind-spot resolution.
+- **Headless Session Save & Reuse:** Any login method can now save its session without a human or a visible browser: the CLI writes the state when `-a <file>` is combined with a login, and the MCP `audit_baseline` tool accepts `saveAuthState`. Later runs reuse it with just `-a` / `authState`. Failed logins are never saved, and the file is created owner-only. Covered by the `@auth` Playwright tests.
 - **Advanced Enterprise Authentication:** Engineered five authentication strategies including 2-field shorthand (`-u`/`-p`), multi-step authentication pipelines (`--auth-step`), custom script escapes (`--auth-script`), interactive capture (`-i`), and external session state handoffs (`-a` / `authState`).
 - **Generic Multi-Step Interactions & SPA Support:** Added repeatable user-journey testing via the `--step` flag (`click`, `fill`, `select`, `press`, `hover`, `wait`) to capture step-by-step delta diffs of new or resolved violations, backed by explicit SPA hydration timing controls (`--wait-ms`, `--wait-for-selector`).
 - **Engine-Level WCAG Filtering:** Added `--wcag-version` and `--wcag-level` parameters to filter heuristic rules at the core engine level prior to DOM execution.

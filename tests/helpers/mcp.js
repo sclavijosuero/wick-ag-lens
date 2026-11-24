@@ -3,7 +3,8 @@ const { test } = require('@playwright/test');
 const { mcpEntry, pkgDir } = require('./paths');
 
 // Use the MCP SDK shipped with the package under test (its own node_modules).
-async function connectMcp() {
+// extraEnv is merged into the server process environment (the SDK only forwards a minimal safe set by default).
+async function connectMcp(extraEnv = {}) {
   const sdk = (p) => import(pathToFileURL(
     require.resolve(`@modelcontextprotocol/sdk/${p}`, { paths: [pkgDir] })).href);
   const { Client } = await sdk('client/index.js');
@@ -11,7 +12,7 @@ async function connectMcp() {
 
   const client = new Client({ name: 'wick-tests', version: '0.0.0' });
   await client.connect(new StdioClientTransport({
-    command: process.execPath, args: [mcpEntry], cwd: pkgDir,
+    command: process.execPath, args: [mcpEntry], cwd: pkgDir, env: extraEnv,
   }));
   return client;
 }

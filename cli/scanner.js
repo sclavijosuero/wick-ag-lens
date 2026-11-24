@@ -101,6 +101,24 @@ export class WICKScanner {
         console.log('[Auth] Login sequence complete.');
     }
 
+    // Persists the current session (cookies + localStorage) as a standard Playwright storageState file, which can be
+    // reloaded later with `-a` / `authState` or by Playwright and `agent-browser`.
+    // An EMPTY session (e.g. a login that failed) is not written, so a good existing file is never replaced by a
+    // logged-out one. The file holds live session cookies, so it is created owner-only where the OS supports it.
+    // Returns { saved, path, cookies, origins }; callers decide how to report it (the MCP server must not write to stdout).
+    async saveAuthState(filePath) {
+        const resolved = path.resolve(filePath);
+        const state = await this.context.storageState();
+        const cookies = state.cookies.length;
+        const origins = state.origins.length;
+        if (cookies === 0 && origins === 0) return { saved: false, path: resolved, cookies, origins };
+
+        fs.mkdirSync(path.dirname(resolved), { recursive: true });
+        fs.writeFileSync(resolved, JSON.stringify(state, null, 2), { mode: 0o600 });
+        try { fs.chmodSync(resolved, 0o600); } catch (e) { /* best effort (e.g. Windows) */ }
+        return { saved: true, path: resolved, cookies, origins };
+    }
+
     async authenticateWithScript(scriptPath) {
         console.log(`[Auth] Executing custom login script: ${scriptPath}`);
         const fullPath = path.resolve(process.cwd(), scriptPath);

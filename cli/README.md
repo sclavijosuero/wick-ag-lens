@@ -69,7 +69,12 @@ You can pass several arguments to customize the run:
 * `--auth-step <step>`: Executable pre-audit auth pipeline step (e.g., `fill::#company::Acme`). Can be repeated.
 * `--auth-script <path>`: Path to a custom JavaScript module exporting an async login function.
 * `-i, --interactive`: Launches a visible browser for 30 seconds to manually solve Captchas/MFA or Cookie banners.
-* `-a, --auth-state <path>`: Path to save (or load) a Playwright storage state JSON file (cookies/localStorage) — compatible with Playwright and `agent-browser state save`.
+* `-a, --auth-state <path>`: Path to a Playwright storage state JSON file (cookies/localStorage), compatible with Playwright and `agent-browser state save`.
+  * **Load:** if the file exists, the session is loaded into the browser before the audit, so protected pages are audited logged in. No login flags are needed.
+  * **Save after a login (headless):** combine `-a` with a login (`--login-url` + `--auth-step` or `-u`/`-p`, or `--auth-script`) and the session that login created is written to the file. Later runs then only need `-a`. See [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless). If the login produces no cookies or localStorage (for example, wrong credentials), nothing is written, so a good existing file is never replaced by a logged-out one.
+  * **Save in interactive mode:** with `-i`, the session is also written after the 30-second manual window (CAPTCHAs, MFA).
+  * `-a` on its own (no login flags, no `-i`) only loads; it never creates or changes the file.
+  * The file holds live session cookies in plaintext. It is created owner-only (`0600`) where the OS supports it; keep it out of version control.
 
 ---
 
@@ -220,6 +225,15 @@ node index.js audit "https://example.com/workspace" \
   --step "click::button#new-project"
 ```
 
+### 14. Log In Once, Reuse the Session in Every Later Run
+Logs in headlessly on the first run and saves the session; every later run reuses it without a login. See [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless).
+```bash
+# First run: log in and save
+node index.js audit "https://example.com/portal" --login-url "https://example.com/login" -u "jdoe@example.com" -p "$PASS" -a auth-state.json
+# Next runs: just reuse
+node index.js audit "https://example.com/portal/reports" -a auth-state.json
+```
+
 ---
 
 ## Authentication Strategies (5 Methods)
@@ -349,7 +363,61 @@ Because `agent-browser` and Playwright share the standard `storageState` JSON fo
   node index.js audit "https://app.example.com/dashboard" -a auth-state.json
   ```
 
+> **No external tool needed:** WICK-AG-Lens can also create the state file itself, headlessly, from any of its own login methods. See [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless).
+
 *(Security Note: Saved `storageState` files contain live session tokens in plaintext—always exclude `*-state.json` in `.gitignore` and delete temporary state files after your audit completes).*
+
+### Log In Once, Save the Session, Reuse It (Headless)
+
+Logging in on every run is slow, and some logins cannot be repeated at all (rate limits, MFA, one-time codes). WICK-AG-Lens can save the session created by **any** of its login methods and reuse it afterwards, with no browser window and no human:
+
+| | Save the session after logging in | Reuse it later (no login) |
+| :--- | :--- | :--- |
+| **CLI** | login flags **+ `-a <file>`** | `-a <file>` alone |
+| **MCP** | `audit_baseline` login arguments **+ `saveAuthState: "<file>"`** | `audit_baseline` with `authState: "<file>"` |
+
+**CLI**
+```bash
+# Run 1: log in (any method: -u/-p, --auth-step pipeline or --auth-script) and save the session
+node index.js audit "https://app.example.com/dashboard" \
+  --login-url "https://app.example.com/login" \
+  --auth-step "fill::#company::Northwind" \
+  --auth-step "fill::#user::jdoe" \
+  --auth-step "fill::#password::$APP_PASSWORD" \
+  --auth-step "click::#btn-login" \
+  -a ./auth/app-state.json
+# [Auth] Saved session state to /path/auth/app-state.json (3 cookies, 1 origins with localStorage).
+
+# Run 2, 3, 4...: no credentials, no login steps. Just reuse the saved session
+node index.js audit "https://app.example.com/reports" -a ./auth/app-state.json
+```
+
+**MCP** (`audit_baseline` arguments)
+```jsonc
+// Session 1: log in and save. The reply gains an "auth_state" key describing what was written.
+{
+  "url": "https://app.example.com/dashboard",
+  "loginUrl": "https://app.example.com/login",
+  "authSteps": [
+    { "action": "fill", "target": "#company", "value": "Northwind" },
+    { "action": "fill", "target": "#user", "value": "jdoe" },
+    { "action": "fill", "target": "#password", "value": "..." },
+    { "action": "click", "target": "#btn-login" }
+  ],
+  "saveAuthState": "./auth/app-state.json"
+}
+// Reply (excerpt): { "audit_trail": [...], "auth_state": { "saved": true, "path": "...", "cookies": 3, "origins": 1 } }
+
+// Any later session: no login arguments at all
+{ "url": "https://app.example.com/reports", "authState": "./auth/app-state.json" }
+```
+
+**Good to know**
+* **Refreshing an expired session:** run the login flags with `-a` (or `saveAuthState`) again. The file is overwritten with the fresh session.
+* **Failed logins are not saved.** If the login leaves the browser with no cookies and no localStorage (wrong password, wrong selectors), the file is not written. The CLI prints `NOT writing ...`; MCP replies with `"auth_state": { "saved": false, "reason": "..." }`. A login that fails but still sets cookies (for example an anonymous session cookie) cannot be detected, so verify the audited URL.
+* **`saveAuthState` needs a login.** On MCP, passing it without `authScript`, `loginUrl` + `authSteps`, or `loginUrl` + `user`/`pass` is rejected with an error before anything runs.
+* **Compatible with other tools:** the file is a standard Playwright `storageState`, so it also works with Playwright and `agent-browser`.
+* **Keep it secret:** the file contains live session cookies. Add it to `.gitignore` (for example `*-state.json`), never commit it, and delete it when no longer needed.
 
 ---
 
@@ -425,7 +493,7 @@ The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to A
 
 ### Exposed MCP Tools
 * `audit_baseline`: Authenticates (if configured) and runs a full baseline scan on a target URL. Supports:
-  * **Authentication:** `loginUrl`, shorthand `user`/`pass`, ordered `authSteps` (`[{ action, target, value }]`), `authScript` (custom JS module path), and `authState` (path to a saved Playwright/`agent-browser` storageState JSON file).
+  * **Authentication:** `loginUrl`, shorthand `user`/`pass`, ordered `authSteps` (`[{ action, target, value }]`), `authScript` (custom JS module path), `authState` (path to an existing Playwright/`agent-browser` storageState JSON file; it is only loaded, never written), and `saveAuthState` (path where the session created by the login above is **written**, to be reused later through `authState`; see [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless)).
   * **Scope & Filtering:** `requestedAudits`, `wcagVersions`, and `wcagLevels`.
   * **Viewport & Timing:** `viewportWidth`, `viewportHeight`, `waitMs`, `waitForSelector`, `includeScreenshot` (Base64 JPEG visual context) and `screenshotQuality` (`1`-`100`, defaults to `70`).
 * `interact_and_diff`: Executes a post-baseline interaction (`action`: `"click" | "fill" | "select" | "press" | "hover" | "wait"`, `target`, `value`), waits for the SPA router to settle via the internal double-debounce event, and returns a delta log of `new_findings` and `resolved_findings`. Also supports `requestedAudits`, `wcagVersions`, `wcagLevels`, `includeScreenshot` and `screenshotQuality`.
@@ -445,7 +513,7 @@ Every tool replies with a single MCP `content` item of `type: "text"` whose `tex
 
 | Tool | Parsed JSON | Use it for |
 | :--- | :--- | :--- |
-| `audit_baseline` | The **full trail**: `global_summary`, `audit_trail` (one step), `audit_dictionary` | The starting state of the page |
+| `audit_baseline` | The **full trail**: `global_summary`, `audit_trail` (one step), `audit_dictionary`, plus `auth_state` (`{ saved, path, cookies, origins }`, only when `saveAuthState` was passed) | The starting state of the page |
 | `interact_and_diff` | **One step object** only: `step`, `interaction`, `url`, `execution_time_ms`, `health_scores`, `new_findings`, `resolved_findings` (+ `page_state_maps`, `screenshot_base64` when requested) | What this interaction broke or fixed. It does **not** repeat earlier steps |
 | `get_audit_trail` | The **full trail** again, with every step so far | The complete session, e.g. to write a report |
 

@@ -24,7 +24,7 @@ Follow this exact routing hierarchy and token-hygiene protocol for all web audit
 ### Tier 1: Direct WICK-AG-Lens MCP (Fastest — Known URLs & Selectors)
 Use this first whenever the target URL and CSS selectors (including login forms) are known:
 1. Call `wick-ag-lens:audit_baseline` with `url`, `includeScreenshot: false`, and `wcagLevels: ["A", "AA"]`.
-   - For protected pages, pass `loginUrl` + `authSteps` (`[{ action, target, value }]`), `user`/`pass`, `authScript`, or an existing `authState` JSON path directly into `audit_baseline`.
+   - For protected pages, pass `loginUrl` + `authSteps` (`[{ action, target, value }]`), `user`/`pass`, `authScript`, or an existing `authState` JSON path directly into `audit_baseline`. To log in only once, add `saveAuthState: "<file>"` to that first call (it needs a login method) and pass the file as `authState` in later calls instead of the credentials; the reply's `auth_state.saved` confirms the write.
 2. Chain `wick-ag-lens:interact_and_diff` (`click`, `fill`, `select`, `press`, `hover`, `wait`) to step through the SPA and inspect only `new_findings` and `resolved_findings` per step.
 
 ### Tier 2: `agent-browser` CLI + WICK-AG-Lens (Best for Unknown SPAs & Complex Auth)

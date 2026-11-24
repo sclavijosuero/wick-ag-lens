@@ -13,6 +13,7 @@
     "test:mcp": "playwright test --project=mcp",
     "test:package": "playwright test --project=package",
     "test:viewer": "playwright test --project=viewer",
+    "test:auth": "playwright test --grep @auth",
     "test:ui": "playwright test --ui",
     "report": "playwright show-report",
     "pack:tarball": "node build.js && node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && npm pack ./cli --pack-destination ./dist"
