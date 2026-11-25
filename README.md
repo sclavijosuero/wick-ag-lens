@@ -442,7 +442,7 @@ The following technical bounds apply to the core DOM inspection engine across bo
 
 ## Automated Test Suite (Playwright)
 
-The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **76 tests across 10 spec files** (4 of them are opt-in live checks that are skipped by default).
+The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **498 tests across 31 spec files** (4 of them are opt-in or platform-specific and are skipped by default). Besides the basic CLI, MCP and viewer checks, it runs the same multi-step accessibility journey through the CLI, MCP, the viewer and agent-browser, repeats it for every login method, and exercises the sample pages shipped in the package. See [tests/README.md](tests/README.md#what-runs-what) for what runs what.
 
 ![Playwright UI running the WICK-AG-Lens test suite](tests/images/playwright-ui.png)
 *The Playwright UI (`npm run test:ui`) running the suite: tests grouped by project, with a timeline, action log and an attached screenshot for each step.*
@@ -483,10 +483,13 @@ All authentication tests carry the `@auth` tag, so you can run just them with `n
 * `login-sso.html`: a two-screen flow where the password field appears asynchronously.
 * `account.html`: the protected page. The server only serves it with the session cookie, and it contains an image without alt text that exists nowhere else, so "that finding was reported" proves the audit ran **logged in**.
 
-**Live checks (opt-in).** Four extra tests (tagged `@auth @live`) repeat the main flows against a public training site with a real login, [Abi's Testing Dojo](https://abi-testing-dojo-demo.azurewebsites.net/), whose login page publishes its demo credentials. They are skipped unless you set `WICK_LIVE=1`, because they need internet access and the site resets every Monday:
+**Single sign-on (`@sso`).** The fixture server also plays an *identity provider* on a **different origin** (`localhost:<port+1>`, while the app is on `127.0.0.1:<port>`), so the browser makes a real cross-origin round trip like with Okta or Azure AD: the protected app page redirects to the provider's two-screen sign-in (user name, then a password field that appears asynchronously), the provider sets **its own cookie** and sends the browser back to the app with an authorization code, and the app then sets its session cookie. The SSO tests (CLI and MCP) check that this login works, that a wrong password never reaches the app, that the session survives later interactions, and that a saved session (`-a` / `saveAuthState`) contains the cookies of **both** origins and replaces the whole SSO login on the next run. Run them with `npm run test:sso` (or `npm run test:sso -- --ui`); the step-by-step guide is in [tests/README.md](tests/README.md#running-the-sso-tests-in-playwright-step-by-step).
+
+**Live checks (opt-in).** Three extra tests (tagged `@auth @live`) run the package against a public training site with a real login and real accessibility problems, [Abi's Testing Dojo](https://abi-testing-dojo-demo.azurewebsites.net/), whose login page publishes its demo credentials. The main ones follow the CLI README's *Enterprise Multi-Field Auth + Post-Login SPA Workflow* example, once through the **CLI** and once through the **MCP** tools: log in with company, user and password, open Security > Companies, search, and audit every step. They check that WCAG findings are reported at the step that revealed them, and attach each step's screenshot to the test. They are skipped by default, because they need internet access and the site can change (it resets every Monday). Run them with:
 
 ```bash
-WICK_LIVE=1 npm run test:auth      # PowerShell: $env:WICK_LIVE=1; npm run test:auth
+npm run test:live              # headless, terminal output
+npm run test:live -- --ui      # in the Playwright UI (screenshots in each test's Attachments tab)
 ```
 
 ### Running the tests
@@ -496,7 +499,7 @@ npm run setup         # one-time: root deps + cli deps + Chromium
 npm test              # builds, then runs every project
 npm run test:ui       # interactive Playwright UI (as pictured above)
 npm run test:cli      # also: test:mcp | test:package | test:viewer
-npm run test:auth     # only the authentication tests (tagged @auth), across CLI, MCP and viewer
+npm run test:auth     # only the authentication tests (tagged @auth), across CLI, MCP, viewer and the agent-browser handoff
 npx playwright show-report   # HTML report with screenshots and CLI output attached
 ```
 

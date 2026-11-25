@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WICK-AG-Lens sample: every step action</title>
+  <style>
+    body { font-family: sans-serif; margin: 16px; color: #111 }
+    section, #panel { border: 1px solid #999; padding: 8px; margin: 8px 0 }
+    .toast { position: fixed; right: 12px; bottom: 12px; background: #333; color: #fff; padding: 8px }
+    .toast a { color: #9cf }
+    [hidden] { display: none }
+  </style>
+</head>
+<body>
+  <!--
+    SAMPLE PAGE shipped with wick-ag-lens. Open it from your installed package:
+        node_modules/wick-ag-lens/samples/steps-demo.html      (use a file:/// URL)
+
+    It exercises EVERY --step action, and each step produces a small, different diff in the audit trail:
+
+      baseline                                      clean page (no violations)
+      click::#open-panel                            NEW   Empty Button (#panel-close)
+      fill::#email::not-an-email                    NEW   Invalid ARIA State (#email)
+      fill::#email::jdoe@example.com                RESOLVED   that invalid state
+      select::#country::US                          NEW   Unlabeled Input (#state)
+      hover::#help                                  NEW   Empty Link (#help-link)
+      press::#search::Enter                         NEW   Missing Alt Text (#result-img)
+      wait::.toast                                  NEW   Generic Link Text (#toast-link), the toast mounts 7 s after the search, well after the press step has settled
+      wait::300                                     (no change)
+      press::active::Tab                            (no change; moves the focus)
+      press::active::Escape                         RESOLVED   Empty Button + Unlabeled Input (the panel closes)
+
+    Open it with ?late=1 to also mount a widget after ~4 s (README example 7: --wait-for-selector).
+  -->
+  <header>
+    <h1>Step actions sample</h1>
+    <button id="open-panel" aria-expanded="false" aria-controls="panel">Open panel</button>
+    <span id="help" tabindex="0" role="button" aria-describedby="tip">Help</span><span id="tip-host"></span>
+  </header>
+
+  <main>
+    <section aria-label="Search">
+      <label for="search">Search</label>
+      <input id="search" type="search">
+      <div id="results"></div>
+    </section>
+
+    <div id="panel" hidden role="region" aria-label="Details">
+      <button id="panel-close" type="button"></button>
+      <label for="email">Email</label>
+      <input id="email" type="email">
+      <p id="email-error" role="alert"></p>
+      <label for="country">Country</label>
+      <select id="country"><option value="">Choose</option><option value="US">United States</option><option value="CA">Canada</option></select>
+      <div id="state-host"></div>
+    </div>
+
+    <div id="late-host"></div>
+  </main>
+  <div id="toast-host" aria-live="polite"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+
+    function openPanel() { $('panel').hidden = false; $('open-panel').setAttribute('aria-expanded', 'true'); }
+    function closePanel() {
+      $('panel').hidden = true; $('open-panel').setAttribute('aria-expanded', 'false');
+      $('state-host').innerHTML = '';                                          // closing the panel removes what the select added
+    }
+    $('open-panel').addEventListener('click', openPanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('panel').hidden) closePanel(); });
+
+    $('email').addEventListener('input', (e) => {                              // fill: a bad value flags the field, a good one clears it
+      const ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.target.value);
+      if (ok) { e.target.removeAttribute('aria-invalid'); $('email-error').textContent = ''; }
+      else { e.target.setAttribute('aria-invalid', 'true'); $('email-error').textContent = 'Enter a valid email'; }
+    });
+
+    $('country').addEventListener('change', (e) => {                           // select: choosing a country reveals an unlabeled field
+      $('state-host').innerHTML = e.target.value === 'US'
+        ? '<select id="state"><option>Pick a state</option><option>Ohio</option></select>' : '';
+    });
+
+    $('help').addEventListener('mouseenter', () => {                           // hover: a tooltip with an empty link
+      $('tip-host').innerHTML = '<span id="tip"><a id="help-link" href="https://example.com/help"></a>Need help?</span>';
+    });
+
+    $('search').addEventListener('keydown', (e) => {                           // press (with a selector): Enter shows a result
+      if (e.key === 'Enter') $('results').innerHTML = '<img id="result-img" src="' + GIF + '"><span>1 result</span>';
+    });
+
+    // wait: a toast that mounts after a short delay, once the search ran
+    $('search').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') setTimeout(() => {
+        $('toast-host').innerHTML = '<div class="toast">Saved. <a id="toast-link" href="https://example.com/saved">click here</a></div>';
+      }, 7000);
+    });
+
+    // README example 7: an SPA widget that only mounts after a delay (?late=1)
+    if (new URLSearchParams(location.search).has('late')) {
+      setTimeout(() => {
+        $('late-host').innerHTML = '<div class="recommendations-ready"><img id="late-img" src="' + GIF + '"></div>';
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

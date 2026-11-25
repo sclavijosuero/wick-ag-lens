@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sign in - Fixture Identity Provider</title>
+  <style>[hidden]{display:none!important}</style>
+</head>
+<body>
+  <!-- A fake identity provider, served from ANOTHER origin than the app (see tests/fixtures/server.js).
+       Two screens like Okta / Microsoft: user name first, then the password field appears asynchronously. -->
+  <main>
+    <h1>Sign in with your organization account</h1>
+    <p id="idp-error" role="alert" hidden>Incorrect user name or password.</p>
+    <form method="post" action="/idp/login">
+      <input type="hidden" name="redirect_uri" id="redirect_uri">
+      <input type="hidden" name="state" id="state">
+      <div id="screen-user">
+        <label for="idp-user">User name</label>
+        <input id="idp-user" name="user" type="text" autocomplete="username">
+        <button id="idp-next" type="button">Continue</button>
+      </div>
+      <div id="screen-password" hidden>
+        <label for="idp-password">Password</label>
+        <input id="idp-password" name="password" type="password" autocomplete="current-password">
+        <button id="idp-signin" type="submit">Sign in</button>
+      </div>
+    </form>
+  </main>
+  <script>
+    // The app sends redirect_uri + state in the query string; the form hands them back with the credentials
+    const q = new URLSearchParams(location.search);
+    document.getElementById('redirect_uri').value = q.get('redirect_uri') || '';
+    document.getElementById('state').value = q.get('state') || '';
+    if (q.get('error')) document.getElementById('idp-error').hidden = false;
+    document.getElementById('idp-next').addEventListener('click', () => {
+      document.getElementById('screen-user').hidden = true;
+      setTimeout(() => { document.getElementById('screen-password').hidden = false; }, 400);
+    });
+  </script>
+</body>
+</html>

@@ -18,7 +18,8 @@ test.describe('npm package contents', () => {
   test('includes runtime files, core and skill', () => {
     for (const f of ['index.js', 'mcp-server.js', 'scanner.js', 'cli-adapter.js',
       'core/a11y-config.js', 'core/shared-utils.js', 'skills/wick-ag-lens/SKILL.md',
-      'report-template/wick-ag-lens-viewer.html', 'package.json']) {
+      'report-template/wick-ag-lens-viewer.html', 'samples/steps-demo.html', 'samples/shop-journey.html',
+      'docs/auth-examples.md', 'docs/sample-journeys.md', 'samples/server.mjs', 'samples/login.html', 'samples/login-script.mjs', 'package.json']) {
       expect(files, f).toContain(f);
     }
   });

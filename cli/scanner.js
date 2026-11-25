@@ -144,14 +144,22 @@ export class WICKScanner {
         const wcagVersions = filters.wcagVersions || [];
         const wcagLevels = filters.wcagLevels || [];
         
+        // Inject everywhere first, so every frame can already receive the iframe numbering its parent posts while running
+        const injected = [];
+        for (const frame of frames) {
+            try { await this.injectCore(frame); injected.push(true); } catch (e) { injected.push(false); }
+        }
+
         for (let i = 0; i < frames.length; i++) {
             const frame = frames[i];
+            if (!injected[i]) continue;
             try {
-                await this.injectCore(frame);
-                const prefix = i === 0 ? "" : `F${i}.`;
-                const depth = i === 0 ? 0 : 1;
+                // Top document: no prefix. Child frames: null = use the prefix/depth the parent posted (same numbering as the extension)
+                const prefix = i === 0 ? "" : null;
+                const depth = i === 0 ? 0 : null;
                 
-                const frameResults = await frame.evaluate(([audits, pref, dep, versions, levels]) => {
+                const frameResults = await frame.evaluate(async ([audits, pref, dep, versions, levels]) => {
+                    await new Promise((r) => setTimeout(r, 0));   // let the parent's postMessage arrive first
                     return window.A11yCliAdapter ? window.A11yCliAdapter.run(audits, pref, dep, versions, levels) : [];
                 }, [requestedAudits, prefix, depth, wcagVersions, wcagLevels]);
                 

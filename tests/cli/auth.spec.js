@@ -17,6 +17,7 @@ test.describe('CLI authentication', { tag: '@auth' }, () => {
     expect(isBouncedToLogin(report.audit_trail[0])).toBe(true);
   });
 
+  // --- The login methods, one test each (flags in parentheses). Each audits /account.html and must land logged in. ---
   test('1. standard 2-field login (--login-url, -u, -p)', async ({ baseURL }) => {
     const { report } = await audit(protectedUrl(baseURL), [
       ...AUDITS, '--login-url', `${baseURL}/login-2field.html`, '-u', CREDS.user, '-p', CREDS.password,
@@ -51,6 +52,7 @@ test.describe('CLI authentication', { tag: '@auth' }, () => {
     expect(isLoggedIn(report.audit_trail[0])).toBe(true);
   });
 
+  // Method 5: no login at audit time, a session file recorded earlier is loaded (-a). 5a = handwritten file, 5b = real recording.
   test('5a. auth-state handoff: a handwritten Playwright/agent-browser storage state (-a)', async ({ baseURL }, testInfo) => {
     const state = writeHandmadeState(testInfo.outputPath('auth-state.json'));
     const { report } = await audit(protectedUrl(baseURL), [...AUDITS, '-a', state]);
@@ -68,6 +70,7 @@ test.describe('CLI authentication', { tag: '@auth' }, () => {
     expect(isLoggedIn(report.audit_trail[0])).toBe(true);
   });
 
+  // --- Negative cases: a bad session or password must NOT end up logged in. ---
   test('an expired/invalid auth state does not log in', async ({ baseURL }, testInfo) => {
     const state = writeHandmadeState(testInfo.outputPath('expired-state.json'), { valid: false });
     const { report } = await audit(protectedUrl(baseURL), [...AUDITS, '-a', state]);
@@ -81,6 +84,7 @@ test.describe('CLI authentication', { tag: '@auth' }, () => {
     expect(isBouncedToLogin(report.audit_trail[0])).toBe(true);
   });
 
+  // Method 5 from the other side: any login method plus -a WRITES the session file, which later runs reuse with -a alone.
   // ---- Headless save (-a together with a login): log in once, reuse the session later with no login ----
 
   test('6. save once, reuse later: login + -a writes the state, then -a alone is logged in', async ({ baseURL }, testInfo) => {
@@ -158,6 +162,7 @@ test.describe('CLI authentication', { tag: '@auth' }, () => {
     expect(fs.statSync(state).mode & 0o777).toBe(0o600);
   });
 
+  // --- A login followed by --step: the session must survive the interaction. ---
   test('auth then --step: the session survives and only the new finding is reported', async ({ baseURL }) => {
     const { report } = await audit(protectedUrl(baseURL), [
       '--audits', 'v-missing-alt,v-empty-buttons',

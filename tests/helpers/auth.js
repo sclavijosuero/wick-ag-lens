@@ -66,7 +66,34 @@ const isLoggedIn = (step) =>
 const isBouncedToLogin = (step) =>
   step.url.includes('/login-2field.html') && !selectorsFor(step, 'v-missing-alt').includes('#private-img');
 
+// ---- SSO (tests/fixtures/server.js): the app and its identity provider are two different origins ----
+// The IdP runs on the fixture port + 1, on "localhost" instead of "127.0.0.1" (a different host AND port).
+function ssoOrigins(baseURL) {
+  const app = new URL(baseURL);
+  return { app: app.origin, idp: `http://localhost:${Number(app.port) + 1}` };
+}
+
+// Steps performed on the IdP's sign-in page, ending back on the app's protected page (#welcome only exists there)
+const SSO_STEPS = [
+  'fill::#idp-user::' + CREDS.user,
+  'click::#idp-next',
+  'wait::#idp-password',
+  'fill::#idp-password::' + CREDS.password,
+  'click::#idp-signin',
+  'wait::#welcome',
+];
+// Same, with a wrong password: the IdP keeps the user on its own page, so there is no '#welcome' to wait for
+const SSO_STEPS_WRONG_PASSWORD = [...SSO_STEPS.slice(0, 3), 'fill::#idp-password::not-the-password', 'click::#idp-signin'];
+
+// The step audited the app's SSO-protected page, logged in
+const isLoggedInSso = (step, baseURL) =>
+  step.url === `${ssoOrigins(baseURL).app}/sso/account.html` && selectorsFor(step, 'v-missing-alt').includes('#private-img');
+// The audit ended on the identity provider's sign-in page instead of the app
+const isBouncedToIdp = (step, baseURL) =>
+  step.url.startsWith(`${ssoOrigins(baseURL).idp}/authorize`) && !selectorsFor(step, 'v-missing-alt').includes('#private-img');
+
 module.exports = {
   CREDS, LOGIN_SCRIPT, COMPANY_STEPS, cliAuthSteps, toMcpSteps,
   writeHandmadeState, recordState, isLoggedIn, isBouncedToLogin,
+  ssoOrigins, SSO_STEPS, SSO_STEPS_WRONG_PASSWORD, isLoggedInSso, isBouncedToIdp,
 };

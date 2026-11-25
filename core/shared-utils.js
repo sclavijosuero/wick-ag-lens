@@ -109,7 +109,13 @@ window.A11yUtils = {
             while (sibling = sibling.previousElementSibling) {
                 if (sibling.nodeName.toLowerCase() === selector) nth++;
             }
-            if (nth !== 1 || current.nextElementSibling) selector += `:nth-of-type(${nth})`;
+            // Only qualify with :nth-of-type when a sibling with the same tag exists (before or after);
+            // otherwise the plain tag is already unique, and the selector stays stable when other tags are added next to it.
+            let hasSameTagSibling = nth !== 1;
+            for (let next = current.nextElementSibling; next && !hasSameTagSibling; next = next.nextElementSibling) {
+                if (next.nodeName.toLowerCase() === selector) hasSameTagSibling = true;
+            }
+            if (hasSameTagSibling) selector += `:nth-of-type(${nth})`;
             path.unshift(selector);
 
             if (current.parentNode instanceof ShadowRoot) {

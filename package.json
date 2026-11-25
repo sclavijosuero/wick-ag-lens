@@ -13,12 +13,21 @@
     "test:mcp": "playwright test --project=mcp",
     "test:package": "playwright test --project=package",
     "test:viewer": "playwright test --project=viewer",
+    "test:agent-browser": "playwright test --project=agent-browser",
     "test:auth": "playwright test --grep @auth",
+    "test:a11y-auth": "playwright test --grep @a11y-auth",
+    "test:journey": "playwright test --grep @journey",
+    "test:samples": "playwright test --grep @samples",
+    "test:sample-journeys": "playwright test --grep @sample-journeys",
+    "test:sso": "playwright test --grep @sso",
+    "test:live": "node tests/run-live.js",
     "test:ui": "playwright test --ui",
+    "test:ui:all": "node tests/run-live.js --all --ui",
     "report": "playwright show-report",
     "pack:tarball": "node build.js && node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && npm pack ./cli --pack-destination ./dist"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.1"
+    "@playwright/test": "^1.40.1",
+    "agent-browser": "^0.44.0"
   }
 }

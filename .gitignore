@@ -1,6 +1,7 @@
 /cli/node_modules/
 /cli/core/
 /cli/skills/
+/cli/samples/
 /extension/core/
 /reports/
 *-state.json

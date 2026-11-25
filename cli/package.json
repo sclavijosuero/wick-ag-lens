@@ -41,6 +41,8 @@
     "core/",
     "skills/",
     "report-template/",
+    "samples/",
+    "docs/",
     "README.md"
   ],
   "scripts": {

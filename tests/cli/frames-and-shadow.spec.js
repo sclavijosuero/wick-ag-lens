@@ -11,17 +11,17 @@ test.describe('iframes', () => {
 
     expect(report.audit_trail[0].page_state_maps.focus_order.totalElems).toBe(8);
 
-    // CLI numbering today: top document first (#1..#3; the <iframe> itself is a tab stop),
-    // then each frame in turn as F<frameIndex>.<n>. The grandchild is "F2", tagged [Iframe] (not [Nested]).
+    // Same numbering as the extension: the <iframe> is tab stop #2, so its content is #2.n ([Iframe]); the grandchild
+    // frame sits at stop #2.2, so its content is #2.2.n ([Nested]).
     expect(focusMap(report.audit_trail[0]).map((e) => [e.selector, e.issueText])).toEqual([
       ['#top-link', '#1: <a>'],
       ['#child', '#2: <iframe>'],
       ['#top-button', '#3: <button>'],
-      ['#child-button', '[Iframe] #F1.1: <button>'],
-      ['#grandchild', '[Iframe] #F1.2: <iframe>'],
-      ['#child-link', '[Iframe] #F1.3: <a>'],
-      ['#grand-button', '[Iframe] #F2.1: <button>'],
-      ['#grand-empty', '[Iframe] #F2.2: <button>'],
+      ['#child-button', '[Iframe] #2.1: <button>'],
+      ['#grandchild', '[Iframe] #2.2: <iframe>'],
+      ['#child-link', '[Iframe] #2.3: <a>'],
+      ['#grand-button', '[Nested] #2.2.1: <button>'],
+      ['#grand-empty', '[Nested] #2.2.2: <button>'],
     ]);
   });
 

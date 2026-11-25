@@ -26,6 +26,7 @@ test.describe('MCP authentication (audit_baseline)', { tag: '@auth' }, () => {
     expect(isBouncedToLogin(firstStep(res))).toBe(true);
   });
 
+  // --- The login methods, one test each (audit_baseline arguments in parentheses). Each must land logged in. ---
   test('1. standard 2-field login (loginUrl + user + pass)', async ({ baseURL }) => {
     const res = await baseline({
       url: `${baseURL}/account.html`, loginUrl: `${baseURL}/login-2field.html`,
@@ -65,6 +66,7 @@ test.describe('MCP authentication (audit_baseline)', { tag: '@auth' }, () => {
     expect(isLoggedIn(firstStep(res))).toBe(true);
   });
 
+  // Method 5: a session file recorded earlier is loaded (authState). 5a = handwritten file, 5b = real recording.
   test('5a. auth-state handoff: a handwritten Playwright/agent-browser storage state (authState)', async ({ baseURL }, testInfo) => {
     const state = writeHandmadeState(testInfo.outputPath('auth-state.json'));
     const res = await baseline({ url: `${baseURL}/account.html`, authState: state });
@@ -84,6 +86,7 @@ test.describe('MCP authentication (audit_baseline)', { tag: '@auth' }, () => {
     expect(isLoggedIn(firstStep(res))).toBe(true);
   });
 
+  // --- Negative cases: a bad session, wrong password or missing script must NOT end up logged in. ---
   test('an expired/invalid auth state does not log in', async ({ baseURL }, testInfo) => {
     const state = writeHandmadeState(testInfo.outputPath('expired-state.json'), { valid: false });
     const res = await baseline({ url: `${baseURL}/account.html`, authState: state });
@@ -104,6 +107,7 @@ test.describe('MCP authentication (audit_baseline)', { tag: '@auth' }, () => {
     expect(res.text).toContain('Error executing audit_baseline');
   });
 
+  // Method 5 from the other side: any login method plus saveAuthState WRITES the session file for later authState use.
   // ---- Headless save (saveAuthState): log in once, reuse the session later through authState ----
 
   test('6. save once, reuse later: saveAuthState writes the state, then authState alone is logged in', async ({ baseURL }, testInfo) => {
@@ -170,6 +174,7 @@ test.describe('MCP authentication (audit_baseline)', { tag: '@auth' }, () => {
     expect(fs.existsSync(state)).toBe(false);
   });
 
+  // --- A login followed by interact_and_diff: the session must survive the interaction. ---
   test('login, then interact_and_diff keeps the session and reports only the new finding', async ({ baseURL }) => {
     const base = await baseline({
       url: `${baseURL}/account.html`, requestedAudits: ['v-missing-alt', 'v-empty-buttons'],

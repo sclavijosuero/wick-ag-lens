@@ -18,8 +18,9 @@ The **WICK-AG-Lens CLI & MCP Package** utilizes Playwright to inject the shared 
 9. [AI Agent Skill Setup (`SKILL.md`)](#ai-agent-skill-setup-skillmd)
 10. [Integrating with `agent-browser` & Playwright MCP](#integrating-with-agent-browser--playwright-mcp)
 11. [CLI & MCP JSON Output Format](#cli--mcp-json-output-format)
-12. [Visual HTML Report Viewer](#visual-html-report-viewer)
-13. [CLI & MCP Limitations & Technical Bounds](#cli--mcp-limitations--technical-bounds)
+12. [Sample Pages (Try It Without a Server)](#sample-pages-try-it-without-a-server)
+13. [Visual HTML Report Viewer](#visual-html-report-viewer)
+14. [CLI & MCP Limitations & Technical Bounds](#cli--mcp-limitations--technical-bounds)
 
 ---
 
@@ -191,7 +192,7 @@ node index.js audit "https://example.com/account" \
 ### 11. Enterprise Multi-Field Auth + Post-Login SPA Workflow
 Logs into a 3-field corporate portal using `--auth-step`, then uses `--step` to navigate SPA menus, filter a data grid, submit via keyboard, and capture screenshots filtered to WCAG 2.0/2.1 Level A & AA.
 ```bash
-node index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
+node cli/index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
   --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" \
   --wcag-version "2.0,2.1" \
   --wcag-level "A,AA" \
@@ -202,8 +203,25 @@ node index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
   --auth-step "click::#btn-login" \
   --step "click::button.menu-button[title='Security']" \
   --step "click::button.submenu-button[title='Companies']" \
-  --step "fill::input#search-company::Contoso" \
+  --step "fill::input[placeholder='Search...']::Contoso" \
   --step "press::active::Enter" \
+  -s
+```
+The same command in **PowerShell**, which continues lines with a backtick (`` ` ``) instead of `\`:
+```powershell
+node cli/index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" `
+  --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" `
+  --wcag-version "2.0,2.1" `
+  --wcag-level "A,AA" `
+  --login-url "https://abi-testing-dojo-demo.azurewebsites.net/login" `
+  --auth-step "fill::#company::Contoso" `
+  --auth-step "fill::#user::jdoe" `
+  --auth-step "fill::#password::Admin+123" `
+  --auth-step "click::#btn-login" `
+  --step "click::button.menu-button[title='Security']" `
+  --step "click::button.submenu-button[title='Companies']" `
+  --step "fill::input[placeholder='Search...']::Contoso" `
+  --step "press::active::Enter" `
   -s
 ```
 
@@ -221,7 +239,7 @@ node index.js audit "https://example.com/portal" -a auth-state.json --wcag-level
 Delegates complex SSO, OAuth, or multi-page redirect logins to a custom Playwright script (`async (page) => { ... }`) before running the audit.
 ```bash
 node index.js audit "https://example.com/workspace" \
-  --auth-script "./scripts/sso-login.js" \
+  --auth-script "./scripts/sso-login.mjs" \
   --step "click::button#new-project"
 ```
 
@@ -239,6 +257,10 @@ node index.js audit "https://example.com/portal/reports" -a auth-state.json
 ## Authentication Strategies (5 Methods)
 
 WICK-AG-Lens supports **five distinct methods** to authenticate and bypass login screens across both the CLI (`-u`/`-p`, `--auth-step`, `--auth-script`, `-i`/`-a`) and the MCP Server (`user`/`pass`, `authSteps`, `authScript`, `authState`).
+
+> **Want to compare the methods?** [`docs/auth-examples.md`](./docs/auth-examples.md) shows the **same audit and interaction implemented once per login method**, side by side, for the CLI and for MCP.
+
+> **Behind Okta, Microsoft Entra ID or another SSO?** Follow the [Step-by-Step SSO Guide](#auditing-an-app-behind-single-sign-on-sso-step-by-step-guide), which also shows how to put the sign-in in an automated Playwright test.
 
 ### 1. Standard 2-Field Login (Shorthand)
 Use `-u` and `-p` alongside `--login-url` (or `loginUrl`, `user`, and `pass` in MCP `audit_baseline`) for straightforward single-page login forms.
@@ -288,11 +310,11 @@ For complex enterprise authentication flows—such as multi-page SSO redirects (
 ```bash
 TEST_USER="jdoe@contoso.com" TEST_PASS="Admin+123" \
 node index.js audit "https://app.contoso.com/dashboard" \
-  --auth-script "./scripts/sso-login.js" \
+  --auth-script "./scripts/sso-login.mjs" \
   --step "click::button#open-reports"
 ```
 
-* **Example Script (`./scripts/sso-login.js`):**
+* **Example Script (`./scripts/sso-login.mjs`):** the script is an ES module, so name it `.mjs` (a plain `.js` file fails with `Unexpected token 'export'` unless its folder has `"type": "module"` in `package.json`).
 ```javascript
 export default async function (page) {
   // 1. Navigate to the protected app to trigger the SSO identity provider redirect
@@ -367,6 +389,40 @@ Because `agent-browser` and Playwright share the standard `storageState` JSON fo
 
 *(Security Note: Saved `storageState` files contain live session tokens in plaintext—always exclude `*-state.json` in `.gitignore` and delete temporary state files after your audit completes).*
 
+#### What the handoff covers, and what it does not
+The handoff passes a **file**, not a browser. `agent-browser` and WICK-AG-Lens each run their **own** browser; the only thing that travels between them is the `storageState` file.
+
+| | Covered | Not covered |
+| :-- | :-- | :-- |
+| **Carried in the file** | Cookies, and `localStorage` of every origin that was open when `state save` ran | `sessionStorage`, in-memory tokens, the open tabs and the page the user was on |
+| **Session lifetime** | Once loaded, the session lives in WICK-AG-Lens's browser for the **whole** audit: every `--step` (CLI) or `interact_and_diff` call (MCP) reuses it | The file is a snapshot: if the server expires the session, or rotates a token, the file goes stale (sign in again and save a new one) |
+| **Apps that keep the token only in `sessionStorage`** | | They will look logged out. Log in **inside** WICK-AG-Lens instead (`--auth-step` / `authSteps`, or `--auth-script` / `authScript`): that browser, and its `sessionStorage`, stay open for the whole journey |
+| **Sharing one live browser** | | Attaching WICK-AG-Lens to the browser `agent-browser` is driving (over the Chrome DevTools Protocol) is **not implemented**; it is being evaluated |
+
+What happens, in order, when you use the handoff:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant AB as agent-browser (its own browser)
+    participant F as state file (storageState)
+    participant W as WICK-AG-Lens (its own browser)
+    AB->>AB: open the login page, read the snapshot, fill and submit
+    AB->>F: state save: cookies + localStorage
+    Note over AB,F: sessionStorage is not written
+    AB-->>AB: closed (optional): nothing else is needed from it
+    W->>F: -a / authState: load the file into a NEW browser context
+    W->>W: baseline: open the target URL, already signed in
+    loop every --step / interact_and_diff
+        W->>W: act, settle, audit, report only what changed
+    end
+    W-->>W: JSON report (url of step 1 tells you whether the login held)
+```
+
+Not shown, because it is not implemented: a second path where WICK-AG-Lens connects to the running `agent-browser` browser and shares its live session (including `sessionStorage`).
+
+If a handoff did not work, look at `audit_trail[0].url` in the report: if it is the sign-in page, the file did not carry a valid session.
+
 ### Log In Once, Save the Session, Reuse It (Headless)
 
 Logging in on every run is slow, and some logins cannot be repeated at all (rate limits, MFA, one-time codes). WICK-AG-Lens can save the session created by **any** of its login methods and reuse it afterwards, with no browser window and no human:
@@ -418,6 +474,128 @@ node index.js audit "https://app.example.com/reports" -a ./auth/app-state.json
 * **`saveAuthState` needs a login.** On MCP, passing it without `authScript`, `loginUrl` + `authSteps`, or `loginUrl` + `user`/`pass` is rejected with an error before anything runs.
 * **Compatible with other tools:** the file is a standard Playwright `storageState`, so it also works with Playwright and `agent-browser`.
 * **Keep it secret:** the file contains live session cookies. Add it to `.gitignore` (for example `*-state.json`), never commit it, and delete it when no longer needed.
+
+### Auditing an App Behind Single Sign-On (SSO): Step-by-Step Guide
+
+With SSO, the app does not show a login form itself. It sends the browser to an **identity provider** (Okta, Microsoft Entra ID / Azure AD, Auth0, Keycloak...) on **another website**, you sign in there, and the provider sends you back to the app. WICK-AG-Lens drives a real browser, so it follows these redirects like a user would. You only have to describe what to click and type on the provider's pages.
+
+**Step 1: Choose your approach**
+
+| Your sign-in | Use | Section |
+| :--- | :--- | :--- |
+| Provider pages with a user name and password (one or two screens), no MFA | `--auth-step` / `authSteps` | [Recipe A](#recipe-a-sign-in-with-auth-steps-most-common) |
+| Conditional prompts, "Stay signed in?" pages, logic that steps cannot express | `--auth-script` / `authScript` | [Recipe B](#recipe-b-sign-in-with-a-script) |
+| MFA, CAPTCHA, push approval, hardware key | Sign in by hand once, save the session | [Recipe C](#recipe-c-mfa-or-captcha-sign-in-once-by-hand-reuse-the-session) |
+| You run the audit many times (CI, agents) | Add `-a` / `saveAuthState` to any of the above | [Recipe D](#recipe-d-sign-in-once-reuse-everywhere) |
+
+#### Recipe A: Sign in with auth steps (most common)
+
+1. **Open the protected page, not the provider.** Set `--login-url` (MCP: `loginUrl`) to a page of your app that needs a login. It redirects the browser to the provider, so you do not need to know the provider's address.
+2. **Describe the provider's pages**, one `--auth-step` per action (`fill`, `click`, `wait`...), in the order a person would do them. Find the selectors with your browser's DevTools on the provider's sign-in page.
+3. **Wait for the second screen.** Most providers ask for the user name first and show the password field afterwards. Put a `wait::<password selector>` between the two screens.
+4. **Finish with a `wait` on something that only exists inside your app** (a navigation bar, the user's name). This guarantees the browser is back from the provider before the audit starts.
+5. **Audit as usual.** The positional URL is the page you want audited.
+
+```bash
+node cli/index.js audit "https://app.example.com/dashboard" \
+  --audits "v-missing-alt,v-empty-buttons" \
+  --login-url "https://app.example.com/dashboard" \
+  --auth-step "fill::#username::$SSO_USER" \
+  --auth-step "click::#next" \
+  --auth-step "wait::#password" \
+  --auth-step "fill::#password::$SSO_PASSWORD" \
+  --auth-step "click::#sign-in" \
+  --auth-step "wait::nav.main-navigation"
+```
+The same in MCP (`audit_baseline` arguments): `loginUrl` is the protected page and `authSteps` is the same list as `{ "action": "fill", "target": "#username", "value": "..." }` objects. Later `interact_and_diff` calls keep the signed-in session.
+
+#### Recipe B: Sign in with a script
+
+Use it when the steps are not enough, for example to dismiss an optional "Stay signed in?" prompt. Your script receives the Playwright `page` and must leave it signed in on the app. See the full example in [Custom Authentication Script](#3-custom-authentication-script---auth-script--authscript). **Save the script as `.mjs`** (for example `sso-login.mjs`): it is an ES module, and a plain `.js` file fails with `Unexpected token 'export'` unless its folder has `"type": "module"` in `package.json`.
+
+#### Recipe C: MFA or CAPTCHA (sign in once by hand, reuse the session)
+
+A robot cannot answer an MFA prompt, so a person (or another tool) signs in once and WICK-AG-Lens reuses the result:
+
+1. Run with `-i -a sso-state.json`. A visible browser opens for 30 seconds: sign in and approve the MFA. The session is saved to `sso-state.json`. (Or save the file with `agent-browser` or Playwright; see [External Browser & `agent-browser` State Handoff](#5-external-browser--agent-browser-state-handoff--a--authstate).)
+2. Audit with only `-a sso-state.json` (MCP: `authState`). No login steps and no provider visit.
+3. When the session expires, repeat step 1.
+
+#### Recipe D: Sign in once, reuse everywhere
+
+Add `-a <file>` (MCP: `saveAuthState`) to Recipe A or B and the session is saved right after the login; every later run needs only `-a <file>`. The saved file holds the cookies of **both** websites (the app and the provider), which is what makes the reuse work. Details and examples: [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless).
+
+**Step 2: Check that you really are signed in**
+
+A sign-in that silently failed produces an audit of the *provider's sign-in page*, which looks like a normal report. Always look at the first step of the JSON report (`audit_trail[0]`):
+* `url` must be the page you asked for, on **your app's** address. If it is the provider's address, the login did not complete.
+* For extra certainty, audit something that exists only after sign-in and check it is there.
+
+**Step 3: Put it in an automated test (best practice)**
+
+Run the audit from your own Playwright Test suite so a broken sign-in or a new accessibility problem fails the build. Three tests are enough: a **control** (not signed in, you end on the provider, proving the page really is protected), the **sign-in** itself, and a **save and reuse**.
+
+```javascript
+// sso.spec.js - run with: npx playwright test sso.spec.js
+import { test, expect } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { promisify } from 'node:util';
+
+const run = promisify(execFile);
+const WICK = createRequire(import.meta.url).resolve('wick-ag-lens/index.js');
+
+const APP = 'https://app.example.com';
+const PROTECTED = `${APP}/dashboard`;       // redirects to the identity provider when nobody is signed in
+const IDP_HOST = 'login.example-idp.com';    // where the sign-in pages live
+
+// The sign-in, written for the identity provider's pages. The LAST step waits for an element that only exists
+// inside the app, so the audit never starts before the browser is back from the identity provider.
+const SIGN_IN = [
+  `fill::#username::${process.env.SSO_USER}`,
+  'click::#next',
+  'wait::#password',                        // screen 2 appears after screen 1
+  `fill::#password::${process.env.SSO_PASSWORD}`,
+  'click::#sign-in',
+  'wait::nav.main-navigation',
+].flatMap((step) => ['--auth-step', step]);
+
+// Runs the CLI and returns its audit_trail. stdout is "[Audit] ..." log lines followed by the JSON report.
+async function audit(args) {
+  const { stdout } = await run(process.execPath, [WICK, 'audit', ...args],
+    { maxBuffer: 64 * 1024 * 1024, timeout: 120_000 });
+  return JSON.parse(stdout.slice(stdout.search(/^\{$/m))).audit_trail;
+}
+
+test('control: without signing in, the protected page ends on the identity provider', async () => {
+  const [step] = await audit([PROTECTED, '--audits', 'v-doc-title']);
+  expect(new URL(step.url).host).toBe(IDP_HOST);
+});
+
+test('signs in through SSO and audits the protected page', async () => {
+  const [step] = await audit([PROTECTED, '--audits', 'v-doc-title', '--login-url', PROTECTED, ...SIGN_IN]);
+  expect(step.url).toBe(PROTECTED);          // back on the app, not stuck on the identity provider
+});
+
+test('signs in once, saves the session, then reuses it with no login', async ({}, testInfo) => {
+  const state = testInfo.outputPath('sso-state.json');   // under test-results/ (git-ignored): never commit it
+
+  await audit([PROTECTED, '--login-url', PROTECTED, ...SIGN_IN, '-a', state]);   // login + save
+  const [step] = await audit([PROTECTED, '-a', state]);                           // no login flags at all
+  expect(step.url).toBe(PROTECTED);
+});
+```
+To assert accessibility results too, check `step.new_findings` (for example that a rule you care about reports nothing). The MCP equivalent, with the Playwright MCP client, is in [Session Protocol & Reading the Results](#session-protocol--reading-the-results).
+
+A complete, runnable version of these tests (CLI and MCP) runs against a local fake identity provider on a different origin: see [`tests/cli/sso.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/cli/sso.spec.js) and [`tests/mcp/sso.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/mcp/sso.spec.js) in the repository. They are the best place to copy patterns from.
+
+**Best practices**
+* **Use a dedicated test account** without MFA for automated audits, or sign in by hand once (Recipe C) and reuse the saved session.
+* **Keep secrets out of files.** Pass the user name and password through environment variables (as above), never write them in scripts, READMEs or CI logs. Note that `--auth-step` values are visible in the process list while the command runs; for shared machines, prefer a saved session (Recipe C or D) or `--auth-script` reading `process.env`.
+* **Never commit saved sessions.** Add `*-state.json` to `.gitignore`; the file contains live cookies.
+* **Wait for something, not for time.** End the steps with a `wait::<selector>` on an app-only element instead of a fixed number of milliseconds.
+* **Always keep the control test.** If the "not signed in" test ever stops ending on the provider, your protected page is no longer protected (or the provider changed) and the signed-in test proves nothing.
+* **Refresh expired sessions.** If a reused session starts landing on the provider again, run the login again with `-a` to replace the file.
 
 ---
 
@@ -651,11 +829,11 @@ Because `agent-browser` operates on the **accessibility tree** while WICK-AG-Len
 
 1. **Scout & Session Handoff (`agent-browser` → WICK-AG-Lens):**
    * **Lightweight Navigation & Auth Protocols:** An AI agent uses `agent-browser` (`open`, `snapshot -i`, `click @e1`, `fill @e2 "..."`), `agent-browser auth login <profile>` (AES-256-GCM encrypted credential vault), or `agent-browser --auto-connect` (attaching to an already-authenticated Chrome session) to bypass complex login flows using minimal tokens.
-   * **Zero-Conversion State Sharing:** Running `agent-browser state save auth-state.json` exports a standard Playwright `storageState` JSON file (cookies and `localStorage`).
+   * **Zero-Conversion State Sharing:** Running `agent-browser state save auth-state.json` exports a standard Playwright `storageState` JSON file (cookies and `localStorage`). It is a file hand-over between two separate browsers: `sessionStorage` is not included (see [what the handoff covers](#what-the-handoff-covers-and-what-it-does-not)).
    * **Deep DOM Audit:** The AI passes `auth-state.json` directly into WICK-AG-Lens via the CLI (`-a auth-state.json`) or MCP (`audit_baseline` with `authState: "auth-state.json"`) to run all 55 heuristic DOM/CSS audits without repeating the login flow.
 
 2. **Accessibility Blind-Spot Resolution (WICK-AG-Lens → `agent-browser`):**
-   * Because `agent-browser` relies on semantic roles and accessible names to generate `@e` tags, poorly coded interactive controls (such as `<div onclick="...">` without a `role`, or unlabeled inputs) can be invisible or ambiguous in its snapshots.
+   * Because `agent-browser` relies on semantic roles and accessible names to generate `@e` tags, poorly coded interactive controls (such as `<div onclick="...">` without a `role`, or unlabeled inputs) are ambiguous in its snapshots (a clickable `<div>` is listed only as a generic "clickable", never as a button).
    * When an agent gets stuck because a control is missing from `agent-browser`'s accessibility snapshot, it can invoke WICK-AG-Lens on that URL. WICK-AG-Lens inspects the raw DOM and returns the exact CSS `selector` and `htmlSnippet` of the inaccessible element (e.g., `v-unfocusable-clickables` or `v-unlabeled-inputs`), allowing the AI to target the raw selector and unblock the workflow.
 
 **Example Workflow (`agent-browser` + WICK-AG-Lens):**
@@ -1001,6 +1179,49 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
   }
 }
 ```
+---
+
+## Sample Pages (Try It Without a Server)
+
+The package ships two small, self-contained HTML pages (no network access, no server needed) so you can try every audit and every `--step` action in seconds. They are installed with the package, in `samples/`:
+
+| Page | Shows |
+| :--- | :--- |
+| `samples/steps-demo.html` | **Every step action**, each producing a different, small diff: `click`, `fill`, `select`, `hover`, `press` (with a selector and with `active`) and `wait` (a selector and milliseconds). |
+| `samples/shop-journey.html` | A **9-step journey** with violations and structural results that appear, stay, get resolved, and reappear; the focus order changes at nearly every step. |
+
+**Open them with a `file:///` URL.** From the folder where the package is installed:
+```bash
+# prints something like file:///.../node_modules/wick-ag-lens/samples/steps-demo.html
+node -p "require('url').pathToFileURL(require.resolve('wick-ag-lens/samples/steps-demo.html')).href"
+```
+
+**Every step action in one run** (`steps-demo.html`):
+```bash
+npx wick-ag-lens audit "<file URL of steps-demo.html>"   --audits "v-empty-buttons,v-aria-invalid,v-unlabeled-inputs,v-empty-links,v-missing-alt,v-generic-link,i-focus-order"   --step "click::#open-panel"   --step "fill::#email::not-an-email"   --step "fill::#email::jdoe@example.com"   --step "select::#country::US"   --step "hover::#help"   --step "press::#search::Enter"   --step "wait::.toast"   --step "wait::300"   --step "press::active::Tab"   --step "press::active::Escape"   -s > steps-report.json
+```
+What each step reports (the audits above, every other result is unchanged):
+
+| Step | Action | New | Resolved |
+| :-- | :-- | :-- | :-- |
+| 1 | page load | nothing (a clean page, 3 tab stops) | |
+| 2 | `click::#open-panel` | Empty Button `#panel-close` | |
+| 3 | `fill::#email::not-an-email` | Invalid ARIA State `#email` | |
+| 4 | `fill::#email::jdoe@example.com` | | Invalid ARIA State `#email` |
+| 5 | `select::#country::US` | Unlabeled Input `#state` | |
+| 6 | `hover::#help` | Empty Link `#help-link` | |
+| 7 | `press::#search::Enter` | Missing Alt Text `#result-img` | |
+| 8 | `wait::.toast` | Generic Link Text `#toast-link` (the toast mounts a few seconds after the search) | |
+| 9 | `wait::300` | nothing | |
+| 10 | `press::active::Tab` | nothing (only moves the focus) | |
+| 11 | `press::active::Escape` | | Empty Button `#panel-close`, Unlabeled Input `#state` (the panel closes) |
+
+Open `steps-report.json` in the [report viewer](#visual-html-report-viewer) to see these steps, their screenshots and the focus order. Add `?late=1` to the URL and `--wait-for-selector ".recommendations-ready"` to try the SPA-hydration example from [Usage Example 7](#7-single-page-application-spa-hydration--targeted-rules): the widget only mounts after about four seconds.
+
+**Behind a login, with every tool.** The package also ships a tiny sample server (`node samples/server.mjs`) that serves the same `steps-demo.html` publicly and behind a sign-in page. [docs/sample-journeys.md](docs/sample-journeys.md) runs that one journey with **no login and with each login method**, through the **CLI, MCP and agent-browser**, so you can compare them side by side.
+
+The same pages are the base of the package's automated tests (see [`tests/README.md`](../tests/README.md) in the repository), which assert the exact findings of every step above.
+
 ---
 
 ## Visual HTML Report Viewer

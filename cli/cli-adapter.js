@@ -1,3 +1,16 @@
+// Same iframe numbering as the extension (extension/content/content.js): the focus-order audit of a parent document
+// posts "WICK_AG_LENS_SET_PREFIX" to each <iframe> it passes, carrying that tab stop's number (e.g. "2.") and depth,
+// so elements inside the frame read "[Iframe] #2.1" and in nested frames "[Nested] #2.2.1".
+if (!window.__wickCliPrefixListener) {
+    window.__wickCliPrefixListener = true;
+    window.addEventListener("message", (event) => {
+        if (event.data && event.data.action === "WICK_AG_LENS_SET_PREFIX") {
+            window.A11Y_FOCUS_PREFIX = event.data.prefix;
+            window.A11Y_FRAME_DEPTH = event.data.depth;
+        }
+    });
+}
+
 window.A11yCliAdapter = {
     WCAG_21_CRITERIA: new Set([
         '1.3.4', '1.3.5', '1.3.6',
@@ -141,8 +154,8 @@ window.A11yCliAdapter = {
         const config = window.A11Y_CONFIG;
         if (!config || !window.A11yUtils) return results;
 
-        window.A11Y_FOCUS_PREFIX = framePrefix;
-        window.A11Y_FRAME_DEPTH = frameDepth;
+        // null = keep what the parent frame posted (see listener above); the top document passes "" / 0
+        if (framePrefix !== null) { window.A11Y_FOCUS_PREFIX = framePrefix; window.A11Y_FRAME_DEPTH = frameDepth; }
 
         const allFeatures = [];
         config.tabs.forEach(t => {

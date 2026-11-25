@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><title>Outdoor shop - journey</title>
+  <style>body{font-family:sans-serif} nav,main{padding:8px} .box{border:1px solid #999;padding:6px;margin:6px 0} .fake{display:inline-block;padding:4px 8px;background:#1a73e8;color:#fff;cursor:pointer}</style>
+</head>
+<body>
+  <!-- A small single-page "shop" used to demonstrate MULTI-STEP audits. Every state change is a button click, and each
+       one is designed to produce a specific kind of delta (new / still present / resolved) in the audit trail:
+
+         baseline       : one violation that stays for the whole journey (#promo) + the page structure + 3 tab stops
+         #open-menu     : NEW violations (empty link, unnamed button) + NEW structure (menu roles, list) + focus order grows
+         #close-menu    : all of those RESOLVED (the menu leaves the DOM) + focus order shrinks back
+         #open-signup   : NEW violations of several kinds (skipped heading, unlabeled input, clickable div)
+         #fix-signup    : several RESOLVED (heading, label, clickable div) AND one NEW (positive tabindex) in the same step
+         #submit-signup : NEW aria-invalid problem; the tabindex one is still present but is not repeated
+         #open-dialog   : aria-hidden on the catalog -> NEW "focusable in aria-hidden" violations; focus order flags them
+         #close-dialog  : those RESOLVED
+         #open-menu     : (again) the very same menu findings come back as NEW ("reappeared")
+         #home          : (optional last step) navigates to /account.html, a page that needs a login -->
+  <header>
+    <nav aria-label="Main">
+      <a id="home" href="/account.html">Home</a>
+      <button id="open-menu" aria-expanded="false" aria-controls="menu-host">Menu</button>
+      <button id="open-signup">Sign up</button>
+    </nav>
+  </header>
+  <main>
+    <h1>Outdoor shop</h1>
+    <img id="hero" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="Tent in the mountains">
+    <img id="promo" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+    <section id="catalog">
+      <h2>Catalog</h2>
+      <a id="cat-link" href="/good.html">All tents</a>
+      <button id="cat-btn">Filter</button>
+      <button id="open-dialog">Newsletter</button>
+    </section>
+    <section id="menu-host"></section>
+    <section id="signup-host"></section>
+    <div id="dialog-host"></div>
+    <p id="status" role="status"></p>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const menuHtml =
+      '<ul id="menu" role="menu">' +
+      '<li role="none"><a id="menu-empty-link" role="menuitem" href="/good.html"></a></li>' +
+      '<li role="none"><button id="menu-icon" role="menuitem"></button></li>' +
+      '<li role="none"><button id="close-menu" role="menuitem">Close menu</button></li></ul>';
+    function openMenu() {
+      $('menu-host').innerHTML = menuHtml;
+      $('open-menu').setAttribute('aria-expanded', 'true');
+      $('close-menu').addEventListener('click', () => {
+        $('menu-host').innerHTML = '';
+        $('open-menu').setAttribute('aria-expanded', 'false');
+      });
+    }
+    $('open-menu').addEventListener('click', openMenu);
+
+    $('open-signup').addEventListener('click', () => {
+      $('signup-host').innerHTML =
+        '<form id="signup" class="box" onsubmit="return false">' +
+        '<h4 id="signup-title">Create your account</h4>' +
+        '<input id="email" type="email" placeholder="Email">' +
+        '<div id="terms" class="fake" onclick="this.textContent=\'Terms accepted\'">Accept terms</div>' +
+        '<button id="submit-signup" type="submit">Create account</button>' +
+        '<button id="fix-signup" type="button">Fix form</button></form>';
+      $('fix-signup').addEventListener('click', () => {
+        $('signup-title').outerHTML = '<h2 id="signup-title">Create your account</h2>';   // heading level fixed
+        $('email').insertAdjacentHTML('beforebegin', '<label id="email-label" for="email">Email address</label>');
+        $('email').removeAttribute('placeholder');                                          // now properly labelled
+        $('terms').setAttribute('role', 'button');                                          // clickable div made accessible...
+        $('terms').setAttribute('tabindex', '0');
+        $('submit-signup').setAttribute('tabindex', '3');                                   // ...but a new problem appears
+      });
+      $('submit-signup').addEventListener('click', () => {
+        $('email').setAttribute('aria-invalid', 'true');                                    // flagged invalid, no error linked
+        $('status').textContent = 'Please check your email';
+      });
+    });
+
+    $('open-dialog').addEventListener('click', () => {
+      $('catalog').setAttribute('aria-hidden', 'true');                                     // hides the catalog from screen readers...
+      $('dialog-host').innerHTML =                                                           // ...yet its controls stay focusable
+        '<div id="dialog" role="dialog" aria-modal="true" aria-label="Newsletter">' +
+        '<button id="close-dialog">Close newsletter</button></div>';
+      $('close-dialog').addEventListener('click', () => {
+        $('catalog').removeAttribute('aria-hidden');
+        $('dialog-host').innerHTML = '';
+      });
+    });
+  </script>
+</body>
+</html>

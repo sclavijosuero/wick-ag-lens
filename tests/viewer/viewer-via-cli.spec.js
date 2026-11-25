@@ -148,7 +148,7 @@ test.describe('HTML report viewer: frames and aria-hidden in the focus map', () 
     await expect(mapTab.locator('.count')).toHaveText('8');
     await mapTab.click();
     await expect(page.locator('#tableHost tbody tr')).toHaveCount(8);
-    await expect(page.locator('#tableHost')).toContainText('[Iframe] #F2.2');
+    await expect(page.locator('#tableHost')).toContainText('[Nested] #2.2.2');
     await attachShot(page, testInfo, 'viewer-focus-order-iframes');
   });
 
@@ -161,7 +161,7 @@ test.describe('HTML report viewer: frames and aria-hidden in the focus map', () 
   });
 });
 
-test.describe('HTML report viewer: authenticated audit', { tag: '@auth' }, () => {
+test.describe('HTML report viewer: authenticated audit', { tag: '@a11y-auth' }, () => {
   // An audit of a login-protected page (multi-field login via --auth-step), then one interaction.
   // The viewer must show the protected page's URL, its screenshot and the findings of both steps.
   test('shows an audit taken behind a login, with its findings and screenshot', async ({ page, baseURL }, testInfo) => {

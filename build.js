@@ -7,9 +7,11 @@ const path = require('path');
 
 const sourceDir = path.join(__dirname, 'core');
 const skillsSourceDir = path.join(__dirname, 'skills');
+const samplesSourceDir = path.join(__dirname, 'samples');
 const extensionDest = path.join(__dirname, 'extension', 'core');
 const cliDest = path.join(__dirname, 'cli', 'core');
 const cliSkillsDest = path.join(__dirname, 'cli', 'skills');
+const cliSamplesDest = path.join(__dirname, 'cli', 'samples');
 
 function buildTarget(src, dest, targetName) {
   try {
@@ -35,6 +37,7 @@ console.log('Starting WICK-AG-Lens build process...\n');
 buildTarget(sourceDir, extensionDest, 'Extension');
 buildTarget(sourceDir, cliDest, 'CLI');
 buildTarget(skillsSourceDir, cliSkillsDest, 'CLI Skills');
+buildTarget(samplesSourceDir, cliSamplesDest, 'CLI Samples');
 
 // Final Success Messages
 console.log('✅ WICK-AG-Lens v3.0.0 Build Complete.');
