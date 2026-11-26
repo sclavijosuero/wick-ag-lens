@@ -127,7 +127,7 @@ Whatever the tool and the login, the report has **11 steps** (the page load plus
 | 10 | press Tab | none | none |
 | 11 | press Escape | | `v-empty-buttons`, `v-unlabeled-inputs` |
 
-Open the JSON in the [report viewer](../README.md#report-viewer) (the `-s` flag adds a screenshot per step).
+Open the JSON in the [report viewer](../README.md#visual-html-report-viewer) (the `-s` flag adds a screenshot per step).
 
 ## 4. The same thing as tests, in the repository
 

@@ -4,6 +4,8 @@
 
 The **WICK-AG-Lens CLI & MCP Package** utilizes Playwright to inject the shared WICK-AG-Lens core accessibility heuristics into a headless browser. It equips CI/CD pipelines and AI coding agents (Claude Code, Claude Desktop, Cursor, Windsurf, Copilot) with deterministic DOM auditing, multi-step authentication, real-time SPA delta-diffing, **`agent-browser`** session handoffs, and a bundled **AI Agent Skill (`SKILL.md`)**.
 
+It runs the **same 55 heuristic rulesets as the Chrome extension**, across the same two tabs: **Violations & Warnings** (actionable failures, 27 rules) and **Informative & Structure** (valid page architecture and semantic patterns, 28 rules). *(See the full [Audit Library & Ruleset](../README.md#audit-library--ruleset).)* The WCAG **Version** (`2.0`, `2.1`, `2.2`) and **Level** (`A`, `AA`, `AAA`) filters work like the extension's checkboxes: `--wcag-version` / `--wcag-level` (MCP: `wcagVersions` / `wcagLevels`) restrict both which rules run and, for rules that report several kinds of result (text contrast, touch targets, language of parts), which of those results are reported.
+
 ---
 
 ## Table of Contents
@@ -55,7 +57,7 @@ node index.js audit https://example.com
 You can pass several arguments to customize the run:
 
 * `--audits <list>`: Comma-separated list of specific audit IDs to run (e.g., `v-doc-title,v-empty-links`). If omitted, all available audits (both **Violations & Warnings** and **Informative & Structure**) are evaluated by default.
-* `--wcag-version <versions>`: Comma-separated list to strictly filter executed audits by WCAG version (e.g., `2.0,2.1,2.2`). If omitted, all supported versions are evaluated by default.
+* `--wcag-version <versions>`: Comma-separated list to strictly filter executed audits by WCAG version (e.g., `2.0,2.1,2.2`). If omitted, all supported versions are evaluated by default. Filters apply per rule **and per result type**: for example text contrast reports only the AA failures when `AAA` is not selected, exactly like the extension's checkboxes.
 * `--wcag-level <levels>`: Comma-separated list to strictly filter executed audits by WCAG conformance level (e.g., `A,AA,AAA`). If omitted, all supported levels are evaluated by default.
 * `-w, --width <pixels>`: Sets the viewport width to test responsive layouts (defaults to `1280`).
 * `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to `800`).
@@ -115,7 +117,7 @@ node index.js audit "https://example.com" --wcag-version="2.0,2.1" --wcag-level=
 Runs only a specific comma-separated list of rule IDs instead of the full suite—ideal for fast CI smoke checks on high-priority issues like document titles, image alt text, empty links, and unlabeled form inputs.
 ```bash
 node index.js audit "https://example.com" \
-  --audits "v-doc-title,v-img-alt,v-empty-links,v-unlabeled-inputs"
+  --audits "v-doc-title,v-missing-alt,v-empty-links,v-unlabeled-inputs"
 ```
 
 ### 3. Focus Order Mapping & Dynamic Shift Detection (`i-focus-order`)
@@ -643,7 +645,7 @@ node index.js audit "https://www.mywebsite.com/main.html" --audits="i-focus-orde
 * Playwright runs completely headless at maximum speed.
 * It injects your saved cookies before the page loads, preventing the cookie banner from rendering and altering the DOM tree.
 * It deletes the `navigator.webdriver` flag to spoof a standard human session.
-* It performs an automated, smooth bottom-to-top scroll to force `IntersectionObserver` elements (like heavy footers and widgets) to hydrate before capturing the structural accessibility snapshot.
+* It performs an automated top-to-bottom scroll (then back to the top) to force `IntersectionObserver` elements (like heavy footers and widgets) to hydrate before capturing the structural accessibility snapshot.
 
 ### Troubleshooting Edge Cases: WAF Sinkholes & SPA Timing
 Even with state injection, enterprise sites with aggressive Web Application Firewalls (WAFs) and complex client-side routing can present two unique challenges for headless automation:
@@ -834,7 +836,7 @@ Because `agent-browser` operates on the **accessibility tree** while WICK-AG-Len
 
 2. **Accessibility Blind-Spot Resolution (WICK-AG-Lens → `agent-browser`):**
    * Because `agent-browser` relies on semantic roles and accessible names to generate `@e` tags, poorly coded interactive controls (such as `<div onclick="...">` without a `role`, or unlabeled inputs) are ambiguous in its snapshots (a clickable `<div>` is listed only as a generic "clickable", never as a button).
-   * When an agent gets stuck because a control is missing from `agent-browser`'s accessibility snapshot, it can invoke WICK-AG-Lens on that URL. WICK-AG-Lens inspects the raw DOM and returns the exact CSS `selector` and `htmlSnippet` of the inaccessible element (e.g., `v-unfocusable-clickables` or `v-unlabeled-inputs`), allowing the AI to target the raw selector and unblock the workflow.
+   * When an agent gets stuck because a control is missing from `agent-browser`'s accessibility snapshot, it can invoke WICK-AG-Lens on that URL. WICK-AG-Lens inspects the raw DOM and returns the exact CSS `selector` and `htmlSnippet` of the inaccessible element (e.g., `v-unfocusable` or `v-unlabeled-inputs`), allowing the AI to target the raw selector and unblock the workflow.
 
 **Example Workflow (`agent-browser` + WICK-AG-Lens):**
 ```bash
@@ -874,7 +876,7 @@ If your AI agent uses a general-purpose browser automation MCP server (such as t
 
 When executing WICK-AG-Lens programmatically via the Headless CLI or consuming it as an AI agent through the MCP Server, the output is generated as a structured JSON payload. This payload provides a complete historical timeline of the session, tracking the accessibility state across multiple pages, interactions, and DOM mutations.
 
-The root JSON object contains three primary properties: `global_summary`, `audit_trail`, and `audit_dictionary`.
+The root JSON object contains four properties: `timestamp` (when the report was produced), `global_summary`, `audit_trail`, and `audit_dictionary`.
 
 ### 1. `global_summary`
 A high-level rollup of the **active, unresolved issues** remaining on the page at the exact moment the final step concluded (deduplicated so persistent issues across steps are never double-counted).
@@ -882,6 +884,12 @@ A high-level rollup of the **active, unresolved issues** remaining on the page a
 ### 2. `audit_dictionary`
 To drastically reduce JSON bloat across multi-step journeys, repetitive metadata for each audit rule (such as the rule's descriptive label, "what/why/fix" instructions, WCAG tags, and official WCAG reference links) is extracted into this single root-level dictionary placed at the bottom of the JSON payload. 
 The timeline steps reference these rules solely by their `auditId` (e.g., `v-doc-title`), which you can look up in this dictionary to retrieve the full educational context and remediation steps.
+
+Each entry's `info` also says how reliable the audit's detection is:
+* `detection`: one of `"rule"` (a defined rule applied to the page's elements and attributes), `"pattern"` (a clear rule that relies on a fixed pattern such as a word list or an attribute, so it can miss variations) or `"best-effort"` (an approximation that can report false positives or miss real problems). Always present.
+* `detection_note`: the audit's known limit in plain text. Empty for `"rule"` audits.
+
+Treat findings from `"pattern"` and `"best-effort"` audits as candidates to confirm, and do not read an empty result from them as proof the page is clean. The same levels appear in the Detection column of the [audit tables](../README.md#audit-library--ruleset) and in the Chrome extension.
 
 ### 3. `audit_trail` (The Timeline Steps)
 An array of objects representing every state-change in the automated session. Each object in this array is referred to as a "step". 
@@ -895,7 +903,7 @@ Each step in the `audit_trail` contains:
 * `interaction`: An object detailing the action that triggered the state change (`action`, `selector`, and optional `value`). For Step 1, this defaults to `"navigate" : "Initial Page Load"`.
 * `url`: The active URL of the page when the snapshot was taken (crucial for tracking multi-page SPA routes).
 * `execution_time_ms`: How long the step took to settle and audit.
-* `screenshot_base64`: A raw Base64 JPEG string (JPEG quality `70` by default; set it with `-q` / `screenshotQuality`) of the visual viewport (only included if `-s` / `includeScreenshot: true` is passed).
+* `screenshot_base64`: A raw Base64 JPEG string (JPEG quality `70` by default; set it with `-q` / `screenshotQuality`) of the visual viewport (the key is present **only** when `-s` / `includeScreenshot: true` is passed; without it the key is omitted to keep the JSON small).
 * `health_scores`: A point-in-time snapshot of the active violation counts specifically at that step.
 * `page_state_maps`: Optional state snapshots (such as `focus_order` when `i-focus-order` is enabled) isolated from delta math so full tab sequences remain intact without inflating violation counts.
 * `new_findings`: Grouped accessibility violations and informative elements that were **not present** in the previous step but appeared as a result of the interaction.
@@ -1137,11 +1145,11 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
         "what": "Checks if the document is missing a <title> tag or if it is empty.",
         "why": "Screen readers announce the page title first when a user navigates to a page.",
         "fix": "Add a descriptive, non-empty <title> element inside the document <head>.",
-        "wcag_levels": ["2.4.2 (A)"],
+        "wcag_levels": ["2.0 A"],
         "wcag_references": [
           {
             "url": "https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html",
-            "title": "Understanding SC 2.4.2: Page Titled"
+            "title": "WCAG 2.4.2: Page Titled"
           }
         ]
       }
@@ -1152,11 +1160,11 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
         "what": "Flags buttons without readable text or an accessible name.",
         "why": "Screen readers will only announce 'Button', providing no context for its action.",
         "fix": "Provide descriptive inner text, an aria-label, or an aria-labelledby attribute.",
-        "wcag_levels": ["4.1.2 (A)"],
+        "wcag_levels": ["2.0 A"],
         "wcag_references": [
           {
             "url": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html",
-            "title": "Understanding SC 4.1.2: Name, Role, Value"
+            "title": "WCAG 4.1.2: Name, Role, Value"
           }
         ]
       }
@@ -1167,11 +1175,11 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
         "what": "Traces and numbers the natural sequential path of focusable elements.",
         "why": "Simulates the exact path of the TAB key route across main documents and iframes.",
         "fix": "Ensure interactive elements follow a logical visual and DOM reading sequence.",
-        "wcag_levels": ["2.4.3 (A)"],
+        "wcag_levels": ["2.0 A"],
         "wcag_references": [
           {
             "url": "https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html",
-            "title": "Understanding SC 2.4.3: Focus Order"
+            "title": "WCAG 2.4.3: Focus Order"
           }
         ]
       }
@@ -1183,7 +1191,7 @@ Inside both the `new_findings` and `resolved_findings` buckets, audits are group
 
 ## Sample Pages (Try It Without a Server)
 
-The package ships two small, self-contained HTML pages (no network access, no server needed) so you can try every audit and every `--step` action in seconds. They are installed with the package, in `samples/`:
+The package ships two small, self-contained **journey pages** (no network access, no server needed) so you can try every audit and every `--step` action in seconds. They are installed with the package, in `samples/`, next to a tiny sample login server and a login script (see the end of this section):
 
 | Page | Shows |
 | :--- | :--- |

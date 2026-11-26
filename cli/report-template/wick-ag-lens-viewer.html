@@ -207,6 +207,10 @@
     t.innerHTML = String(s ?? '');
     return t.value;
   }
+  const DETECTION_LABELS = { 'rule': 'Rule-based', 'pattern': 'Pattern-based', 'best-effort': 'Best-effort' };
+  function detectionText(i) { // how reliable the audit's detection is, plus its known limit (empty for rule-based checks)
+    return `${DETECTION_LABELS[i.detection] || i.detection}${i.detection_note ? ' - ' + decodeEntities(i.detection_note) : ''}`;
+  }
 
   $('themeBtn').addEventListener('click', () => {
     const root = document.documentElement;
@@ -565,6 +569,7 @@
         h('dt', {}, 'What'), h('dd', {}, decodeEntities(i.what)),
         h('dt', {}, 'Why'), h('dd', {}, decodeEntities(i.why)),
         h('dt', {}, 'How to fix'), h('dd', {}, decodeEntities(i.fix)),
+        i.detection ? [h('dt', {}, 'Detection'), h('dd', {}, detectionText(i))] : null,
         (i.wcag_references || []).length ? [h('dt', {}, 'WCAG'), h('dd', {}, wcagLinks(i.wcag_references))] : null,
       ] : null);
     return h('tr', { class: 'detail' }, h('td', { colspan: span }, dl));

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>WCAG filter page</title></head>
+<!-- Elements whose result depends on the selected WCAG versions and levels (per-legend filtering):
+     text contrast (AA fail / AAA fail), touch target size (small / medium / large), and language of parts. -->
+<body>
+  <main>
+    <h1>WCAG filter page</h1>
+    <p id="aa-fail" style="color:#aaaaaa;background:#ffffff">Low contrast text: fails AA and AAA.</p>
+    <p id="aaa-fail" style="color:#767676;background:#ffffff">Medium contrast text: passes AA, fails AAA.</p>
+    <p id="ok" style="color:#000000;background:#ffffff">High contrast text.</p>
+    <button id="small" type="button" style="width:20px;height:20px;padding:0">a</button>
+    <button id="medium" type="button" style="width:30px;height:30px;padding:0">b</button>
+    <button id="large" type="button" style="width:50px;height:50px;padding:0">c</button>
+    <p>Hello <span id="shift" lang="fr">bonjour</span></p>
+  </main>
+</body>
+</html>

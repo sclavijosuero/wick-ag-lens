@@ -28,6 +28,13 @@ test.describe('wick-mcp server', () => {
     expect(res.text).toContain('v-missing-alt');
   });
 
+  test('without includeScreenshot the step has no screenshot_base64 key; with it, a JPEG string', async ({ baseURL }) => {
+    const plain = await callTool(client, 'audit_baseline', { url: `${baseURL}/good.html`, requestedAudits: ['v-doc-title'] });
+    expect(Object.keys(plain.json.audit_trail[0])).not.toContain('screenshot_base64');
+    const shot = await callTool(client, 'audit_baseline', { url: `${baseURL}/good.html`, requestedAudits: ['v-doc-title'], includeScreenshot: true });
+    expect(shot.json.audit_trail[0].screenshot_base64).toMatch(/^\/9j\//);   // raw JPEG, base64
+  });
+
   test('get_audit_trail returns the accumulated trail', async ({ baseURL }) => {
     await callTool(client, 'audit_baseline', { url: `${baseURL}/bad.html`, requestedAudits: ['v-doc-title'] });
     const res = await callTool(client, 'get_audit_trail', {});

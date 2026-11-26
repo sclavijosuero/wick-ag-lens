@@ -301,7 +301,7 @@ export class WICKScanner {
             interaction: interactionObj,
             url: this.page.url(),
             execution_time_ms: executionTimeMs,
-            screenshot_base64: screenshotBase64,
+            screenshot_base64: screenshotBase64 || undefined,   // only present when -s / includeScreenshot is on (omitted otherwise, to keep the JSON small)
             health_scores: healthScores,
             page_state_maps: Object.keys(pageStateMaps).length > 0 ? pageStateMaps : undefined,
             new_findings: this.buildHierarchy(diffedNew, 'totalElemsNew'),

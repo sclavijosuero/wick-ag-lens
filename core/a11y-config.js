@@ -1,4 +1,10 @@
 window.A11Y_CONFIG = {
+    // How reliable each audit's detection is (see the `detection` field of every audit below)
+    detectionLevels: {
+        "rule": { label: "Rule-based", desc: "The audit applies a defined rule to the page's elements and attributes, and a reported element matches that rule. A clean result does not by itself mean the page meets WCAG." },
+        "pattern": { label: "Pattern-based", desc: "A clear rule, but it relies on a fixed pattern (a word list, an attribute or a text comparison), so it can miss variations." },
+        "best-effort": { label: "Best-effort", desc: "An approximation: results can include false positives or misses. Confirm by hand before acting." }
+    },
     tabs: [
         {
             id: "tab-violations",
@@ -9,6 +15,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-doc-title",
+
+                            detection: "rule",
                             label: "Document Title",
                             desc: "Missing or empty <code>&lt;title&gt;</code> element",
                             severity: "Critical",
@@ -32,6 +40,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-page-encoding",
+
+                            detection: "rule",
                             label: "Page Encoding",
                             desc: "Missing <code>UTF-8</code> character encoding",
                             severity: "Moderate",
@@ -55,6 +65,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-autoplay-media",
+
+                            detection: "rule",
                             label: "Auto-playing Media",
                             desc: "Audio/Video elements set to <code>autoplay</code>",
                             severity: "Serious",
@@ -70,6 +82,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-heading-errors",
+
+                            detection: "best-effort",
+
+                            detectionNote: "Skipped levels are exact. 'Fake headings' are guessed from class names containing 'heading' or 'title' plus short text, so some results may be false positives.",
                             label: "Heading Hierarchy Errors",
                             desc: "Skipped levels (e.g., <code>H1</code> to <code>H3</code>) or fake non-semantic headings",
                             severity: "Moderate",
@@ -131,6 +147,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-svg-accessible",
+
+                            detection: "rule",
                             label: "Inaccessible SVGs",
                             desc: "Inline <code>&lt;svg&gt;</code> elements missing accessible names or <code>aria-hidden</code>",
                             severity: "Critical",
@@ -162,6 +180,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-missing-alt",
+
+                            detection: "rule",
                             label: "Missing Alt Text",
                             desc: "Images lacking an <code>alt</code> attribute",
                             severity: "Critical",
@@ -189,6 +209,8 @@ window.A11Y_CONFIG = {
                             }
                         },                        {
                             id: "v-uncaptioned-video",
+
+                            detection: "rule",
                             label: "Uncaptioned Video",
                             desc: "Video elements missing <code>&lt;track&gt;</code> elements",
                             severity: "Critical",
@@ -208,6 +230,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-redundant-alt",
+
+                            detection: "best-effort",
+
+                            detectionNote: "Matches the English words image, img, photo, picture and graphic anywhere in the alt text. Legitimate descriptions that use those words can be reported, and other languages are missed.",
                             label: "Redundant Alt Text",
                             desc: "<code>alt</code> text containing <em>'image of'</em> or <em>'photo of'</em>",
                             severity: "Minor",
@@ -235,6 +261,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-empty-links",
+
+                            detection: "rule",
                             label: "Empty Links",
                             desc: "Links without readable text or an <code>aria-label</code>",
                             severity: "Critical",
@@ -256,6 +284,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-suspicious-links",
+
+                            detection: "pattern",
+
+                            detectionNote: "Only detects links whose href is '#' or starts with 'javascript:'. Fake buttons built in other ways are not found.",
                             label: "Suspicious Link Targets",
                             desc: "Links missing routing context acting as buttons (missing <code>role='button'</code>)",
                             severity: "Critical",
@@ -283,6 +315,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-generic-link",
+
+                            detection: "best-effort",
+
+                            detectionNote: "Matches a fixed list of English phrases (click here, read more, learn more, more, link, here). Other languages and other vague wording are not found, and a longer link text containing one of these words can match.",
                             label: "Generic Link Text",
                             desc: "Ambiguous text like <em>'Click Here'</em>",
                             severity: "Moderate",
@@ -303,6 +339,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-unwarned-window",
+
+                            detection: "pattern",
+
+                            detectionNote: "Looks for the English phrase 'new window' or 'new tab' in the link text or aria-label. A warning written another way, or in another language, is not recognised.",
                             label: "Unwarned New Window Links",
                             desc: "<code>target='_blank'</code> links without an accessible warning",
                             severity: "Moderate",
@@ -329,6 +369,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-unlabeled-inputs",
+
+                            detection: "rule",
                             label: "Unlabeled Form Inputs",
                             desc: "Inputs missing programmatic names (e.g., <code>aria-label</code>)",
                             severity: "Critical",
@@ -351,6 +393,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-empty-buttons",
+
+                            detection: "rule",
                             label: "Empty Buttons",
                             desc: "Buttons without readable text or an <code>aria-label</code>",
                             severity: "Critical",
@@ -372,6 +416,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-placeholder-label",
+
+                            detection: "pattern",
+
+                            detectionNote: "Checks for a label[for] and ARIA names only. Other valid ways of naming a field are not considered.",
                             label: "Placeholder as Label",
                             desc: "Inputs relying solely on the <code>placeholder</code> attribute",
                             severity: "Serious",
@@ -393,6 +441,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-autocomplete-invalid",
+
+                            detection: "rule",
                             label: "Invalid Autocomplete",
                             desc: "Inputs with invalid or conflicting <code>autocomplete</code> tokens",
                             severity: "Moderate",
@@ -434,6 +484,10 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-unfocusable",
+
+                            detection: "best-effort",
+
+                            detectionNote: "Only finds div, span and section elements with an onclick attribute. Click handlers attached in JavaScript (addEventListener, frameworks) cannot be seen, so an empty result does not prove there are none.",
                             label: "Unfocusable Clickables",
                             desc: "Clickable <code>&lt;div&gt;</code> or <code>&lt;span&gt;</code> elements missing keyboard support",
                             severity: "Critical",
@@ -453,6 +507,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-tabindex",
+
+                            detection: "rule",
                             label: "Tabindex Violations",
                             desc: "Elements dynamically forcing focus order via <code>tabindex</code>",
                             severity: "Serious",
@@ -472,6 +528,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-accesskey",
+
+                            detection: "rule",
                             label: "Accesskey Attributes",
                             desc: "Explicit <code>accesskey</code> definitions",
                             severity: "Moderate",
@@ -489,6 +547,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-disabled-focus",
+
+                            detection: "best-effort",
+
+                            detectionNote: "Reads the page's CSS rules, so it cannot see cascade overrides or a focus style applied another way. Treat results as candidates to check by hand.",
                             label: "Disabled Focus Outlines (Heuristic)",
                             desc: "Interactive elements hiding <code>:focus</code> rings without fallbacks",
                             severity: "Manual",
@@ -536,6 +598,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-duplicate-id",
+
+                            detection: "rule",
                             label: "Duplicate ID Attributes",
                             desc: "Multiple elements sharing the exact same <code>id</code>",
                             severity: "Critical",
@@ -590,6 +654,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-broken-aria-ref",
+
+                            detection: "rule",
                             label: "Broken ARIA References",
                             desc: "ARIA relationship attributes pointing to non-existent DOM IDs",
                             severity: "Critical",
@@ -629,6 +695,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-prohibited-names",
+
+                            detection: "rule",
                             label: "Prohibited Author Names",
                             desc: "Structural roles containing <code>aria-label</code>",
                             severity: "Serious",
@@ -648,6 +716,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-label-in-name",
+
+                            detection: "pattern",
+
+                            detectionNote: "Compares text after removing case, punctuation and extra spaces, as a substring match. An unusual label can be judged differently from how a user hears it.",
                             label: "Label in Name Mismatch",
                             desc: "Visible text is not included in the <code>aria-label</code>",
                             severity: "Serious",
@@ -686,6 +758,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-aria-hidden-focus",
+
+                            detection: "rule",
                             label: "Focusable in Aria-Hidden",
                             desc: "Active controls trapped in <code>aria-hidden='true'</code> trees",
                             severity: "Critical",
@@ -728,6 +802,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "v-aria-invalid",
+
+                            detection: "rule",
                             label: "Invalid ARIA State",
                             desc: "Form controls explicitly marked <code>aria-invalid='true'</code>",
                             severity: "Serious",
@@ -749,6 +825,10 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "v-text-contrast",
+
+                            detection: "best-effort",
+
+                            detectionNote: "Colors are computed, but text over images or gradients cannot be decided and is flagged for manual review. Overlapping elements are not modelled.",
                             label: "Text Color Contrast",
                             desc: "Evaluates effective contrast ratio between text and its background.",
                             severity: "CRITICAL",
@@ -891,6 +971,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-valid-headings",
+
+                            detection: "rule",
                             label: "Valid Heading Order",
                             desc: "Standard <code>H1-H6</code> structural outline",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -905,6 +987,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-landmarks",
+
+                            detection: "rule",
                             label: "Landmark Regions",
                             desc: "HTML5 and ARIA structural landmark containers",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -922,6 +1006,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-tables",
+
+                            detection: "rule",
                             label: "Table & Grid Structure",
                             desc: "Native <code>&lt;table&gt;</code> and ARIA data grids",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -948,6 +1034,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-lists",
+
+                            detection: "rule",
                             label: "Lists and List Items",
                             desc: "Unordered (<code>&lt;ul&gt;</code>), ordered (<code>&lt;ol&gt;</code>), and definition lists (<code>&lt;dl&gt;</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -962,6 +1050,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-language",
+
+                            detection: "rule",
                             label: "Language Definitions",
                             desc: "Phonetic shifts and root <code>lang</code> declarations",
                             wcag: [{ version: "2.0", level: "A" }, { version: "2.0", level: "AA" }],
@@ -999,6 +1089,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-image-alts",
+
+                            detection: "rule",
                             label: "Display Image Alternatives",
                             desc: "Prints <code>alt</code> text for all images",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1037,6 +1129,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-captioned-video",
+
+                            detection: "rule",
                             label: "Captioned Video",
                             desc: "Videos containing <code>&lt;track&gt;</code> elements",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1055,6 +1149,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-iframes",
+
+                            detection: "rule",
                             label: "Iframe Context & Titles",
                             desc: "Analyzes third-party embed context and <code>title</code> attributes",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1092,6 +1188,10 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-warned-window",
+
+                            detection: "pattern",
+
+                            detectionNote: "Looks for the English phrase 'new window' or 'new tab' in the link text or aria-label. A warning written another way, or in another language, is not recognised.",
                             label: "Warned New Window Links",
                             desc: "<code>target='_blank'</code> links with proper warning",
                             wcag: [{ version: "2.0", level: "AAA" }],
@@ -1116,6 +1216,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-fieldsets",
+
+                            detection: "rule",
                             label: "Fieldsets & Captions",
                             desc: "Visual grouping containers (<code>&lt;fieldset&gt;</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1132,6 +1234,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-touch-targets",
+
+                            detection: "rule",
                             label: "Touch Target Sizes",
                             desc: "Calculates interactive pixel bounds (<code>width</code> / <code>height</code>)",
                             wcag: [{ version: "2.2", level: "AA" }, { version: "2.1", level: "AAA" }],
@@ -1163,6 +1267,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-readonly-fields",
+
+                            detection: "rule",
                             label: "Read-Only Fields",
                             desc: "Inputs marked as <code>readonly</code> or <code>aria-readonly</code>",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1187,6 +1293,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-tabindex-all",
+
+                            detection: "rule",
                             label: "Tabindex (Comparison)",
                             desc: "Visual comparison of all <code>tabindex</code> usages",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1211,6 +1319,10 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-focus-order",
+
+                            detection: "pattern",
+
+                            detectionNote: "Simulated from tabindex, DOM order and frame structure. It does not press Tab, so scripted focus changes are not reflected.",
                             label: "Display Focus Order",
                             desc: "Sequential trace of naturally focusable elements",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1310,6 +1422,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-aria-roles",
+
+                            detection: "rule",
                             label: "ARIA Roles & Attributes",
                             desc: "Maps explicit <code>role</code> definitions",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1324,6 +1438,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-roledescription",
+
+                            detection: "rule",
                             label: "Aria-Roledescription",
                             desc: "Custom semantic overrides via <code>aria-roledescription</code>",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1347,6 +1463,10 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-accessible-name",
+
+                            detection: "pattern",
+
+                            detectionNote: "Simulates the browser's name fallback order (aria-labelledby, aria-label, labels and text, title). It approximates the browser's accessible name algorithm.",
                             label: "Accessible Name Resolution",
                             desc: "Computes and prints the resolved accessible name",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1429,6 +1549,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-field-desc",
+
+                            detection: "rule",
                             label: "Form Field Descriptions",
                             desc: "Supplemental instructional text (<code>aria-describedby</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1447,6 +1569,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-details",
+
+                            detection: "rule",
                             label: "Aria-Details",
                             desc: "Complex contextual links via <code>aria-details</code>",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1464,6 +1588,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-controls",
+
+                            detection: "rule",
                             label: "Aria-Controls",
                             desc: "Remote DOM visibility targets (<code>aria-controls</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1478,6 +1604,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-owns",
+
+                            detection: "rule",
                             label: "Aria-Owns",
                             desc: "Remote programmatic ownership (<code>aria-owns</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1492,6 +1620,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-setsize",
+
+                            detection: "rule",
                             label: "List Set & Position",
                             desc: "Virtual list mapping (<code>aria-setsize</code>, <code>aria-posinset</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1517,6 +1647,8 @@ window.A11Y_CONFIG = {
                     features: [
                         {
                             id: "i-aria-live",
+
+                            detection: "rule",
                             label: "ARIA Live Regions",
                             desc: "Maps dynamic <code>aria-live</code> injection containers",
                             wcag: [{ version: "2.1", level: "AA" }],
@@ -1531,6 +1663,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-required-fields",
+
+                            detection: "rule",
                             label: "Required Fields",
                             desc: "Mandatory input enforcement (<code>required</code> / <code>aria-required</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1548,6 +1682,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-expanded",
+
+                            detection: "rule",
                             label: "Aria-Expanded State",
                             desc: "Expandable/collapsible widget states (<code>aria-expanded</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1570,6 +1706,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-pressed",
+
+                            detection: "rule",
                             label: "Aria-Pressed State",
                             desc: "Toggle button states (<code>aria-pressed</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1594,6 +1732,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-value",
+
+                            detection: "rule",
                             label: "Aria-Value Properties",
                             desc: "Slider & progress bar states (<code>valuenow</code>, <code>valuetext</code>)",
                             wcag: [{ version: "2.0", level: "A" }],
@@ -1612,6 +1752,8 @@ window.A11Y_CONFIG = {
                         },
                         {
                             id: "i-aria-haspopup",
+
+                            detection: "rule",
                             label: "Aria-Haspopup",
                             desc: "Elements triggering overlays (<code>aria-haspopup</code>)",
                             wcag: [{ version: "2.0", level: "A" }],

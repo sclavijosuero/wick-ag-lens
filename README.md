@@ -61,6 +61,8 @@ To maintain a single source of truth across all execution environments—and kee
 * `/extension`: The visual Chrome DevTools extension artifact.
 * `/cli`: The Node.js Playwright runner, Headless CLI (`index.js`), and MCP Server (`mcp-server.js`) used for automated pipelines and `agent-browser` handoffs.
 * `/skills`: Portable AI Agent Skills (`skills/wick-ag-lens/SKILL.md`) for token-efficient browser and accessibility orchestration.
+* `/samples`: Sample pages, a sample login server and a login script, shipped in the npm package so you can try journeys and logins without your own app (see [`cli/docs/sample-journeys.md`](./cli/docs/sample-journeys.md)).
+* `/tests`: The Playwright test suite (dev only, never published). See [Automated Test Suite](#automated-test-suite-playwright).
 
 ### 1. The Monorepo Build Process (Contributors Only)
 Whenever changes are made to the heuristic rules in the root `/core` folder or the agent instructions in `/skills`, the repository must be built to propagate those updates into the target packages.
@@ -69,7 +71,7 @@ Run the build script from the repository root:
 ```bash
 node build.js
 ```
-This script copies `/core` into both `/extension/core` (for the Chrome extension) and `/cli/core` (for the headless package), and copies `/skills` into `/cli/skills` so the skill is bundled inside the published npm package.
+This script copies `/core` into both `/extension/core` (for the Chrome extension) and `/cli/core` (for the headless package), copies `/samples` into `/cli/samples`, and copies `/skills` into `/cli/skills` so the skill is bundled inside the published npm package.
 
 ### 2. Version Control (Gitignore)
 To prevent Git from tracking duplicate build artifacts and bloating repository history, the generated folders are explicitly ignored. The root `.gitignore` excludes:
@@ -77,11 +79,12 @@ To prevent Git from tracking duplicate build artifacts and bloating repository h
 /cli/node_modules/
 /cli/core/
 /cli/skills/
+/cli/samples/
 /extension/core/
 /reports/
 *-state.json
 ```
-*Note: Only the root `/core` and `/skills` folders are committed to GitHub.*
+*Note: Only the root `/core`, `/skills` and `/samples` folders are committed to GitHub (the copies inside `/cli` and `/extension` are build output).*
 
 ### 3. Publishing & Distribution
 **Publishing the Extension:**
@@ -129,16 +132,49 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 ---
 
+### Detection Levels
+
+Every audit declares how reliable its detection is. The level is shown in the **Detection** column of the tables below, in the Chrome extension (the info panel, the on-page toast and the copied reports) and in the JSON report (`audit_dictionary[auditId].info.detection` and `detection_note`). Treat findings from audits that are not **Rule-based** as candidates to confirm, not as proven failures.
+
+| Level | Meaning | Audits |
+| :--- | :--- | :--- |
+| **Rule-based** | The audit applies a defined rule to the page's elements and attributes, and a reported element matches that rule. A clean result does not by itself mean the page meets WCAG. | 42 |
+| **Pattern-based** | A clear rule, but it relies on a fixed pattern (a word list, an attribute or a text comparison), so it can miss variations. | 7 |
+| **Best-effort** | An approximation: results can include false positives or misses. Confirm by hand before acting. | 6 |
+
+The audits that are not Rule-based, and what limits them:
+
+| Audit | Level | Known limit |
+| :--- | :--- | :--- |
+| **Heading Hierarchy Errors** (`v-heading-errors`) | Best-effort | Skipped levels are exact. 'Fake headings' are guessed from class names containing 'heading' or 'title' plus short text, so some results may be false positives. |
+| **Redundant Alt Text** (`v-redundant-alt`) | Best-effort | Matches the English words image, img, photo, picture and graphic anywhere in the alt text. Legitimate descriptions that use those words can be reported, and other languages are missed. |
+| **Generic Link Text** (`v-generic-link`) | Best-effort | Matches a fixed list of English phrases (click here, read more, learn more, more, link, here). Other languages and other vague wording are not found, and a longer link text containing one of these words can match. |
+| **Unfocusable Clickables** (`v-unfocusable`) | Best-effort | Only finds div, span and section elements with an onclick attribute. Click handlers attached in JavaScript (addEventListener, frameworks) cannot be seen, so an empty result does not prove there are none. |
+| **Disabled Focus Outlines** (`v-disabled-focus`) | Best-effort | Reads the page's CSS rules, so it cannot see cascade overrides or a focus style applied another way. Treat results as candidates to check by hand. |
+| **Text Color Contrast** (`v-text-contrast`) | Best-effort | Colors are computed, but text over images or gradients cannot be decided and is flagged for manual review. Overlapping elements are not modelled. |
+| **Suspicious Link Targets** (`v-suspicious-links`) | Pattern-based | Only detects links whose href is '#' or starts with 'javascript:'. Fake buttons built in other ways are not found. |
+| **Unwarned New Window Links** (`v-unwarned-window`) | Pattern-based | Looks for the English phrase 'new window' or 'new tab' in the link text or aria-label. A warning written another way, or in another language, is not recognised. |
+| **Placeholder as Label** (`v-placeholder-label`) | Pattern-based | Checks for a label[for] and ARIA names only. Other valid ways of naming a field are not considered. |
+| **Label in Name Mismatch** (`v-label-in-name`) | Pattern-based | Compares text after removing case, punctuation and extra spaces, as a substring match. An unusual label can be judged differently from how a user hears it. |
+| **Warned New Window Links** (`i-warned-window`) | Pattern-based | Looks for the English phrase 'new window' or 'new tab' in the link text or aria-label. A warning written another way, or in another language, is not recognised. |
+| **Display Focus Order** (`i-focus-order`) | Pattern-based | Simulated from tabindex, DOM order and frame structure. It does not press Tab, so scripted focus changes are not reflected. |
+| **Accessible Name Resolution** (`i-accessible-name`) | Pattern-based | Simulates the browser's name fallback order (aria-labelledby, aria-label, labels and text, title). It approximates the browser's accessible name algorithm. |
+
+All other audits are **Rule-based**.
+
+---
+
+
 ### Tab 1: Violations & Warnings
 
 #### Structure & Document
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Document Title** | Critical | `"Missing Document Title"` | [2.4.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html) | [View](#v-doc-title) |
-| **Page Encoding** | Moderate | `Encoding: {val}` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-page-encoding) |
-| **Auto-playing Media** | Serious | `"Autoplay Media"` | [1.4.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html) | [View](#v-18) |
-| **Heading Hierarchy Errors** | Moderate | `"{TAG} (Skipped)"` or `"Fake Heading"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-19) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Document Title** | Critical | `"Missing Document Title"` | [2.4.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html) | [View](#v-doc-title) | Rule-based |
+| **Page Encoding** | Moderate | `Encoding: {val}` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-page-encoding) | Rule-based |
+| **Auto-playing Media** | Serious | `"Autoplay Media"` | [1.4.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html) | [View](#v-18) | Rule-based |
+| **Heading Hierarchy Errors** | Moderate | `"{TAG} (Skipped)"` or `"Fake Heading"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-19) | Best-effort |
 
 * **Document Title:** Checks if the document is missing a `<title>` tag or if it is empty. **Screen readers announce the page title first.**
 * **Page Encoding:** Checks if the document character set is defined (UTF-8). **Ensures text is parsed and pronounced correctly.**
@@ -147,12 +183,12 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Images & Media
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Inaccessible SVGs** | Critical | `"Inaccessible SVG"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-svg-accessible) |
-| **Missing Alt Text** | Critical | `"Missing alt"` or `"Tracking Pixel"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-5) |
-| **Uncaptioned Video** | Critical | `"<video> (No Captions)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#v-6) |
-| **Redundant Alt Text** | Minor | `Redundant alt: "{text}"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-7) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Inaccessible SVGs** | Critical | `"Inaccessible SVG"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-svg-accessible) | Rule-based |
+| **Missing Alt Text** | Critical | `"Missing alt"` or `"Tracking Pixel"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-5) | Rule-based |
+| **Uncaptioned Video** | Critical | `"<video> (No Captions)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#v-6) | Rule-based |
+| **Redundant Alt Text** | Minor | `Redundant alt: "{text}"` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#v-7) | Best-effort |
 
 * **Inaccessible SVGs:** Flags inline `<svg>` elements exposed to screen readers lacking an accessible name. **Screen readers will read out raw SVG code nodes.**
 * **Missing Alt Text:** Flags `<img>` elements completely lacking an `alt` attribute. Explicitly segregates 1x1 tracking pixels. **Screen readers will read the raw image filename or URL** if the attribute is missing.
@@ -161,12 +197,12 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Links & Navigation
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Empty Links** | Critical | `"Empty Link"` | [2.4.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | [View](#v-11) |
-| **Suspicious Link Targets** | Critical / Serious | `"Fake Button (JS)"` or `"Fake Button (#)"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-12) |
-| **Generic Link Text** | Moderate | `Generic link: "{text}"` | [2.4.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | [View](#v-13) |
-| **Unwarned New Window Links** | Moderate | `'target="_blank" (No Warning)'` | [3.2.5 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | [View](#v-14) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Empty Links** | Critical | `"Empty Link"` | [2.4.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | [View](#v-11) | Rule-based |
+| **Suspicious Link Targets** | Critical / Serious | `"Fake Button (JS)"` or `"Fake Button (#)"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-12) | Pattern-based |
+| **Generic Link Text** | Moderate | `Generic link: "{text}"` | [2.4.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html) | [View](#v-13) | Best-effort |
+| **Unwarned New Window Links** | Moderate | `'target="_blank" (No Warning)'` | [3.2.5 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | [View](#v-14) | Pattern-based |
 
 * **Empty Links:** Flags `<a>` tags lacking readable text or accessible names. **Screen readers will read the URL**, which is often confusing. 
 * **Suspicious Link Targets:** Flags anchor tags missing routing context acting as buttons (missing `role='button'`). **Using links to trigger JS actions confuses screen readers.** 
@@ -175,12 +211,12 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Forms & Controls
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Unlabeled Form Inputs** | Critical | `"Unlabeled Input"` | [3.3.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) | [View](#v-8) |
-| **Empty Buttons** | Critical | `"Empty Button"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-9) |
-| **Placeholder as Label** | Serious | `"Placeholder as Label"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-10) |
-| **Invalid Autocomplete** | Moderate | `Invalid autocomplete="{val}"` | [1.3.5 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html) | [View](#v-autocomplete-invalid) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Unlabeled Form Inputs** | Critical | `"Unlabeled Input"` | [3.3.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) | [View](#v-8) | Rule-based |
+| **Empty Buttons** | Critical | `"Empty Button"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-9) | Rule-based |
+| **Placeholder as Label** | Serious | `"Placeholder as Label"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-10) | Pattern-based |
+| **Invalid Autocomplete** | Moderate | `Invalid autocomplete="{val}"` | [1.3.5 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html) | [View](#v-autocomplete-invalid) | Rule-based |
 
 * **Unlabeled Form Inputs:** Flags form controls missing `<label>` wrappers, `aria-label`s, or `for` attributes. **Screen readers cannot announce what the input is for.** 
 * **Empty Buttons:** Flags buttons without readable text or an `aria-label`. **Screen readers will only announce 'Button'**, providing no context. 
@@ -189,12 +225,12 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Keyboard Navigation
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Unfocusable Clickables** | Critical | `"Unfocusable Clickable"` | [2.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) | [View](#v-1) |
-| **Tabindex Violations** | Serious | `tabindex="{val}"` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#v-3) |
-| **Accesskey Attributes** | Moderate | `accesskey="{val}"` | [2.1.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html) | [View](#v-4) |
-| **Disabled Focus Outlines (Heuristic)** | Manual | `"Manual Check: Focus Ring"` | [2.4.7 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html) | [View](#v-2) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Unfocusable Clickables** | Critical | `"Unfocusable Clickable"` | [2.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) | [View](#v-1) | Best-effort |
+| **Tabindex Violations** | Serious | `tabindex="{val}"` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#v-3) | Rule-based |
+| **Accesskey Attributes** | Moderate | `accesskey="{val}"` | [2.1.4 (A)](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html) | [View](#v-4) | Rule-based |
+| **Disabled Focus Outlines (Heuristic)** | Manual | `"Manual Check: Focus Ring"` | [2.4.7 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html) | [View](#v-2) | Best-effort |
 
 * **Unfocusable Clickables:** Flags generic elements with `onclick` handlers lacking a `tabindex` and a valid semantic `role`. **Keyboard users cannot tab to or activate these elements.** 
 * **Tabindex Violations:** Flags elements dynamically forcing focus order via `tabindex > 0`. **Overrides natural DOM focus order**, creating unpredictable navigation paths. 
@@ -203,12 +239,12 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### ARIA Names (Errors)
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Prohibited Author Names** | Serious | `Prohibited name on role="{role}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-17) |
-| **Label in Name Mismatch** | Serious | `"Mismatch: "{txt}" != "{aria}""` | [2.5.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html) | [View](#v-label-in-name) |
-| **Duplicate ID Attributes** | Critical | `Duplicate ID: "{id}" ({v} vis, {h} hid)` or `[Hidden]` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-duplicate-id) |
-| **Broken ARIA References** | Critical | `Broken Ref: {attr}="{id}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-broken-aria-ref) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Prohibited Author Names** | Serious | `Prohibited name on role="{role}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-17) | Rule-based |
+| **Label in Name Mismatch** | Serious | `"Mismatch: "{txt}" != "{aria}""` | [2.5.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html) | [View](#v-label-in-name) | Pattern-based |
+| **Duplicate ID Attributes** | Critical | `Duplicate ID: "{id}" ({v} vis, {h} hid)` or `[Hidden]` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-duplicate-id) | Rule-based |
+| **Broken ARIA References** | Critical | `Broken Ref: {attr}="{id}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#v-broken-aria-ref) | Rule-based |
 
 * **Prohibited Author Names:** Flags structural roles (like `presentation`) containing `aria-label` or `aria-labelledby`. **Adding a name to a transparent structural role breaks its semantics.**
 * **Label in Name Mismatch:** Flags interactive elements where the visible text is completely overridden by an `aria-label` that does not include the visible text. **Voice dictation users rely on visible text commands.**
@@ -217,19 +253,19 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### ARIA States (Errors)
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Focusable in Aria-Hidden** | Critical | `"aria-hidden (Focusable)"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-15) |
-| **Invalid ARIA State** | Serious | `'aria-invalid="true"'` | [3.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | [View](#v-16) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Focusable in Aria-Hidden** | Critical | `"aria-hidden (Focusable)"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#v-15) | Rule-based |
+| **Invalid ARIA State** | Serious | `'aria-invalid="true"'` | [3.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | [View](#v-16) | Rule-based |
 
 * **Focusable in Aria-Hidden:** Flags active controls trapped in `aria-hidden='true'` trees. **Keyboard users can reach them, but screen readers cannot.**
 * **Invalid ARIA State:** Flags form controls explicitly marked `aria-invalid='true'`. **Identifies application-enforced validation errors.** 
 
 #### Visual & Contrast
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Text Color Contrast** | Critical | `AA Fail`, `AAA Fail`, `Manual Check` | [1.4.3 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [1.4.6 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html) | [View](#v-20) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Text Color Contrast** | Critical | `AA Fail`, `AAA Fail`, `Manual Check` | [1.4.3 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [1.4.6 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html) | [View](#v-20) | Best-effort |
 
 * **Text Color Contrast:** Traverses the DOM to calculate the effective contrast ratio between text and its background. Dynamically evaluates `font-size` and `font-weight` against WCAG large-text thresholds. Elements over images/gradients are flagged for manual review. 
 
@@ -239,13 +275,13 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Structure & Document
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Valid Heading Order** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-17) |
-| **Landmark Regions** | Informative | `<{role or tag}>` | [2.4.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html) | [View](#i-18) |
-| **Table & Grid Structure** | Informative | `<{tag}>` or `role="{role}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-19) |
-| **Lists and List Items** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-20) |
-| **Language Definitions** | Informative | `"Missing Root Lang"`, `Root lang="{val}"`, or `lang="{val}"` | [3.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html) | [View](#i-21) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Valid Heading Order** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-17) | Rule-based |
+| **Landmark Regions** | Informative | `<{role or tag}>` | [2.4.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html) | [View](#i-18) | Rule-based |
+| **Table & Grid Structure** | Informative | `<{tag}>` or `role="{role}"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-19) | Rule-based |
+| **Lists and List Items** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-20) | Rule-based |
+| **Language Definitions** | Informative | `"Missing Root Lang"`, `Root lang="{val}"`, or `lang="{val}"` | [3.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html) | [View](#i-21) | Rule-based |
 
 * **Valid Heading Order:** Standard `H1-H6` structural outline. **Verifies the logical outline of the page.** 
 * **Landmark Regions:** HTML5 and ARIA structural landmark containers. **Allows screen reader users to jump quickly between page sections.** 
@@ -255,11 +291,11 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Images & Media
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Display Image Alternatives** | Informative | `alt="{val}"`, `alt=""`, `"Missing alt"`, or `"[Pixel] ..."` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#i-3) |
-| **Captioned Video** | Informative | `"<video> (Captioned)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#i-4) |
-| **Iframe Context & Titles** | Informative | `title="{title}"`, `"Hidden Iframe"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-5) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Display Image Alternatives** | Informative | `alt="{val}"`, `alt=""`, `"Missing alt"`, or `"[Pixel] ..."` | [1.1.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) | [View](#i-3) | Rule-based |
+| **Captioned Video** | Informative | `"<video> (Captioned)"` | [1.2.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html) | [View](#i-4) | Rule-based |
+| **Iframe Context & Titles** | Informative | `title="{title}"`, `"Hidden Iframe"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-5) | Rule-based |
 
 * **Display Image Alternatives:** Extracts and visually prints the `alt` text directly over all `<img>` elements, explicitly segregating 1x1 tracking pixels. **Allows rapid visual auditing of alternative text descriptions.**
 * **Captioned Video:** Videos containing `<track>` elements. **Confirms proper multimedia accessibility setup.** 
@@ -267,19 +303,19 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Links & Navigation
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Warned New Window Links** | Informative | `'target="_blank" (Warned)'` | [3.2.5 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | [View](#i-9) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Warned New Window Links** | Informative | `'target="_blank" (Warned)'` | [3.2.5 (AAA)](https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html) | [View](#i-9) | Pattern-based |
 
 * **Warned New Window Links:** `target='_blank'` links with proper warning. **Confirms proper communication of context shifts to assistive technologies.** 
 
 #### Forms & Controls
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Fieldsets & Captions** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-7) |
-| **Touch Target Sizes** | Informative | `{width}x{height}px` | [2.5.8 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | [View](#i-8) |
-| **Read-Only Fields** | Informative | `"readonly"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-readonly-fields) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Fieldsets & Captions** | Informative | `<{tag}>` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-7) | Rule-based |
+| **Touch Target Sizes** | Informative | `{width}x{height}px` | [2.5.8 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | [View](#i-8) | Rule-based |
+| **Read-Only Fields** | Informative | `"readonly"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-readonly-fields) | Rule-based |
 
 * **Fieldsets & Captions:** Visual grouping containers (`<fieldset>`). **Crucial for grouping related radio buttons or complex form sections.** 
 * **Touch Target Sizes:** Calculates interactive pixel bounds (`width` / `height`). **Undersized targets prevent users with fine motor impairments from activating controls accurately.** 
@@ -287,34 +323,34 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### Keyboard Navigation
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Tabindex (Comparison)** | Informative | `tabindex="{val}"` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-1) |
-| **Display Focus Order** | Informative | `#{num}: <{tag}>` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-2) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Tabindex (Comparison)** | Informative | `tabindex="{val}"` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-1) | Rule-based |
+| **Display Focus Order** | Informative | `#{num}: <{tag}>` | [2.4.3 (A)](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) | [View](#i-2) | Pattern-based |
 
 * **Tabindex (Comparison):** Visual comparison of all `tabindex` usages. **Provides a sweeping visual map of the programmatic focus strategy.** 
 * **Display Focus Order:** Sequential trace of naturally focusable elements. Utilizes hierarchical decimal prefixing (e.g., `[Iframe] #4.1`) for isolated DOM boundaries, connected by dynamic SVG paths and numerical pills. **Simulates the exact path of the `TAB` key route.** 
 
 #### ARIA Roles (Identity)
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **ARIA Roles & Attributes** | Informative | `role="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-11) |
-| **Aria-Roledescription** | Informative | `roledescription="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-roledescription) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARIA Roles & Attributes** | Informative | `role="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-11) | Rule-based |
+| **Aria-Roledescription** | Informative | `roledescription="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-roledescription) | Rule-based |
 
 * **ARIA Roles & Attributes:** Maps explicit `role` definitions. **Allows rapid structural auditing of custom widget semantics.**
 * **Aria-Roledescription:** Custom semantic overrides via `aria-roledescription`. **Overrides the native role announcement** (e.g., turning 'button' into 'slide').
 
 #### ARIA Names & Relationships
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **Accessible Name Resolution** | Informative | `"[id] {name}"`, `"[aria] {name}"`, `"[text] {name}"`, or `"Missing Name"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-10) |
-| **Form Field Descriptions** | Informative | `"aria-describedby"` or `"title"` | [3.3.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) | [View](#i-6) |
-| **Aria-Details** | Informative | `"aria-details"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-details) |
-| **Aria-Controls** | Informative | `"aria-controls"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-15) |
-| **Aria-Owns** | Informative | `"aria-owns"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-16) |
-| **List Set & Position** | Informative | `"Item X of Y"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-aria-setsize) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Accessible Name Resolution** | Informative | `"[id] {name}"`, `"[aria] {name}"`, `"[text] {name}"`, or `"Missing Name"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-10) | Pattern-based |
+| **Form Field Descriptions** | Informative | `"aria-describedby"` or `"title"` | [3.3.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html) | [View](#i-6) | Rule-based |
+| **Aria-Details** | Informative | `"aria-details"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-details) | Rule-based |
+| **Aria-Controls** | Informative | `"aria-controls"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-15) | Rule-based |
+| **Aria-Owns** | Informative | `"aria-owns"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-16) | Rule-based |
+| **List Set & Position** | Informative | `"Item X of Y"` | [1.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html) | [View](#i-aria-setsize) | Rule-based |
 
 * **Accessible Name Resolution:** Computes the final accessible name by simulating the browser's fallback calculation sequence: `aria-labelledby`, then `aria-label`, then native associated labels/text, and finally `title`. **Reveals exactly what a screen reader will announce.** 
 * **Form Field Descriptions:** Supplemental instructional text (`aria-describedby`). **Ensures extended hints or error messages are programmatically tied to inputs.** 
@@ -325,14 +361,14 @@ The following details the complete list of 55 heuristic evaluations performed by
 
 #### ARIA States (Conditions)
 
-| Audit | Classification | Badge Output | WCAG Criteria | Logic |
-| :--- | :--- | :--- | :--- | :--- |
-| **ARIA Live Regions** | Informative | `aria-live="{val}"` | [4.1.3 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html) | [View](#i-12) |
-| **Required Fields** | Informative | `"required"` or `'aria-required="true"'` | [3.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | [View](#i-13) |
-| **Aria-Expanded State** | Informative | `aria-expanded="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-14) |
-| **Aria-Pressed State** | Informative | `aria-pressed="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-pressed) |
-| **Aria-Value Properties** | Informative | `value="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-value) |
-| **Aria-Haspopup** | Informative | `haspopup="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-haspopup) |
+| Audit | Classification | Badge Output | WCAG Criteria | Logic | Detection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ARIA Live Regions** | Informative | `aria-live="{val}"` | [4.1.3 (AA)](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html) | [View](#i-12) | Rule-based |
+| **Required Fields** | Informative | `"required"` or `'aria-required="true"'` | [3.3.1 (A)](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html) | [View](#i-13) | Rule-based |
+| **Aria-Expanded State** | Informative | `aria-expanded="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-14) | Rule-based |
+| **Aria-Pressed State** | Informative | `aria-pressed="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-pressed) | Rule-based |
+| **Aria-Value Properties** | Informative | `value="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-value) | Rule-based |
+| **Aria-Haspopup** | Informative | `haspopup="{val}"` | [4.1.2 (A)](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html) | [View](#i-aria-haspopup) | Rule-based |
 
 * **ARIA Live Regions:** Maps dynamic `aria-live` injection containers. **Ensures dynamic content updates are announced to screen readers.** 
 * **Required Fields:** Mandatory input enforcement (`required` / `aria-required`). **Ensures required status is programmatically available.** 
@@ -416,7 +452,7 @@ Elements hidden via CSS parameters like `display: none` or `visibility: hidden`,
 
 ## Shared Limitations & Technical Bounds
 
-The following technical bounds apply to the core DOM inspection engine across both the visual extension and headless automation environments (see [`extension/README.md`](./extension/README.md#limitations--technical-bounds) and [`cli/README.md`](./cli/README.md#limitations--technical-bounds) for environment-specific constraints):
+The following technical bounds apply to the core DOM inspection engine across both the visual extension and headless automation environments (see [`extension/README.md`](./extension/README.md#extension-limitations--technical-bounds) and [`cli/README.md`](./cli/README.md#cli--mcp-limitations--technical-bounds) for environment-specific constraints):
 
 * **Visibility Filtering:** Elements hidden via `display: none`, `visibility: hidden`, `hidden`, or `inert` are strictly excluded from all analysis to match native accessibility tree behavior.
 * **Z-Index Occlusion:** Visibility calculations rely on computed CSS properties. The engine does not calculate 3D geometric occlusion (e.g., an element technically "visible" in the DOM but visually covered by a high `z-index` modal).
@@ -442,68 +478,20 @@ The following technical bounds apply to the core DOM inspection engine across bo
 
 ## Automated Test Suite (Playwright)
 
-The `wick-ag-lens` package ships with its own automated tests, so every claim in this document is backed by something you can run. The suite is built with [Playwright Test](https://playwright.dev/docs/intro) and runs the **real CLI, the real MCP server and the real HTML report viewer** against a set of local, deliberately flawed fixture pages (served offline, so results are deterministic). It contains **498 tests across 31 spec files** (4 of them are opt-in or platform-specific and are skipped by default). Besides the basic CLI, MCP and viewer checks, it runs the same multi-step accessibility journey through the CLI, MCP, the viewer and agent-browser, repeats it for every login method, and exercises the sample pages shipped in the package. See [tests/README.md](tests/README.md#what-runs-what) for what runs what.
+The repository has its own automated tests, so the claims in this documentation are backed by something you can run. They use [Playwright Test](https://playwright.dev/docs/intro) to drive the **real CLI, the real MCP server, the real HTML report viewer and the real `agent-browser`** against local, deliberately flawed pages (served offline, so results are deterministic).
 
 ![Playwright UI running the WICK-AG-Lens test suite](tests/images/playwright-ui.png)
 *The Playwright UI (`npm run test:ui`) running the suite: tests grouped by project, with a timeline, action log and an attached screenshot for each step.*
 
-> **Dev only:** the tests live at the repository root, outside `cli/` and `extension/`. The `cli/package.json` `files` whitelist guarantees nothing from `tests/` is published, and a test enforces that.
-
-### What is covered
-
-| Project | What it verifies | Examples |
-| :--- | :--- | :--- |
-| **`cli`** | The headless CLI end to end: flags, rule results and multi-step delta reporting. | Known violations are reported on an inaccessible page and **none** on an accessible one; `--audits` limits the rules; `--step click::#btn` reports only the *new* findings; `-s` embeds a valid JPEG per step. |
-| **`cli`: focus order** | `i-focus-order` maps the exact Tab sequence, as a full snapshot at every step. | A step that reveals a control re-maps the whole sequence (4 stops, then 5); it only lists stops the Tab key can reach (no `display:none`, `inert`, `input[type=hidden]` or `tabindex="-1"`); it walks into iframes (`[Iframe] #4.1`) and open shadow roots. |
-| **`cli`: `v-aria-hidden-focus`** | The rule flags only controls a keyboard user can really reach inside `aria-hidden`. | Flags `button`, `a[href]`, `contenteditable`, `summary` and `tabindex="0"`; skips `tabindex="-1"`, disabled, `inert` and non-rendered controls; sees through shadow hosts. |
-| **`cli`: frames & shadow DOM** | Findings and focus order cross iframe and shadow boundaries. | Violations are found in a child and a nested grandchild frame, and only on the bad elements inside shadow roots. |
-| **`mcp`** | The MCP server over stdio, driven by the official MCP SDK client (the same wire protocol an AI agent uses; Playwright is only the test runner). | Exposes the expected tools; `audit_baseline` finds violations; the full `audit_baseline` → `interact_and_diff` → `get_audit_trail` session protocol returns the documented JSON shapes; `interact_and_diff` without a baseline returns an error. See the [session protocol](./cli/README.md#session-protocol--reading-the-results). |
-| **`cli` + `mcp`: authentication** `@auth` | Every supported way to log in, through both the CLI flags and the MCP `audit_baseline` arguments, against a local fake login system (a protected page that only serves a session cookie). | Shorthand `-u`/`-p` (`user`/`pass`); multi-field **company + user + password** via `--auth-step` (`authSteps`); an **SSO-style two-screen flow** with a `wait` step; a custom `--auth-script` (`authScript`) module; **auth-state handoff** (`-a` / `authState`) from a handwritten Playwright/`agent-browser` storage state and from a session recorded by a real Playwright login. **Headless save and reuse** (`-a` with a login / `saveAuthState`): log in once, save the session, then reuse it with no login, plus refreshing an expired file. Negative cases: no credentials, wrong password and an expired state all stay logged out, and a failed login never writes a state file; and the session survives a following `--step` / `interact_and_diff`. |
-| **`viewer`** | The offline HTML report viewer, driven in a real browser from real CLI output. | Per-step screenshots, timeline, and the **Display Focus Order** tab showing the full tab sequence per step, plus "Hidden from AT" stops; also an audit taken behind a login. |
-| **`package`** | What actually gets published to npm. | Runtime files, `core` and `SKILL.md` are included; tests, the extension and dev tooling are not. |
-
-### Showcase: focus order across steps
-
-One viewer test audits a realistic storefront page (`tests/fixtures/pages/focus-demo.html`) through three steps and checks the report after each one:
-
-| Step | Interaction | New findings | Tab stops |
-| :--- | :--- | :--- | :--- |
-| 1 | Page as loaded | none | 14 |
-| 2 | Click **Show more options** | an icon-only button with no name, an image with no alt text | 16 |
-| 3 | Click **Shop new arrivals** | an icon-only link with no name | 18 |
-
-Each step attaches a screenshot of the rendered report (audited page, totals, new findings and the first rows of the focus-order table) to the Playwright report.
-
-### Authentication tests (`@auth`)
-
-All authentication tests carry the `@auth` tag, so you can run just them with `npm run test:auth` (or `npx playwright test --grep @auth`). They log in to a **local fake login system** built into the fixture server, so they are fast, offline and deterministic:
-
-* `login-2field.html`: classic user + password form (the `-u`/`-p` shorthand).
-* `login-company.html`: a 3-field company + user + password form, like multi-tenant apps.
-* `login-sso.html`: a two-screen flow where the password field appears asynchronously.
-* `account.html`: the protected page. The server only serves it with the session cookie, and it contains an image without alt text that exists nowhere else, so "that finding was reported" proves the audit ran **logged in**.
-
-**Single sign-on (`@sso`).** The fixture server also plays an *identity provider* on a **different origin** (`localhost:<port+1>`, while the app is on `127.0.0.1:<port>`), so the browser makes a real cross-origin round trip like with Okta or Azure AD: the protected app page redirects to the provider's two-screen sign-in (user name, then a password field that appears asynchronously), the provider sets **its own cookie** and sends the browser back to the app with an authorization code, and the app then sets its session cookie. The SSO tests (CLI and MCP) check that this login works, that a wrong password never reaches the app, that the session survives later interactions, and that a saved session (`-a` / `saveAuthState`) contains the cookies of **both** origins and replaces the whole SSO login on the next run. Run them with `npm run test:sso` (or `npm run test:sso -- --ui`); the step-by-step guide is in [tests/README.md](tests/README.md#running-the-sso-tests-in-playwright-step-by-step).
-
-**Live checks (opt-in).** Three extra tests (tagged `@auth @live`) run the package against a public training site with a real login and real accessibility problems, [Abi's Testing Dojo](https://abi-testing-dojo-demo.azurewebsites.net/), whose login page publishes its demo credentials. The main ones follow the CLI README's *Enterprise Multi-Field Auth + Post-Login SPA Workflow* example, once through the **CLI** and once through the **MCP** tools: log in with company, user and password, open Security > Companies, search, and audit every step. They check that WCAG findings are reported at the step that revealed them, and attach each step's screenshot to the test. They are skipped by default, because they need internet access and the site can change (it resets every Monday). Run them with:
+> **Dev only:** the tests live at the repository root, outside `cli/` and `extension/`, and a test checks that nothing from `tests/` is published. What *is* published to help you learn is the sample pages, the sample server and the side-by-side guides: [`cli/docs/sample-journeys.md`](./cli/docs/sample-journeys.md) and [`cli/docs/auth-examples.md`](./cli/docs/auth-examples.md).
 
 ```bash
-npm run test:live              # headless, terminal output
-npm run test:live -- --ui      # in the Playwright UI (screenshots in each test's Attachments tab)
+npm run setup     # one-time: root deps + cli deps + Chromium
+npm test          # builds, then runs every test
+npm run test:ui   # interactive Playwright UI
 ```
 
-### Running the tests
-
-```bash
-npm run setup         # one-time: root deps + cli deps + Chromium
-npm test              # builds, then runs every project
-npm run test:ui       # interactive Playwright UI (as pictured above)
-npm run test:cli      # also: test:mcp | test:package | test:viewer
-npm run test:auth     # only the authentication tests (tagged @auth), across CLI, MCP, viewer and the agent-browser handoff
-npx playwright show-report   # HTML report with screenshots and CLI output attached
-```
-
-See [`tests/README.md`](./tests/README.md) for the layout of the suite, the fixture pages and how to run it against another copy of the package.
+What is tested, how the tests are grouped and tagged (`@auth`, `@a11y-auth`, `@journey`, `@samples`, ...), and how to run a subset: see [`tests/README.md`](./tests/README.md).
 
 ---
 
@@ -569,6 +557,9 @@ Special thanks to the following individuals whose work, feedback, and testing re
 - **Engine-Level WCAG Filtering:** Added `--wcag-version` and `--wcag-level` parameters to filter heuristic rules at the core engine level prior to DOM execution.
 - **Optimized JSON Timeline & Dictionary Schema:** Streamlined report payloads with deduplicated `global_summary` tracking, isolated `page_state_maps` (`focus_order`), structured `interaction` metadata objects, per-audit `totalElemsNew` / `totalElemsResolved` element counters, and a root-level `audit_dictionary`.
 - **Integrated Visual State Capture:** Added raw Base64 JPEG screenshot generation (`-s`) synchronized perfectly with the audit timeline to provide multimodal AI agents and visual regression reports with exact layout context.
+- **Detection Levels for Every Audit:** Each of the 55 audits now discloses how reliable its detection is (`Rule-based`, `Pattern-based` or `Best-effort`) and, when it is not rule-based, its known limit. Shown in the extension (info panel, on-page toast, copied reports), in the JSON `audit_dictionary` (`info.detection`, `info.detection_note`), in the HTML report viewer and in the README tables. The bundled skill tells agents to mark such findings "Needs confirmation" and to report all severities (`Critical` to `Manual`) with fixes taken from `audit_dictionary`.
+- **Stable Selectors & Iframe Focus Order:** `:nth-of-type` is added to a selector only when a same-tag sibling exists, so an element keeps its selector when other elements are added next to it and is not re-reported as new at a later step. The CLI now numbers focus-order stops inside iframes like the extension (`[Iframe] #2.1`).
+- **Samples, Guides & Test Suite:** The npm package ships sample pages (`samples/`) and guides (`docs/`, including login methods side by side), and a Playwright test suite (CLI, MCP, report viewer, `agent-browser`, package contents and docs) verifies the documented behavior.
 - **Engine & Package Optimization:** Centralized DOM traversal (`querySelectorAllDeep`) to guarantee perfect mathematical parity between the visual browser extension and headless environments, while optimizing the Chrome Web Store and npm package payloads.
 
 ### v2.5.0: The Structural Expansion, DOM Integrity, & PDF Update
@@ -597,7 +588,7 @@ Special thanks to the following individuals whose work, feedback, and testing re
 
 ### v2.4.0: The Simulation Update
 * Introduced a dedicated "Simulate Mode" featuring an entire suite of Disability Simulation rendering tools.
-* Added 5 Color Blindness profiles utilizing rigorous SVG `feColorMatrix` implementations (Achromatopsia, Protanopia, Deuteranopia via Viénot models, and Tritanopia).
+* Added 4 Color Blindness profiles (plus an Off option) utilizing rigorous SVG `feColorMatrix` implementations (Achromatopsia, Protanopia, Deuteranopia via Viénot models, and Tritanopia).
 * Added 5 interactive Impaired Vision conditions with live-updating intensity sliders (Diplopia, Loss of Contrast, Yellowing/Aging Lens, Cataracts, and strict geometric Field Loss).
 * Upgraded the "Display Focus Order" audit in Inspect Mode to physically draw connecting SVG pathways and dynamic numerical tracking pills across the layout to completely visualize keyboard navigation routes.
 * Resolved a critical ReferenceError in the MutationObserver that prevented SPA soft-updates (modals, dropdowns) from dynamically resyncing.

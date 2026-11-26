@@ -196,6 +196,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const config = window.A11Y_CONFIG;
 
+    // How reliable an audit's detection is (config: `detection` + `detectionNote`, level texts in `detectionLevels`)
+    const detectionInfo = (feature) => {
+        const level = ((window.A11Y_CONFIG || {}).detectionLevels || {})[feature.detection];
+        return level ? { label: level.label, desc: level.desc, note: feature.detectionNote || '' } : null;
+    };
+
     function getFeatureConfigById(featureId) {
         if (!config) return null;
         for (let tab of config.tabs) {
@@ -767,6 +773,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         
                         if (feature.desc) auditText += `Description: ${feature.desc.replace(/<[^>]*>?/gm, '')}\n`;
                         if (feature.info && feature.info.fix) auditText += `Remediation: ${feature.info.fix.replace(/<[^>]*>?/gm, '')}\n`;
+                        const detection = detectionInfo(feature);
+                        if (detection) auditText += `Detection: ${detection.label} - ${detection.desc}${detection.note ? ' ' + detection.note : ''}\n`;
 
                         auditText += `------------------------------------------------------------\n`;
 
@@ -903,6 +911,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 if (feature.desc) text += `Description: ${feature.desc.replace(/<[^>]*>?/gm, '')}\n`;
                 if (feature.info && feature.info.fix) text += `Remediation: ${feature.info.fix.replace(/<[^>]*>?/gm, '')}\n`;
+                const detection = detectionInfo(feature);
+                if (detection) text += `Detection: ${detection.label} - ${detection.desc}${detection.note ? ' ' + detection.note : ''}\n`;
                 text += `------------------------------------------------------------\n`;
                 
                 activeModalElements.forEach(el => {
@@ -1790,6 +1800,11 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <div class="info-section">
                                         <strong>How to fix:</strong>
                                         ${feature.info.fix}
+                                    </div>` : ''}
+                                    ${detectionInfo(feature) ? `
+                                    <div class="info-section">
+                                        <strong>Detection: ${detectionInfo(feature).label}.</strong>
+                                        ${detectionInfo(feature).desc} ${detectionInfo(feature).note}
                                     </div>` : ''}
                                 </div>
                             </div>

@@ -62,6 +62,12 @@ test.describe('wick-ag-lens audit', () => {
     expect(report.audit_trail[0].screenshot_base64).not.toMatch(/^data:/); // raw base64, no data-URI prefix
   });
 
+  test('without -s the screenshot_base64 key is omitted from every step (smaller JSON)', async ({ baseURL }) => {
+    const { report } = await audit(`${baseURL}/interactive.html`, ['--audits', 'v-missing-alt', '--step', 'click::#add']);
+    expect(report.audit_trail).toHaveLength(2);
+    for (const step of report.audit_trail) expect(Object.keys(step), 'no screenshot key without -s').not.toContain('screenshot_base64');
+  });
+
   test('-s adds one screenshot per step, showing the page change', async ({ baseURL }) => {
     const { report } = await audit(`${baseURL}/interactive.html`, [
       '-s', '--audits', 'v-missing-alt,v-empty-links', '--step', 'click::#add', '--step', 'click::#add-link',

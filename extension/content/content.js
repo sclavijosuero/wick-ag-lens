@@ -1137,7 +1137,13 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
         }
 
         const info = configData.feature.info || { what: 'No information provided.', why: 'No information provided.' };
-        const severityHtml = configData.feature.severity ? `<span class="a11y-toast-severity severity-${configData.feature.severity.toLowerCase()}">${configData.feature.severity}</span>` : '';
+        const detectionLevel = ((window.A11Y_CONFIG || {}).detectionLevels || {})[configData.feature.detection];
+        const detectionHtml = detectionLevel ? `
+            <details class="a11y-toast-accordion">
+                <summary>Detection: ${detectionLevel.label}</summary>
+                <div class="a11y-toast-accordion-content">${detectionLevel.desc} ${configData.feature.detectionNote || ''}</div>
+            </details>` : '';
+        const severityHtml = configData.feature.severity ?`<span class="a11y-toast-severity severity-${configData.feature.severity.toLowerCase()}">${configData.feature.severity}</span>` : '';
 
         const rawLabel = formatLabel(badge.dataset.legendLabel, text);
         const safeDisplayLabel = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1194,6 +1200,7 @@ function drawHighlight(el, color, text, featureId, legendType = "default", borde
                 <div class="a11y-toast-accordion-content">${info.fix}</div>
             </details>
             ` : ''}
+            ${detectionHtml}
         `;
 
         document.documentElement.appendChild(toast);

@@ -9,6 +9,10 @@ npm run setup          # one-time: root deps + cli deps + chromium
 npm test               # builds (pretest), then runs everything
 npm run test:cli | test:mcp | test:package | test:viewer | test:agent-browser
 npm run test:auth      # only the @auth tests (CLI + MCP + viewer + agent-browser handoff; the Abi ones stay skipped)
+npm run test:a11y-auth # accessibility audits behind each login method
+npm run test:journey   # the multi-step journeys (no login)
+npm run test:samples   # the pages shipped in the package, every step type
+npm run test:sample-journeys # the shipped sample journey, with and without login, in each tool
 npm run test:sso       # only the @sso tests (login through a redirect to another origin)
 npm run test:live      # only the opt-in live checks against Abi's Testing Dojo (needs internet)
 npm run test:live -- --ui   # same, in the Playwright UI
@@ -86,7 +90,7 @@ Rule of thumb: check the examples users will copy with `@sample-journeys`; check
 | `@live` | `cli/auth-live-abi` | Real public site. Skipped unless `WICK_LIVE=1`. Also tagged `@auth`. |
 | `@agent-browser` | all files in `agent-browser/` | Needs the `agent-browser` dev dependency. Slowest tests (10-30 s each). |
 | `@docs` | `package/docs-commands`, `package/tags-doc` | Check that the documented commands, flags, tags, scripts and environment variables exist. |
-| *(no tag)* | `cli/audit`, `cli/focus-order`, `cli/aria-hidden`, `cli/frames-and-shadow`, `mcp/server`, `package/contents`, and the rest of `viewer/viewer-via-cli` | Core behaviour of the audits, the MCP tools, the viewer and the package contents. |
+| *(no tag)* | `cli/audit`, `cli/focus-order`, `cli/aria-hidden`, `cli/frames-and-shadow`, `cli/wcag-filters`, `mcp/wcag-filters`, `mcp/server`, `package/contents`, and the rest of `viewer/viewer-via-cli` | Core behaviour of the audits, the MCP tools, the viewer and the package contents. |
 
 ### Combining tags and projects
 
@@ -101,7 +105,7 @@ with each other. Add `--ui` to any of them to use the Playwright UI, and `--list
 | Auth **or** docs | `npx playwright test --grep "@auth\|@docs"` | 60 |
 | Auth through the CLI only | `npx playwright test --project=cli --grep @auth` | 24 |
 | SSO through CLI and MCP | `npx playwright test --project=cli --project=mcp --grep @sso` | 10 |
-| Everything except agent-browser and live (fast CI run) | `npx playwright test --grep-invert "@agent-browser\|@live"` | 364 |
+| Everything except agent-browser and live (fast CI run) | `npx playwright test --grep-invert "@agent-browser\|@live"` | 381 |
 | Only the agent-browser tests | `npm run test:agent-browser` or `--grep @agent-browser` | 131 |
 | Accessibility journeys through every login method | `npm run test:a11y-auth` | 231 |
 | Multi-step journeys (CLI, MCP, viewer, agent-browser) | `npm run test:journey` | 87 |
@@ -116,6 +120,60 @@ listed but skipped.
 When you add a test, give it a tag only if it belongs to one of these groups, and update the Tags table above.
 `package/tags-doc.spec.js` (tag `@docs`) fails if a tag, an npm test script or an environment variable used by the tests is
 missing from this README, or if a documented tag is no longer used.
+
+## What the tests verify
+
+Each row says what is checked and gives examples. Which tag selects which tests is in [What runs what](#what-runs-what).
+
+| Area | What it verifies | Examples |
+| :-- | :-- | :-- |
+| **CLI: audits** (`cli/audit`) | The headless CLI end to end: flags, rule results and multi-step delta reporting. | Known violations are reported on an inaccessible page and **none** on an accessible one; `--audits` limits the rules; `--step click::#btn` reports only the *new* findings; `-s` embeds a valid JPEG per step. |
+| **CLI: focus order** (`cli/focus-order`) | `i-focus-order` maps the exact Tab sequence, as a full snapshot at every step. | A step that reveals a control re-maps the whole sequence (4 stops, then 5); only stops the Tab key can reach are listed (no `display:none`, `inert`, `input[type=hidden]` or `tabindex="-1"`). |
+| **CLI: `v-aria-hidden-focus`** (`cli/aria-hidden`) | The rule flags only controls a keyboard user can really reach inside `aria-hidden`. | Flags `button`, `a[href]`, `contenteditable`, `summary` and `tabindex="0"`; skips `tabindex="-1"`, disabled, `inert` and non-rendered controls; sees through shadow hosts. |
+| **CLI: frames and shadow DOM** (`cli/frames-and-shadow`) | Findings and focus order cross iframe and shadow boundaries. | The focus order numbers frame content like the extension (`[Iframe] #2.1`, `[Nested] #2.2.1`); violations are found in a child and a nested grandchild frame, and inside open shadow roots. |
+| **WCAG filters** (`cli/wcag-filters`, `mcp/wcag-filters`) | `--wcag-version` / `--wcag-level` (MCP: `wcagVersions` / `wcagLevels`) behave like the extension's checkboxes, **per legend**: text contrast (AA fail / AAA fail), touch targets (small / medium / large) and language of parts. | On one page with an element for each legend, the legends reported match, for six version/level combinations, what the extension's own rule shows (`helpers/wcag.js` applies it to the core config). E.g. 2.0 + 2.1 with A + AA keeps "AA Fail" and drops "AAA Fail". |
+| **MCP** (`mcp/server`) | The MCP server over stdio, driven by the official MCP SDK client (the same wire protocol an AI agent uses; Playwright is only the runner). | The expected tools are listed; the full `audit_baseline` → `interact_and_diff` → `get_audit_trail` session returns the documented JSON; `interact_and_diff` without a baseline is an error. |
+| **Authentication only** (`@auth`, `@sso`) | Every documented way to log in, through the CLI flags and the MCP arguments, against a local fake login system. No accessibility result is the point. | `-u`/`-p`; a company + user + password pipeline (`--auth-step`); an SSO-style flow through an identity provider on another origin; `--auth-script`; saved state (`-a` / `authState`) from Playwright and from `agent-browser`; saving the session headlessly; wrong password and expired state do **not** log in. |
+| **Accessibility behind a login** (`@a11y-auth`) | The **same** accessibility journey gives the **same** findings whatever the login method. | One run per method (CLI and MCP), the same expectations in each block, so the blocks can be compared. |
+| **Journeys** (`@journey`) | A 9-step journey reports the right new, resolved and persisting findings, and the right focus order, at every step. | Through CLI, MCP, the viewer, and agent-browser (public page); the findings per step are frozen in `helpers/references.js`. |
+| **Samples** (`@samples`, `@sample-journeys`) | The pages shipped in the package work, and every `--step` type (click, fill, select, hover, press, wait) gives its diff. | The README CLI examples (3, 5, 6, 7, 8) run against the samples; the packaged copy equals `/samples`; the sample journey with no login and with each login method, in each tool. |
+| **Viewer** (`viewer/`) | The offline HTML report viewer, driven in a real browser from real CLI output. | Per-step screenshots, the timeline, the **Display Focus Order** tab (including "Hidden from AT" stops), and an audit taken behind a login. |
+| **agent-browser** (`@agent-browser`) | The real `agent-browser` CLI: it signs in, saves the session, and the session survives a whole audit. | The saved-state file format; the handoff to the CLI and to MCP; the blind-spot comparison; the public and the signed-in journey. |
+| **Package** (`package/`) | What is published to npm, and that the documentation is true. | Runtime files, `core`, `SKILL.md`, the samples and docs are included; tests, the extension and dev tooling are not; documented `audit` flags and `agent-browser` commands exist; tags, scripts and variables are documented. |
+
+### Showcase: focus order across steps
+
+One viewer test audits a realistic storefront page (`fixtures/pages/focus-demo.html`) through three steps and checks the report after each one:
+
+| Step | Interaction | New findings | Tab stops |
+| :-- | :-- | :-- | :-- |
+| 1 | Page as loaded | none | 14 |
+| 2 | Click **Show more options** | an icon-only button with no name, an image with no alt text | 16 |
+| 3 | Click **Shop new arrivals** | an icon-only link with no name | 18 |
+
+Each step attaches a screenshot of the rendered report to the Playwright report.
+
+### The fake login system
+
+The fixture server (`fixtures/server.js`) is a small, offline, deterministic login system, so the tests need no internet or real accounts:
+
+* `login-2field.html`: user + password (the `-u`/`-p` shorthand).
+* `login-company.html`: company + user + password, like multi-tenant apps.
+* `login-sso.html`: a two-screen flow where the password field appears asynchronously.
+* `account.html`: the protected page. It is only served with the session cookie and holds an image without alt text that exists nowhere else, so "that finding was reported" proves the audit ran **logged in**.
+* `/app/journey.html`: a protected copy of the multi-step journey page, used to prove a session survives a whole journey.
+* A fake **identity provider** on another origin for the SSO tests (see [Running the SSO tests](#running-the-sso-tests-in-playwright-step-by-step)).
+
+The shipped sample server (`cli/samples/server.mjs`) plays the same role for the `@sample-journeys` tests.
+
+### Live checks (opt-in)
+
+Three tests (tagged `@auth @live`) run the package against a public training site with a real login and real accessibility problems, [Abi's Testing Dojo](https://abi-testing-dojo-demo.azurewebsites.net/), whose login page publishes its demo credentials. They follow the CLI README's *Enterprise Multi-Field Auth + Post-Login SPA Workflow* example, once through the CLI and once through MCP. They are skipped unless `WICK_LIVE=1`:
+
+```bash
+npm run test:live              # headless, terminal output
+npm run test:live -- --ui      # in the Playwright UI (screenshots in each test's Attachments tab)
+```
 
 ## Environment variables
 
@@ -136,7 +194,7 @@ None are needed for a normal run. These change what runs or where it runs. Set t
 - `images/playwright-ui.png` — screenshot of the Playwright UI used in the root `README.md` (currently a placeholder: replace it, keeping the file name).
 - `fixtures/pages/` — static pages with known a11y problems, served locally (offline, deterministic).
 - `fixtures/server.js` — also hosts a fake cookie login (`POST /login`, protected `/account.html`; demo creds `Northwind` / `jdoe` / `Admin+123`) used by the `@auth` tests. `fixtures/auth/login-script.mjs` is the custom module for `--auth-script`.
-- `helpers/` — CLI runner, MCP stdio client, auth helpers (storage-state builders, login steps), path resolution.
+- `helpers/` — CLI runner, MCP stdio client, `agent-browser` wrapper, auth and login-method definitions (`login-matrix.js`, `sample-journeys.js`), the shared journey expectations (`journey-suite.js`, `steps-demo.js`, `references.js`), the viewer helper and path resolution.
 - `cli/auth-live-abi.spec.js` — the `@live` tests. They run README example 11 (login + Security > Companies > search) through the CLI and through MCP against <https://abi-testing-dojo-demo.azurewebsites.net>. `npm run test:live` (runs `run-live.js`) sets `WICK_LIVE=1` for you on any OS; without it these tests are skipped. They attach one screenshot per step (Attachments tab in the UI). Override the site or demo credentials with `WICK_LIVE_ABI_URL`, `WICK_LIVE_ABI_COMPANY`, `WICK_LIVE_ABI_USER`, `WICK_LIVE_ABI_PASSWORD`. Assertions are loose by design (kinds of findings, not counts) because the site is not ours.
 - `fixtures/server.js` also runs a fake **identity provider** on `localhost:<FIXTURE_PORT + 1>` (the app is on `127.0.0.1:<FIXTURE_PORT>`): different host and port, its own cookie (`idp_session`), authorization-code redirect back to `/sso/callback`. Page: `fixtures/pages/idp-login.html`. Used by `cli/sso.spec.js` and `mcp/sso.spec.js` (tag `@sso`).
 - **Ports.** The fixtures use `4173` (the app) and `4174` (the fake identity provider). If a stale fixture server from an old Playwright UI session still holds 4173, the run stops with `EADDRINUSE` instead of silently using it: close that session, or pick another pair with `FIXTURE_PORT=<port>` (the identity provider is then `<port> + 1`), e.g. `$env:FIXTURE_PORT=4300` in PowerShell.

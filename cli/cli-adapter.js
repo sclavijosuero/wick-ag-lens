@@ -197,7 +197,9 @@ window.A11yCliAdapter = {
                     why: window.A11yCliAdapter.stripHtml(rawWhy),
                     fix: window.A11yCliAdapter.stripHtml(feature.info && feature.info.fix ? feature.info.fix : ''),
                     wcag_levels: normalizedTags,
-                    wcag_references: window.A11yCliAdapter.extractWcagLinks(rawWhy)
+                    wcag_references: window.A11yCliAdapter.extractWcagLinks(rawWhy),
+                    detection: feature.detection || 'rule',
+                    detection_note: feature.detectionNote || ''
                 },
                 elements: []
             };
