@@ -267,16 +267,28 @@ export class WICKScanner {
             for (const currAudit of currentStandardSnapshot) {
                 const baseAudit = this.lastSnapshot.find(a => a.auditId === currAudit.auditId) || { elements: [] };
                 
-                const hash = (el) => `${el.selector}|${el.issueText}`;
-                const baseSet = new Set(baseAudit.elements.map(hash));
-                const currSet = new Set(currAudit.elements.map(hash));
+                // Identity = selector + issue text + occurrence number, so elements that share one selector (e.g. duplicate ids)
+                // are counted one by one: going from 2 to 3 of them reports 1 new, not 0.
+                const keyed = (elements) => {
+                    const seen = new Map();
+                    return elements.map(el => {
+                        const base = `${el.selector}|${el.issueText}`;
+                        const n = (seen.get(base) || 0) + 1;
+                        seen.set(base, n);
+                        return { el, key: `${base}#${n}` };
+                    });
+                };
+                const baseKeyed = keyed(baseAudit.elements);
+                const currKeyed = keyed(currAudit.elements);
+                const baseSet = new Set(baseKeyed.map(x => x.key));
+                const currSet = new Set(currKeyed.map(x => x.key));
 
-                const newElems = currAudit.elements.filter(el => !baseSet.has(hash(el)));
+                const newElems = currKeyed.filter(x => !baseSet.has(x.key)).map(x => x.el);
                 if (newElems.length > 0) {
                     diffedNew.push({ ...currAudit, elements: newElems });
                 }
 
-                const resolvedElems = baseAudit.elements.filter(el => !currSet.has(hash(el)));
+                const resolvedElems = baseKeyed.filter(x => !currSet.has(x.key)).map(x => x.el);
                 if (resolvedElems.length > 0) {
                     diffedResolved.push({ ...currAudit, elements: resolvedElems });
                 }

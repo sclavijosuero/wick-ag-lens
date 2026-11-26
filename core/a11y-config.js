@@ -831,7 +831,7 @@ window.A11Y_CONFIG = {
                             detectionNote: "Colors are computed, but text over images or gradients cannot be decided and is flagged for manual review. Overlapping elements are not modelled.",
                             label: "Text Color Contrast",
                             desc: "Evaluates effective contrast ratio between text and its background.",
-                            severity: "CRITICAL",
+                            severity: "Critical",
                             wcag: [
                                 { version: "2.0", level: "AA" }, { version: "2.0", level: "AAA" },
                                 { version: "2.1", level: "AA" }, { version: "2.1", level: "AAA" },

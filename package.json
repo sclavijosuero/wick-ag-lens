@@ -19,6 +19,7 @@
     "test:journey": "playwright test --grep @journey",
     "test:samples": "playwright test --grep @samples",
     "test:sample-journeys": "playwright test --grep @sample-journeys",
+    "test:benchmark": "playwright test --grep @benchmark",
     "test:sso": "playwright test --grep @sso",
     "test:live": "node tests/run-live.js",
     "test:ui": "playwright test --ui",

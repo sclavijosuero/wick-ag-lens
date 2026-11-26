@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - Northwind Outfitters</title>
+  <!-- Sign-in page of the benchmark shop (tests/benchmark/README.md). A normal server form: a successful login sets the
+       session cookie and lands on /app/bench-shop.html. Demo credentials only: jdoe / Admin+123. -->
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, Roboto, Arial, sans-serif; background: #f3f5f2; color: #1f2a24; }
+    .wrap { max-width: 400px; margin: 8vh auto; background: #fff; padding: 32px; border-radius: 10px; box-shadow: 0 2px 14px rgba(0,0,0,.08); }
+    .brand { font-size: 22px; font-weight: 700; color: #1d5c3a; margin: 0 0 4px; }
+    .sub { margin: 0 0 24px; color: #4a5750; }
+    label { display: block; font-weight: 600; margin: 14px 0 6px; }
+    input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border: 1px solid #98a39c; border-radius: 6px; font-size: 16px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 20px; font-size: 14px; }
+    button { width: 100%; padding: 12px; border: 0; border-radius: 6px; background: #1d5c3a; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .denied { background: #fdecea; color: #7a1c14; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="brand">Northwind Outfitters</p>
+    <h1 class="sub" style="font-size:16px;font-weight:400">Sign in to your account</h1>
+    <p class="denied" id="denied" hidden>Please sign in to continue.</p>
+    <form method="post" action="/login?next=/app/bench-shop.html">
+      <label for="user">Email or user name</label>
+      <input id="user" name="user" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <div class="row">
+        <span><input id="remember" type="checkbox"> <label for="remember" style="display:inline;font-weight:400">Remember me</label></span>
+        <a href="#forgot">Forgot password?</a>
+      </div>
+      <button id="login" type="submit">Sign in</button>
+    </form>
+  </main>
+  <script>if (location.search.includes('denied')) document.getElementById('denied').hidden = false;</script>
+</body>
+</html>

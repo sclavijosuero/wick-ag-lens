@@ -12,7 +12,7 @@ function rows(findings) {
         for (const e of a.elements) {
           out.push({
             auditId: a.auditId, severity: a.severity, selector: e.selector, issueText: e.issueText,
-            key: `${a.auditId}|${e.selector}|${e.issueText}`,     // same identity the scanner uses to diff steps
+            key: `${a.auditId}|${e.selector}|${e.issueText}`,     // same identity the scanner uses to diff steps (plus its occurrence number)
           });
         }
       }
@@ -38,6 +38,10 @@ const labels = (list) => list.map(label).sort();
 function replay(report) {
   const problems = [];
   let active = new Map();
+  // Some audits list several elements with the SAME key (selector + text): v-duplicate-id lists every element sharing an id as `#price | Duplicate ID...`.
+  // Those are counted, not collapsed, so a key can be active several times.
+  const times = new Map();
+  const REPEATABLE = new Set(['v-duplicate-id']);
   const steps = report.audit_trail.map((step) => {
     const { added, resolved } = delta(step);
     // every audit entry states how many elements it lists: the number must agree with the list
@@ -52,14 +56,16 @@ function replay(report) {
     }
     for (const r of resolved) {
       if (!active.has(r.key)) problems.push(`step ${step.step}: resolved "${r.key}" was never active`);
-      active.delete(r.key);
+      const left = (times.get(r.key) ?? 1) - 1;
+      if (left > 0) times.set(r.key, left); else { times.delete(r.key); active.delete(r.key); }
     }
     for (const r of added) {
-      if (active.has(r.key)) problems.push(`step ${step.step}: "${r.key}" reported as new but already active`);
+      if (active.has(r.key) && !REPEATABLE.has(r.auditId)) problems.push(`step ${step.step}: "${r.key}" reported as new but already active`);
+      times.set(r.key, (times.get(r.key) ?? 0) + 1);
       active.set(r.key, r);
     }
     const counts = Object.fromEntries(SEVERITIES.map((s) => [s, 0]));
-    for (const r of active.values()) counts[r.severity] = (counts[r.severity] ?? 0) + 1;
+    for (const [key, r] of active) counts[r.severity] = (counts[r.severity] ?? 0) + (times.get(key) ?? 1);
     for (const s of SEVERITIES) {
       if (counts[s] !== step.health_scores[s]) problems.push(`step ${step.step}: ${s} replayed=${counts[s]} health_scores=${step.health_scores[s]}`);
     }

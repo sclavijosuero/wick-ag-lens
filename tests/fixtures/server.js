@@ -52,15 +52,18 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const name = path.basename(url.pathname) || 'good.html';
 
-  // Readiness probe used by playwright.config.js. Bump FIXTURE_SERVER_VERSION whenever routes are added: a stale server
+  // Readiness probe used by playwright.config.js. Bump the version in the route name whenever routes are added: a stale server
   // (e.g. left running by an open Playwright UI) does not answer here, so the run fails loudly instead of using old routes.
-  if (url.pathname === '/__fixture-server') return res.writeHead(200, { 'Content-Type': 'text/plain' }).end('fixture-server v2');
+  if (url.pathname === '/__fixture-server-v3') return res.writeHead(200, { 'Content-Type': 'text/plain' }).end('fixture-server v3');
 
   if (req.method === 'POST' && url.pathname === '/login') {
     const f = await readForm(req);
     const companyOk = f.company === undefined || f.company === VALID.company; // 2-field forms send no company
     if (f.user === VALID.user && f.password === VALID.password && companyOk) {
-      return redirect(res, '/account.html', { 'Set-Cookie': cookie(SESSION_COOKIE, SESSION_VALUE) });
+      // ?next=/app/<page> lets a login page land on a specific protected page (the benchmark shop); default: the dashboard
+      const next = url.searchParams.get('next');
+      const target = next && /^\/app\/[\w-]+\.html$/.test(next) ? next : '/account.html';
+      return redirect(res, target, { 'Set-Cookie': cookie(SESSION_COOKIE, SESSION_VALUE) });
     }
     return redirect(res, '/login-failed.html');
   }
@@ -84,6 +87,12 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/app/journey.html') {
     if (!hasSession(req)) return redirect(res, '/login-2field.html?denied=1');
     return sendFile(res, path.join(root, 'journey.html'));
+  }
+
+  // Protected benchmark shop (pages/bench-shop.html): see tests/benchmark/README.md. Signed out -> its own sign-in page.
+  if (url.pathname === '/app/bench-shop.html') {
+    if (!hasSession(req)) return redirect(res, '/bench-login.html?denied=1');
+    return sendFile(res, path.join(root, 'bench-shop.html'));
   }
 
   sendFile(res, path.join(root, name));

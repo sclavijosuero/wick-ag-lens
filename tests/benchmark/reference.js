@@ -1,0 +1,58 @@
+// THE EXPECTED RESULT of the benchmark journey (journey.js) on bench-shop.html, FROZEN from real runs (two identical runs, including
+// element counts) by regenerate-reference.js. One row per entry of the audit trail: step 0 is the page load, steps 1 to 15 are the journey
+// steps (the same numbers as journey.js and the README). Each row lists how many elements each audit reported as NEW and as RESOLVED, and
+// how many tab stops the focus order lists afterwards. Persisting findings are not repeated (the report is a diff against the previous step).
+// Use it to check that a run (CLI, MCP, an agent driving agent-browser or Playwright MCP...) did the same work: see the spec and the README.
+// If you change the page, the journey or the tool on purpose, regenerate it (README, "Regenerating the reference").
+const REFERENCE = [
+  { step: 0, does: "page load (signed in)", focusStops: 37,
+    new: {'i-accessible-name': 37, 'i-aria-controls': 4, 'i-aria-expanded': 4, 'i-aria-live': 1, 'i-aria-pressed': 5, 'i-aria-roles': 2, 'i-field-desc': 1, 'i-image-alts': 9, 'i-landmarks': 5, 'i-tabindex-all': 1, 'i-touch-targets': 37, 'i-valid-headings': 11, 'v-broken-aria-ref': 5, 'v-duplicate-id': 8, 'v-empty-buttons': 6, 'v-empty-links': 3, 'v-generic-link': 3, 'v-missing-alt': 5, 'v-placeholder-label': 2, 'v-svg-accessible': 41, 'v-text-contrast': 11, 'v-unfocusable': 4, 'v-unlabeled-inputs': 3},
+    resolved: {} },
+  { step: 1, does: "open the category panel (hamburger)", focusStops: 40,
+    new: {'i-accessible-name': 3, 'i-aria-expanded': 1, 'i-touch-targets': 3, 'v-empty-links': 1, 'v-generic-link': 1, 'v-svg-accessible': 1, 'v-text-contrast': 2, 'v-unfocusable': 1},
+    resolved: {'i-aria-expanded': 1, 'v-broken-aria-ref': 1} },
+  { step: 2, does: "hover \"Shop\": mega menu", focusStops: 46,
+    new: {'i-accessible-name': 6, 'i-aria-roles': 7, 'i-touch-targets': 6, 'v-empty-links': 1, 'v-generic-link': 1, 'v-svg-accessible': 1},
+    resolved: {} },
+  { step: 3, does: "close the category panel", focusStops: 37,
+    new: {'i-aria-expanded': 1, 'v-broken-aria-ref': 1},
+    resolved: {'i-accessible-name': 9, 'i-aria-expanded': 1, 'i-aria-roles': 7, 'i-touch-targets': 9, 'v-empty-links': 2, 'v-generic-link': 2, 'v-svg-accessible': 2, 'v-text-contrast': 2, 'v-unfocusable': 1} },
+  { step: 4, does: "type a search: suggestions", focusStops: 37,
+    new: {'i-image-alts': 2, 'v-missing-alt': 2},
+    resolved: {} },
+  { step: 5, does: "press Enter: search results", focusStops: 25,
+    new: {'i-accessible-name': 1, 'i-image-alts': 1, 'i-touch-targets': 1, 'i-valid-headings': 1, 'v-duplicate-id': 2, 'v-text-contrast': 1},
+    resolved: {'i-accessible-name': 13, 'i-aria-pressed': 3, 'i-image-alts': 9, 'i-touch-targets': 13, 'i-valid-headings': 6, 'v-duplicate-id': 8, 'v-empty-buttons': 3, 'v-missing-alt': 5, 'v-svg-accessible': 27, 'v-text-contrast': 3, 'v-unfocusable': 3} },
+  { step: 6, does: "sort by price", focusStops: 26,
+    new: {'i-accessible-name': 1, 'i-aria-live': 1, 'i-touch-targets': 1, 'v-generic-link': 1, 'v-text-contrast': 1},
+    resolved: {} },
+  { step: 7, does: "open the Brand filter", focusStops: 29,
+    new: {'i-accessible-name': 3, 'i-aria-expanded': 1, 'i-fieldsets': 2, 'i-touch-targets': 3, 'v-unlabeled-inputs': 2},
+    resolved: {'i-aria-expanded': 1, 'v-broken-aria-ref': 1} },
+  { step: 8, does: "open the quick-view dialog", focusStops: 33,
+    new: {'i-accessible-name': 4, 'i-aria-pressed': 1, 'i-aria-roles': 1, 'i-field-desc': 1, 'i-image-alts': 1, 'i-touch-targets': 4, 'i-valid-headings': 1, 'v-aria-hidden-focus': 12, 'v-broken-aria-ref': 2, 'v-duplicate-id': 5, 'v-empty-buttons': 1, 'v-missing-alt': 1, 'v-svg-accessible': 1, 'v-text-contrast': 2, 'v-unlabeled-inputs': 1},
+    resolved: {'v-duplicate-id': 2} },
+  { step: 9, does: "enter an invalid quantity", focusStops: 33,
+    new: {'v-aria-invalid': 1},
+    resolved: {} },
+  { step: 10, does: "add to cart (dialog closes)", focusStops: 29,
+    new: {'i-accessible-name': 1, 'v-duplicate-id': 2},
+    resolved: {'i-accessible-name': 5, 'i-aria-pressed': 1, 'i-aria-roles': 1, 'i-field-desc': 1, 'i-image-alts': 1, 'i-touch-targets': 4, 'i-valid-headings': 1, 'v-aria-hidden-focus': 12, 'v-aria-invalid': 1, 'v-broken-aria-ref': 2, 'v-duplicate-id': 5, 'v-empty-buttons': 1, 'v-missing-alt': 1, 'v-svg-accessible': 1, 'v-text-contrast': 2, 'v-unlabeled-inputs': 1} },
+  { step: 11, does: "wait for the toast", focusStops: 30,
+    new: {'i-accessible-name': 1, 'i-aria-live': 1, 'i-aria-roles': 1, 'i-tabindex-all': 1, 'i-touch-targets': 1, 'v-generic-link': 1, 'v-tabindex': 1, 'v-text-contrast': 2},
+    resolved: {} },
+  { step: 12, does: "open the cart drawer", focusStops: 34,
+    new: {'i-accessible-name': 5, 'i-aria-expanded': 1, 'i-aria-roles': 1, 'i-image-alts': 1, 'i-landmarks': 1, 'i-touch-targets': 5, 'i-valid-headings': 1, 'v-aria-hidden-focus': 12, 'v-broken-aria-ref': 1, 'v-duplicate-id': 3, 'v-empty-buttons': 1, 'v-generic-link': 1, 'v-heading-errors': 1, 'v-missing-alt': 1, 'v-placeholder-label': 1, 'v-svg-accessible': 1, 'v-text-contrast': 1, 'v-unfocusable': 1, 'v-unlabeled-inputs': 2},
+    resolved: {'i-accessible-name': 1, 'i-aria-expanded': 1, 'i-aria-live': 1, 'i-aria-roles': 1, 'i-tabindex-all': 1, 'i-touch-targets': 1, 'v-broken-aria-ref': 1, 'v-duplicate-id': 2, 'v-generic-link': 1, 'v-tabindex': 1, 'v-text-contrast': 2} },
+  { step: 13, does: "open the checkout form", focusStops: 40,
+    new: {'i-accessible-name': 7, 'i-aria-controls': 1, 'i-aria-expanded': 1, 'i-aria-live': 1, 'i-field-desc': 1, 'i-fieldsets': 2, 'i-required-fields': 2, 'i-touch-targets': 7, 'i-valid-headings': 1, 'v-text-contrast': 1, 'v-unlabeled-inputs': 1},
+    resolved: {} },
+  { step: 14, does: "enter an invalid e-mail", focusStops: 40,
+    new: {'v-aria-invalid': 1, 'v-broken-aria-ref': 1},
+    resolved: {} },
+  { step: 15, does: "press Escape (close the drawer)", focusStops: 29,
+    new: {'i-aria-expanded': 1, 'v-broken-aria-ref': 1, 'v-duplicate-id': 2},
+    resolved: {'i-accessible-name': 12, 'i-aria-controls': 1, 'i-aria-expanded': 2, 'i-aria-live': 1, 'i-aria-roles': 1, 'i-field-desc': 1, 'i-fieldsets': 2, 'i-image-alts': 1, 'i-landmarks': 1, 'i-required-fields': 2, 'i-touch-targets': 12, 'i-valid-headings': 2, 'v-aria-invalid': 1, 'v-broken-aria-ref': 2, 'v-duplicate-id': 3, 'v-empty-buttons': 1, 'v-generic-link': 1, 'v-heading-errors': 1, 'v-missing-alt': 1, 'v-placeholder-label': 1, 'v-svg-accessible': 1, 'v-text-contrast': 2, 'v-unfocusable': 1, 'v-unlabeled-inputs': 3} },
+];
+
+module.exports = { REFERENCE };

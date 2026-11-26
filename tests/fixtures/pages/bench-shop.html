@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northwind Outfitters - Outdoor Gear</title>
+  <!--
+    BENCHMARK SHOP (see tests/benchmark/README.md). A realistic outdoor-gear store, DELIBERATELY full of accessibility problems,
+    most of which appear or disappear as the user interacts (menus, search, filters, quick view, cart drawer, checkout).
+    Dev only: it is never published. It needs a login (/bench-login.html, jdoe / Admin+123); the journey is in tests/benchmark/journey.js.
+    Planted problem families (audit id): empty icon buttons/links (v-empty-buttons, v-empty-links), SVG icons without names (v-svg-accessible),
+    images without alt (v-missing-alt), "Click here" links (v-generic-link), inputs without labels (v-unlabeled-inputs, v-placeholder-label),
+    aria-invalid fields (v-aria-invalid), aria references to missing ids (v-broken-aria-ref), duplicate ids (v-duplicate-id), skipped heading
+    levels (v-heading-errors), clickable divs (v-unfocusable), positive tabindex (v-tabindex), page content left focusable under aria-hidden
+    (v-aria-hidden-focus), low contrast text (v-text-contrast), and for the structural audits: landmarks, headings, roles, names, expanded/controls,
+    live regions, required fields, descriptions, fieldsets, touch targets, tabindex, pressed buttons, image alternatives and the focus order.
+  -->
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, Roboto, Arial, sans-serif; color: #1f2a24; background: #fafbf9; }
+    a { color: #1d5c3a; }
+    .site-header { display: flex; align-items: center; gap: 16px; padding: 10px 24px; background: #fff; border-bottom: 1px solid #dfe5e0; position: relative; }
+    .logo { font-size: 20px; font-weight: 700; text-decoration: none; color: #1d5c3a; }
+    .icon-btn { width: 28px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer; position: relative; }
+    .icon-link { display: inline-block; width: 28px; height: 28px; }
+    .icon-btn svg, .icon-link svg { width: 22px; height: 22px; fill: #1d5c3a; }
+    #search-form { position: relative; flex: 1; max-width: 420px; }
+    #search { width: 100%; padding: 8px 12px; border: 1px solid #98a39c; border-radius: 20px; font-size: 14px; }
+    .suggestions { position: absolute; left: 0; right: 0; top: 38px; background: #fff; border: 1px solid #dfe5e0; list-style: none; margin: 0; padding: 4px; z-index: 5; }
+    .suggestions li { display: flex; gap: 8px; align-items: center; padding: 6px; cursor: pointer; font-size: 14px; }
+    .suggestions img { width: 36px; height: 28px; }
+    .actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    #cart-count { position: absolute; top: -6px; right: -8px; min-width: 16px; font-size: 11px; background: #c0392b; color: #fff; border-radius: 8px; text-align: center; }
+    .main-nav { display: flex; gap: 22px; padding: 10px 24px; background: #1d5c3a; position: relative; }
+    .main-nav a, .main-nav .nav-item { color: #fff; text-decoration: none; font-size: 15px; }
+    .main-nav .sale { color: #ff9a8a; }
+    .mega { position: absolute; top: 40px; left: 24px; width: 520px; background: #fff; border: 1px solid #dfe5e0; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 16px; z-index: 6; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .mega a { color: #1d5c3a; font-size: 14px; }
+    .cat-panel { position: absolute; top: 56px; left: 0; width: 260px; background: #fff; border: 1px solid #dfe5e0; padding: 14px; z-index: 6; }
+    .cat-panel div, .cat-panel a { display: block; margin: 8px 0; font-size: 14px; cursor: pointer; }
+    .hero { display: flex; align-items: center; gap: 24px; padding: 28px 24px; background: #e9efe9; }
+    .hero img { width: 220px; height: 120px; border-radius: 8px; }
+    .hero h1 { margin: 0 0 6px; font-size: 30px; }
+    .hero p { margin: 0 0 10px; color: #a9b5ad; }
+    .cta { display: inline-block; padding: 8px 16px; background: #1d5c3a; color: #fff; border-radius: 4px; text-decoration: none; }
+    .layout { display: flex; gap: 24px; padding: 20px 24px; }
+    #filters { width: 220px; flex: none; }
+    #filters h2, .results h2 { font-size: 18px; margin: 0 0 10px; }
+    .acc-btn { display: block; width: 100%; text-align: left; padding: 10px 4px; background: transparent; border: 0; border-bottom: 1px solid #dfe5e0; font-size: 15px; cursor: pointer; }
+    .acc-panel { padding: 8px 4px; }
+    .acc-panel fieldset { border: 0; padding: 0; margin: 0; }
+    .acc-panel label, .acc-panel .chk { display: block; margin: 6px 0; font-size: 14px; }
+    .results { flex: 1; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .note { color: #b4beb8; font-size: 13px; margin: 0 0 8px; }
+    #grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .card { background: #fff; border: 1px solid #dfe5e0; border-radius: 8px; padding: 10px; position: relative; }
+    .card img { width: 100%; height: 110px; border-radius: 4px; }
+    .card h3 { font-size: 15px; margin: 8px 0 4px; }
+    .price { font-weight: 700; }
+    .old { color: #b9c2bc; text-decoration: line-through; margin-left: 6px; font-size: 13px; }
+    .stars svg { width: 14px; height: 14px; fill: #e0a100; }
+    .card .wish-card { position: absolute; top: 8px; right: 8px; background: #fff; border-radius: 50%; }
+    .card .row { display: flex; gap: 6px; margin-top: 8px; }
+    .btn { padding: 6px 10px; border: 1px solid #1d5c3a; background: #fff; color: #1d5c3a; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .add { padding: 6px 10px; background: #1d5c3a; color: #fff; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; }
+    .modal { position: fixed; z-index: 21; top: 12%; left: 50%; transform: translateX(-50%); width: 560px; background: #fff; border-radius: 10px; padding: 20px; display: flex; gap: 16px; }
+    .modal img { width: 200px; height: 160px; border-radius: 6px; }
+    .modal .x, .drawer .x { position: absolute; top: 10px; right: 10px; }
+    .modal input[type=number] { width: 70px; padding: 6px; }
+    .err { color: #a61b1b; font-size: 13px; margin: 4px 0; }
+    .drawer { position: fixed; z-index: 22; top: 0; right: 0; width: 380px; height: 100vh; background: #fff; box-shadow: -6px 0 24px rgba(0,0,0,.18); padding: 18px; overflow: auto; }
+    .drawer h6 { font-size: 18px; margin: 0 0 12px; }
+    .line { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #eef1ee; font-size: 14px; }
+    .line img { width: 56px; height: 44px; }
+    .line input { width: 52px; padding: 4px; }
+    .rm { color: #a61b1b; cursor: pointer; font-size: 18px; }
+    .drawer input[type=text], .drawer input[type=email], .drawer select { width: 100%; padding: 8px; margin: 4px 0 8px; border: 1px solid #98a39c; border-radius: 4px; }
+    .drawer fieldset { border: 1px solid #dfe5e0; margin: 8px 0; }
+    .toast { position: fixed; z-index: 30; left: 24px; bottom: 24px; background: #2b3a31; color: #7d8f84; padding: 12px 16px; border-radius: 6px; font-size: 14px; }
+    .toast a { color: #8fb7a0; margin-left: 8px; }
+    footer { padding: 24px; background: #1f2a24; color: #8d9a92; font-size: 14px; display: flex; gap: 40px; flex-wrap: wrap; }
+    footer input { padding: 6px 8px; width: 200px; }
+    footer .social a { display: inline-block; width: 24px; height: 24px; margin-right: 8px; }
+    footer .social svg { width: 22px; height: 22px; fill: #8d9a92; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="/app/bench-shop.html">Northwind Outfitters</a>
+  <button id="menu-toggle" class="icon-btn" aria-expanded="false" aria-controls="cat-panel"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></button>
+  <form id="search-form" role="search" onsubmit="return false">
+    <input id="search" type="search" placeholder="Search tents, boots, packs..." aria-describedby="search-help" autocomplete="off">
+    <ul id="suggestions" class="suggestions" hidden></ul>
+  </form>
+  <div class="actions">
+    <button id="wishlist-btn" class="icon-btn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z"/></svg></button>
+    <a id="account-link" class="icon-link" href="/account.html"><svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z"/></svg></a>
+    <button id="cart-btn" class="icon-btn" aria-controls="cart-drawer" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM1 2v2h2l3.6 7.6-1.4 2.4A2 2 0 0 0 7 17h12v-2H7.4l1.1-2h7.5a2 2 0 0 0 1.7-1l3.6-6.5L19.5 4H5.2l-.9-2z"/></svg><span id="cart-count" aria-live="polite">0</span></button>
+  </div>
+</header>
+
+<nav id="main-nav" class="main-nav" aria-label="Main">
+  <span id="nav-shop" class="nav-item" role="button" tabindex="0" aria-haspopup="true">Shop</span>
+  <a href="#men">Men</a>
+  <a href="#women">Women</a>
+  <a href="#camping">Camping</a>
+  <a class="sale" href="#sale">Sale</a>
+  <a href="#gift-cards">Click here for gift cards</a>
+</nav>
+
+<main id="main">
+  <section class="hero">
+    <img src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Crect width='220' height='120' fill='%23517a63'/%3E%3C/svg%3E">
+    <div>
+      <h1>Summer Sale: up to 40% off</h1>
+      <p>Free shipping on orders over $75. Offer ends Sunday.</p>
+      <a class="cta" href="#">Click here</a>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside id="filters">
+      <h2>Filters</h2>
+      <button id="filter-brand" class="acc-btn" aria-expanded="false" aria-controls="brand-panel">Brand</button>
+      <button id="filter-price" class="acc-btn" aria-expanded="false" aria-controls="price-panel">Price range</button>
+      <p class="note">Prices include VAT where applicable.</p>
+    </aside>
+
+    <section class="results">
+      <div class="toolbar">
+        <h2 id="results-heading">All products</h2>
+        <select id="sort">
+          <option value="featured">Featured</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+        </select>
+      </div>
+      <p id="sort-note" class="note" hidden aria-live="polite"></p>
+      <ul id="grid"></ul>
+      <h4 id="results-sub" hidden></h4>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div>
+    <strong>Stay in the loop</strong><br>
+    <input id="newsletter" type="text" placeholder="Your email address">
+    <button class="btn" type="button" style="color:#fff;border-color:#8d9a92;background:transparent">Go</button>
+  </div>
+  <div>Help &middot; Returns &middot; Shipping &middot; <a href="#careers">Read more</a></div>
+  <div class="social">
+    <a href="#facebook"><svg viewBox="0 0 24 24"><path d="M14 8V6c0-1 .5-1 1-1h2V2h-3c-3 0-4 2-4 4v2H7v3h3v9h4v-9h3l.5-3z"/></svg></a>
+    <a href="#instagram"><svg viewBox="0 0 24 24"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg></a>
+  </div>
+</footer>
+
+<div id="overlay-root"></div>
+
+<script>
+  var IMG = function (c) { return "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='110'%3E%3Crect width='160' height='110' fill='%23" + c + "'/%3E%3C/svg%3E"; };
+  var STAR = '<svg viewBox="0 0 24 24"><path d="M12 2l3 7 7 .6-5.4 4.7 1.7 7.2L12 17.8 5.7 21.5l1.7-7.2L2 9.6 9 9z"/></svg>';
+  var X_ICON = '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" stroke="#1d5c3a" stroke-width="2"/></svg>';
+  var HEART = '<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z"/></svg>';
+
+  var PRODUCTS = [
+    { id: 1, name: 'Ridgeline 2P Tent',    cat: 'tent', price: 249, old: 299, alt: null,              color: '517a63', addAsDiv: true,  wish: true },
+    { id: 2, name: 'Summit Trail Boots',   cat: 'boot', price: 159, old: 0,   alt: 'image of boots',  color: '8a6d4b', addAsDiv: true,  wish: true },
+    { id: 3, name: 'Cascade 40L Pack',     cat: 'pack', price: 129, old: 149, alt: 'Green 40 litre backpack', color: '3e6b8a', addAsDiv: false, wish: true },
+    { id: 4, name: 'Alpine Down Jacket',   cat: 'wear', price: 199, old: 0,   alt: null,              color: '8a4b5e', addAsDiv: true,  wish: true },
+    { id: 5, name: 'Basecamp 4P Tent',     cat: 'tent', price: 389, old: 449, alt: 'Four person tent, side view', color: '5b7a3e', addAsDiv: false, wish: false },
+    { id: 6, name: 'Trail Runner Shoes',   cat: 'boot', price: 119, old: 0,   alt: null,              color: '6a5b8a', addAsDiv: false, wish: false },
+    { id: 7, name: 'Insulated Bottle 1L',  cat: 'gear', price: 35,  old: 0,   alt: 'bottle',          color: '4b8a86', addAsDiv: true,  wish: false },
+    { id: 8, name: 'Headlamp 400',         cat: 'gear', price: 45,  old: 59,  alt: null,              color: '8a844b', addAsDiv: false, wish: false }
+  ];
+  var state = { cart: [], query: '', sort: 'featured', brandOpen: false };
+
+  function $(id) { return document.getElementById(id); }
+  function root() { return $('overlay-root'); }
+  function mainHidden(on) { if (on) $('main').setAttribute('aria-hidden', 'true'); else $('main').removeAttribute('aria-hidden'); }
+
+  // ---- product grid ----
+  function visibleProducts() {
+    var list = PRODUCTS.filter(function (p) { return !state.query || p.name.toLowerCase().indexOf(state.query) > -1 || p.cat.indexOf(state.query) > -1; });
+    if (state.sort === 'price-asc') list = list.slice().sort(function (a, b) { return a.price - b.price; });
+    if (state.sort === 'price-desc') list = list.slice().sort(function (a, b) { return b.price - a.price; });
+    return list;
+  }
+  function renderGrid() {
+    $('grid').innerHTML = visibleProducts().map(function (p, i) {
+      return '<li class="card">' +
+        (p.wish ? '<button class="icon-btn wish-card" aria-pressed="false">' + HEART + '</button>' : '') +
+        '<img src="' + IMG(p.color) + '"' + (p.alt ? ' alt="' + p.alt + '"' : '') + '>' +
+        '<h3' + (p.id === 1 ? ' id="product-title"' : '') + '>' + p.name + '</h3>' +
+        '<div><span id="price" class="price">$' + p.price + '</span>' + (p.old ? '<span class="old">$' + p.old + '</span>' : '') + '</div>' +
+        '<div class="stars">' + STAR + STAR + STAR + STAR + '</div>' +
+        '<div class="row"><button id="qv-' + p.id + '" class="btn" data-id="' + p.id + '">Quick view</button>' +
+        (p.addAsDiv ? '<div class="add" onclick="addToCart(' + p.id + ')">Add to cart</div>' : '<button class="add" style="border:0" onclick="addToCart(' + p.id + ')">Add to cart</button>') +
+        '</div></li>';
+    }).join('');
+    document.querySelectorAll('.btn[data-id]').forEach(function (b) { b.addEventListener('click', function () { openQuickView(Number(b.dataset.id)); }); });
+  }
+
+  // ---- header: category panel (hamburger) and mega menu (hover) ----
+  $('menu-toggle').addEventListener('click', function () {
+    var open = this.getAttribute('aria-expanded') === 'true';
+    this.setAttribute('aria-expanded', String(!open));
+    var old = $('cat-panel'); if (old) old.remove();
+    if (!open) {
+      var p = document.createElement('div');
+      p.id = 'cat-panel'; p.className = 'cat-panel';
+      p.innerHTML = '<strong>Shop by category</strong>' +
+        '<a href="/app/bench-shop.html#tents"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3L2 20h20z"/></svg></a>' +
+        '<a href="#">Footwear</a>' +
+        '<div onclick="void 0">Backpacks</div>' +
+        '<a href="#outlet">Read more</a>';
+      $('main-nav').appendChild(p);
+    }
+  });
+  $('nav-shop').addEventListener('mouseenter', function () {
+    if ($('mega')) return;
+    var m = document.createElement('div');
+    m.id = 'mega'; m.className = 'mega'; m.setAttribute('role', 'menu');
+    m.innerHTML = '<a role="menuitem" href="#tents">Tents</a><a role="menuitem" href="#boots">Boots</a><a role="menuitem" href="#packs">Packs</a>' +
+      '<a role="menuitem" href="#"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 12h18"/></svg></a>' +
+      '<a role="menuitem" href="#new">Click here</a><a role="menuitem" href="#clearance">Clearance</a>';
+    $('main-nav').appendChild(m);
+  });
+  $('nav-shop').parentNode.addEventListener('mouseleave', function () { var m = $('mega'); if (m) m.remove(); });
+  document.addEventListener('click', function (e) { var m = $('mega'); if (m && !e.target.closest('#nav-shop')) m.remove(); });
+
+  // ---- search: suggestions while typing, results on Enter ----
+  $('search').addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase(), box = $('suggestions');
+    if (!q) { box.hidden = true; box.innerHTML = ''; return; }
+    var hits = PRODUCTS.filter(function (p) { return p.name.toLowerCase().indexOf(q) > -1 || p.cat.indexOf(q) > -1; }).slice(0, 3);
+    box.innerHTML = hits.map(function (p) { return '<li onclick="void 0"><img src="' + IMG(p.color) + '"><span>' + p.name + '</span></li>'; }).join('');
+    box.hidden = hits.length === 0;
+  });
+  $('search').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    state.query = this.value.trim().toLowerCase();
+    $('suggestions').hidden = true; $('suggestions').innerHTML = '';
+    $('results-heading').textContent = 'Results for "' + state.query + '"';
+    var sub = $('results-sub'); sub.hidden = false; sub.textContent = visibleProducts().length + ' products found';
+    renderGrid();
+  });
+
+  // ---- sort and filters ----
+  $('sort').addEventListener('change', function () {
+    state.sort = this.value; renderGrid();
+    var n = $('sort-note'); n.hidden = false; n.innerHTML = 'Sorted by price (' + (this.value === 'price-asc' ? 'low to high' : 'high to low') + '). <a href="#reset">Click here</a> to reset.';
+  });
+  $('filter-brand').addEventListener('click', function () {
+    var open = this.getAttribute('aria-expanded') === 'true';
+    this.setAttribute('aria-expanded', String(!open));
+    var old = $('brand-panel'); if (old) old.remove();
+    if (!open) {
+      var d = document.createElement('div');
+      d.id = 'brand-panel'; d.className = 'acc-panel';
+      d.innerHTML = '<fieldset><legend>Brands</legend>' +
+        '<label><input type="checkbox"> Northwind</label>' +
+        '<div class="chk"><input type="checkbox"> Ridgeline</div>' +
+        '<div class="chk"><input type="checkbox"> Cascade</div></fieldset>';
+      this.insertAdjacentElement('afterend', d);
+    }
+  });
+
+  // ---- quick view modal ----
+  function openQuickView(id) {
+    var p = PRODUCTS.filter(function (x) { return x.id === id; })[0];
+    closeQuickView();
+    mainHidden(true);   // BUG (realistic): the page behind the dialog is hidden from AT, but its controls stay focusable
+    root().insertAdjacentHTML('beforeend',
+      '<div id="qv-backdrop" class="backdrop"></div>' +
+      '<div id="qv" class="modal" role="dialog" aria-modal="true" aria-labelledby="qv-heading">' +
+        '<button id="qv-close" class="icon-btn x">' + X_ICON + '</button>' +
+        '<img src="' + IMG(p.color) + '">' +
+        '<div><h5 id="product-title">' + p.name + '</h5>' +
+        '<p id="price" style="color:#aab4ae">$' + p.price + ' &middot; free returns</p>' +
+        '<input id="qv-qty" type="number" min="1" value="1" aria-describedby="qv-qty-note">' +
+        '<p id="qv-qty-hint" class="note">Maximum 5 per order.</p>' +
+        '<p><button id="qv-gift" class="btn" aria-pressed="false">Gift wrap</button> ' +
+        '<button id="qv-add" class="add" style="border:0" data-id="' + p.id + '">Add to cart</button></p></div>' +
+      '</div>');
+    $('qv-qty').addEventListener('input', function () {
+      var bad = !(Number(this.value) >= 1);
+      if (bad) this.setAttribute('aria-invalid', 'true'); else this.removeAttribute('aria-invalid');
+      var e = $('qv-err'); if (e) e.remove();
+      if (bad) this.insertAdjacentHTML('afterend', '<p id="qv-err" class="err">Enter a quantity of 1 or more.</p>');
+    });
+    $('qv-gift').addEventListener('click', function () { this.setAttribute('aria-pressed', String(this.getAttribute('aria-pressed') !== 'true')); });
+    $('qv-close').addEventListener('click', closeQuickView);
+    $('qv-add').addEventListener('click', function () { addToCart(Number(this.dataset.id)); closeQuickView(); });
+  }
+  function closeQuickView() {
+    ['qv', 'qv-backdrop'].forEach(function (id) { var n = $(id); if (n) n.remove(); });
+    mainHidden(false);
+  }
+
+  // ---- cart: count, toast, drawer, checkout ----
+  function addToCart(id) {
+    state.cart.push(id);
+    $('cart-count').textContent = String(state.cart.length);
+    setTimeout(function () {                                  // the toast mounts a few seconds later (slow network): a `wait` step catches it
+      var old = document.querySelector('.toast'); if (old) old.remove();
+      root().insertAdjacentHTML('beforeend', '<div class="toast" role="status" aria-live="polite">Added to your cart.<a href="#cart" tabindex="2">Click here</a></div>');
+    }, 4000);
+  }
+  function openCart() {
+    var t = document.querySelector('.toast'); if (t) t.remove();
+    $('cart-btn').setAttribute('aria-expanded', 'true');
+    mainHidden(true);
+    var items = state.cart.map(function (id) {
+      var p = PRODUCTS.filter(function (x) { return x.id === id; })[0];
+      return '<div class="line"><img src="' + IMG(p.color) + '"><span style="flex:1">' + p.name + '<br><span id="price">$' + p.price + '</span></span>' +
+        '<input id="qty" type="number" value="1" min="1"><span class="rm" onclick="void 0">&times;</span></div>';
+    }).join('') || '<p>Your cart is empty.</p>';
+    root().insertAdjacentHTML('beforeend',
+      '<aside id="cart-drawer" class="drawer" role="dialog" aria-labelledby="cart-title">' +
+        '<button id="cart-close" class="icon-btn x">' + X_ICON + '</button>' +
+        '<h6>Your cart</h6>' + items +
+        '<p><input id="promo" type="text" placeholder="Promo code"></p>' +
+        '<p class="note">Free shipping over $75. <a href="#shipping">Learn more</a></p>' +
+        '<button id="checkout-btn" class="add" style="border:0;width:100%;padding:10px">Checkout</button>' +
+        '<div id="checkout"></div>' +
+      '</aside>');
+    $('cart-close').addEventListener('click', closeCart);
+    $('checkout-btn').addEventListener('click', openCheckout);
+  }
+  function closeCart() {
+    var d = $('cart-drawer'); if (d) d.remove();
+    $('cart-btn').setAttribute('aria-expanded', 'false');
+    // BUG (realistic): the page stays aria-hidden after the drawer closes (mainHidden(false) is never called here)
+  }
+  function openCheckout() {
+    $('checkout').innerHTML =
+      '<form id="co-form" onsubmit="return false"><h6 style="margin-top:16px">Delivery</h6>' +
+      '<label for="co-name">Full name</label><input id="co-name" type="text" required>' +
+      '<label for="co-email">Email</label><input id="co-email" type="email" required aria-describedby="co-email-hint">' +
+      '<p id="co-email-hint" class="note">We send the receipt here.</p>' +
+      '<select id="co-country"><option>United States</option><option>Canada</option></select>' +
+      '<fieldset><legend>Shipping method</legend>' +
+      '<label><input type="radio" name="ship" checked> Standard (5 days)</label>' +
+      '<label><input type="radio" name="ship"> Express (2 days)</label></fieldset>' +
+      '<button id="co-summary-toggle" class="btn" type="button" aria-expanded="false" aria-controls="co-summary">Order summary</button>' +
+      '<div id="co-summary" class="note" hidden>Subtotal and shipping are shown here.</div>' +
+      '<div id="co-status" class="note" aria-live="polite"></div>' +
+      '<button id="co-submit" class="add" style="border:0;width:100%;padding:10px" type="button">Place order</button></form>';
+    $('co-summary-toggle').addEventListener('click', function () {
+      var open = this.getAttribute('aria-expanded') === 'true';
+      this.setAttribute('aria-expanded', String(!open)); $('co-summary').hidden = open;
+    });
+    $('co-email').addEventListener('input', function () {
+      var bad = this.value.indexOf('@') < 0;
+      if (bad) this.setAttribute('aria-invalid', 'true'); else this.removeAttribute('aria-invalid');
+      var e = $('co-email-err'); if (e) e.remove();
+      if (bad) this.insertAdjacentHTML('afterend', '<p id="co-email-err" class="err">Enter a valid email address.</p>');
+      this.setAttribute('aria-describedby', 'co-email-error');   // BUG (realistic): points at an id that does not exist
+    });
+  }
+  $('cart-btn').addEventListener('click', function () { if ($('cart-drawer')) closeCart(); else openCart(); });
+  $('newsletter').addEventListener('keydown', function () {});
+
+  // ---- keyboard: Escape closes the top-most overlay ----
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if ($('cart-drawer')) closeCart(); else if ($('qv')) closeQuickView();
+  });
+
+  renderGrid();
+</script>
+</body>
+</html>

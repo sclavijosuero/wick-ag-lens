@@ -27,7 +27,7 @@ module.exports = defineConfig({
     // Readiness is checked on a route that only the CURRENT server.js serves (it carries a version).
     // An outdated server left running on the app port (e.g. by an open Playwright UI session) answers 404 there,
     // so Playwright tries to start a fresh one and fails loudly (port in use) instead of silently reusing old routes.
-    url: `http://127.0.0.1:${PORT}/__fixture-server`,
+    url: `http://127.0.0.1:${PORT}/__fixture-server-v3`,
     env: { FIXTURE_PORT: String(PORT) },
     reuseExistingServer: !process.env.CI,
   }, {

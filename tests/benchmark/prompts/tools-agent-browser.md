@@ -1,0 +1,4 @@
+Approach A: the `agent-browser` CLI.
+- Browsing and scouting (signing in, learning the selectors, seeing what each action reveals): ONLY the `agent-browser` CLI, through the Bash tool, run from c:/Personal/GitHub_Repos/wick-ag-lens as `npx --no-install agent-browser <command>`, with the environment variable AGENT_BROWSER_SESSION={SESSION} set on every command. Useful commands: `open <url>`, `snapshot -i` (interactive elements, with @refs), `fill`, `click`, `select`, `hover`, `press`, `wait`, `state save <file>`, `close`. Do not use any Playwright MCP tool.
+- Handing the login to wick-ag-lens: sign in with agent-browser, run `state save <file>` (a standard Playwright storage-state file), then pass `-a <file>` to the wick-ag-lens command. Do not pass `--login-url`, `-u` or `-p` to wick-ag-lens.
+- Close the agent-browser session when done (`close`).
