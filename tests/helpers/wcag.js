@@ -31,7 +31,7 @@ function extensionLegendLabels(featureId, versions, levels) {
   return f.legends.filter((l) => isWcagMatch(l.wcag || f.wcag, versions, levels)).map((l) => l.label);
 }
 
-// ---- shared by tests/cli/wcag-filters.spec.js and tests/mcp/wcag-filters.spec.js ----
+// ---- shared by the WCAG filter tests in tests/regression/audits.spec.js ----
 const FEATURES = ['v-text-contrast', 'i-touch-targets', 'i-language'];
 const ALL = { versions: ['2.0', '2.1', '2.2'], levels: ['A', 'AA', 'AAA'] };
 
@@ -55,4 +55,6 @@ function legendsByAudit(step) {
   return out;
 }
 
-module.exports = { extensionLegendLabels, FEATURES, ALL, COMBOS, legendsByAudit };
+const ALL_AUDIT_IDS = features.map((f) => f.id);
+
+module.exports = { extensionLegendLabels, FEATURES, ALL, COMBOS, legendsByAudit, ALL_AUDIT_IDS };

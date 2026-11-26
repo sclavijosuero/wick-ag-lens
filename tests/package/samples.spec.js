@@ -10,30 +10,25 @@ const SAMPLES = ['steps-demo.html', 'shop-journey.html'];
 // Files of the sample server + login examples (cli/docs/sample-journeys.md); they must ship too
 const LOGIN_SAMPLES = ['server.mjs', 'login.html', 'login-script.mjs'];
 
-test.describe('sample pages', { tag: '@samples' }, () => {
+test.describe('sample pages', { tag: '@docs' }, () => {
   test('the packaged copy (cli/samples) is up to date with /samples', () => {
     for (const f of SAMPLES) {
       expect(fs.existsSync(path.join(pkgDir, 'samples', f)), `${f} must be built into the package (run node build.js)`).toBe(true);
       expect(read(pkgDir, 'samples', f)).toBe(read(repoRoot, 'samples', f));
     }
-  });
-
-  test('the sample server and login examples ship in the package, up to date', () => {
-    for (const f of LOGIN_SAMPLES) {
+    for (const f of LOGIN_SAMPLES) {                                                  // the sample server and login examples ship too
       expect(fs.existsSync(path.join(pkgDir, 'samples', f)), `${f} must be built into the package`).toBe(true);
       expect(read(pkgDir, 'samples', f)).toBe(read(repoRoot, 'samples', f));
     }
   });
 
-  test('the samples are self-contained: no network, no external scripts, styles or images', () => {
+  test('the samples are self-contained (no network, scripts, styles or images), and the login copy only differs in the Home link', () => {
     for (const f of SAMPLES) {
       const html = read(repoRoot, 'samples', f).replace(/<!--[\s\S]*?-->/g, '');          // ignore comments
       expect(html, `${f} must not load anything over the network`).not.toMatch(/<(script|link|img|iframe)\b[^>]*\b(src|href)\s*=\s*["']https?:/i);
       expect(html).not.toMatch(/<script\b[^>]*\bsrc=/i);
     }
-  });
-
-  test('the server-backed copy used behind a login (tests/fixtures/pages/journey.html) only differs in the Home link', () => {
+    // the server-backed copy used behind a login (tests/fixtures/pages/journey.html)
     const shipped = read(repoRoot, 'samples', 'shop-journey.html');
     const fixture = read(repoRoot, 'tests', 'fixtures', 'pages', 'journey.html');
     const normalise = (s) => s

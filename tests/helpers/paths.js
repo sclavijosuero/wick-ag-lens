@@ -11,8 +11,12 @@ const pkgDir = process.env.WICK_PKG_DIR
 // file:// URL of a sample page shipped inside the package under test (cli/samples/<name>)
 const sampleUrl = (name) => pathToFileURL(path.join(pkgDir, 'samples', name)).href;
 
+// file:// URL of a fixture page (tests/fixtures/pages/<name>), for pages that must be opened from disk (no server headers)
+const fixtureFileUrl = (name) => pathToFileURL(path.join(repoRoot, 'tests', 'fixtures', 'pages', name)).href;
+
 module.exports = {
   sampleUrl,
+  fixtureFileUrl,
   repoRoot,
   pkgDir,
   cliEntry: path.join(pkgDir, 'index.js'),

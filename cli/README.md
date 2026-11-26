@@ -589,7 +589,7 @@ test('signs in once, saves the session, then reuses it with no login', async ({}
 ```
 To assert accessibility results too, check `step.new_findings` (for example that a rule you care about reports nothing). The MCP equivalent, with the Playwright MCP client, is in [Session Protocol & Reading the Results](#session-protocol--reading-the-results).
 
-A complete, runnable version of these tests (CLI and MCP) runs against a local fake identity provider on a different origin: see [`tests/cli/sso.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/cli/sso.spec.js) and [`tests/mcp/sso.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/mcp/sso.spec.js) in the repository. They are the best place to copy patterns from.
+A complete, runnable version of these tests (CLI and MCP) runs against a local fake identity provider on a different origin: see [`tests/regression/login-methods.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/regression/login-methods.spec.js) in the repository (the SSO method is one of the five it runs, with the CLI and with MCP). It is the best place to copy patterns from.
 
 **Best practices**
 * **Use a dedicated test account** without MFA for automated audits, or sign in by hand once (Recipe C) and reuse the saved session.
@@ -701,7 +701,7 @@ The full trail has the structure described in [CLI & MCP JSON Output Format](#cl
 
 #### Example: driving the protocol from a Playwright test
 
-This is how the package's own test suite calls the server (see [`tests/mcp/server.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/mcp/server.spec.js)). It uses the official MCP SDK client, so it talks to the server exactly as an AI agent would. No Playwright MCP is involved: Playwright is only the test runner.
+This is how the package's own test suite calls the server (see [`tests/regression/audits.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/regression/audits.spec.js)). It uses the official MCP SDK client, so it talks to the server exactly as an AI agent would. No Playwright MCP is involved: Playwright is only the test runner.
 
 ```js
 import { test, expect } from '@playwright/test';

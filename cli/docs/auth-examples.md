@@ -192,9 +192,11 @@ The repository's Playwright suite runs one accessibility journey through **every
 | What | Where (repository) |
 | :-- | :-- |
 | Login method definitions, side by side | `tests/helpers/login-matrix.js` |
-| The CLI and MCP versions | `tests/cli/a11y-auth.spec.js`, `tests/mcp/a11y-auth.spec.js` (tag `@a11y-auth`) |
-| The same journey with no login | `tests/cli/journey.spec.js`, `tests/mcp/journey.spec.js`, `tests/agent-browser/journey-public.spec.js` |
-| The same journey with a session recorded by `agent-browser` | `tests/agent-browser/journey.spec.js` |
-| Authentication only, no accessibility | `tests/cli/auth.spec.js`, `tests/mcp/auth.spec.js`, the SSO specs (tag `@auth`) |
+| Every method with the CLI and with MCP, compared with the public run (tags `@logins`, `@a11y-auth`) | `tests/regression/login-methods.spec.js` |
+| The expected findings of that journey, shared by all methods and by the no-login run | `tests/golden/medium.json` |
+| The same journeys with and without a login, in every tool | `tests/regression/journeys.spec.js` (tag `@journeys`) |
+| A session recorded by `agent-browser`, login failures, saving a session (tag `@auth`) | `tests/regression/login-methods.spec.js` |
+
+Run them with `npm run test:logins`.
 
 To practise without any login, open the sample pages shipped with the package (see [Sample pages](../README.md#sample-pages-try-it-without-a-server)).

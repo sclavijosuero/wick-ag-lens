@@ -3,7 +3,7 @@
 //   - how the MCP tool is called       (mcp:  extra audit_baseline arguments)
 // so the exact same accessibility journey can be run through every one of them and compared side by side:
 // the audit results must NOT depend on how the session was obtained. Pure authentication tests (no accessibility)
-// live apart, in tests/cli/auth.spec.js, mcp/auth.spec.js and the sso specs (tag @auth).
+// live apart, in tests/regression/login-methods.spec.js (tag @auth).
 //
 // Not here: method 4, interactive capture (-i), needs a person at a visible browser. Its saved-state result is the
 // same file that method 5 consumes.

@@ -27,10 +27,8 @@ test.describe('audit detection levels', () => {
       if (f.detection === 'rule') expect(f.detectionNote, `${f.id} is rule-based, so it needs no note`).toBeUndefined();
       else expect((f.detectionNote || '').length, `${f.id} needs a detectionNote`).toBeGreaterThan(20);
     }
-  });
 
-  test('the root README has a Detection column on every audit row and lists every audit that is not rule-based', () => {
-    const cfg = loadConfig();
+    // the root README has a Detection column on every audit row and lists every audit that is not rule-based
     const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
     const rows = readme.split('\n').filter((l) => /\| \[View\]\(#[^)]+\) \| (Rule-based|Pattern-based|Best-effort) \|$/.test(l));
     expect(rows).toHaveLength(featuresOf(cfg).length);

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!-- COVERAGE PAGE (regression journey "coverage"). One page that plants a finding for each of the audits that no other journey
+     reaches (see UNCOVERED in tests/package/audit-coverage.spec.js and tests/README.md). It is deliberately wrong in many ways.
+     It must be opened from disk (file://): the page has no <title>, no lang, and declares windows-1252, and a web server
+     would send its own charset header and hide the encoding finding. ASCII only, so the encoding does not change any text.
+     Six buttons change the page, so the journey also shows findings that appear and findings that are resolved. -->
+<html>
+<head>
+  <meta charset="windows-1252">
+  <style>
+    body { font: 16px/1.5 sans-serif; margin: 16px; max-width: 760px; }
+    section { margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid #ccc; }
+    .nofocus:focus { outline: none; }
+    [hidden] { display: none; }
+    video, iframe { display: block; margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <h1>Coverage page</h1>
+
+  <section id="controls">
+    <button id="caption-video" type="button" onclick="document.getElementById('clip').insertAdjacentHTML('beforeend', '<track kind=&quot;captions&quot; src=&quot;captions.vtt&quot; srclang=&quot;en&quot;>')">Add captions</button>
+    <button id="stop-autoplay" type="button" onclick="document.getElementById('intro').removeAttribute('autoplay')">Stop autoplay</button>
+    <button id="add-title" type="button" onclick="document.title = 'Coverage page'">Add title</button>
+    <button id="fix-autocomplete" type="button" onclick="document.getElementById('email').setAttribute('autocomplete', 'email')">Fix autocomplete</button>
+    <button id="warn-links" type="button" onclick="document.getElementById('docs').append(' (opens in a new tab)')">Warn about new tabs</button>
+    <button id="show-extras" type="button" onclick="document.getElementById('extras').hidden = false">Show extras</button>
+  </section>
+
+  <section id="media">
+    <video id="intro" autoplay muted width="160" height="90"></video>
+    <video id="clip" width="160" height="90"></video>
+    <video id="subtitled" width="160" height="90"><track kind="subtitles" src="subtitles.vtt" srclang="en"></video>
+    <img id="cat" width="40" height="40" alt="Photo of a cat" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+  </section>
+
+  <section id="links">
+    <a id="settings" href="#">Settings</a>
+    <a id="open-js" href="javascript:void(0)">Open panel</a>
+    <a id="docs" href="https://example.com/docs" target="_blank">Documentation</a>
+    <a id="help" href="https://example.com/help" target="_blank">Help (opens in a new window)</a>
+    <a id="no-ring" class="nofocus" href="https://example.com/ring">Link without a focus ring</a>
+  </section>
+
+  <section id="forms">
+    <label for="email">Email</label>
+    <input id="email" type="text" autocomplete="mail-address">
+    <label for="order">Order number</label>
+    <input id="order" type="text" value="A-1001" readonly>
+    <button id="save" type="button" accesskey="s">Save</button>
+    <button id="buy" type="button" aria-label="Submit order">Buy now</button>
+    <button id="options" type="button" aria-haspopup="menu">Options</button>
+  </section>
+
+  <section id="structure">
+    <div id="decor" role="presentation" aria-label="Decoration">Decorative block</div>
+    <p id="french" lang="fr">Bonjour tout le monde</p>
+    <table id="prices">
+      <caption>Prices</caption>
+      <tr><th>Item</th><th>Price</th></tr>
+      <tr><td>Tea</td><td>3</td></tr>
+    </table>
+    <iframe id="map" title="Store map" width="200" height="60" srcdoc="<p>Map</p>"></iframe>
+    <iframe id="widget" width="200" height="60" srcdoc="<p>Widget</p>"></iframe>
+  </section>
+
+  <section id="aria">
+    <div id="slide" role="group" aria-roledescription="slide" aria-label="Slide 1 of 3">First slide</div>
+    <div id="chart" aria-details="chart-text">Sales chart</div>
+    <div id="chart-text">Sales rose 10% in March.</div>
+    <ul id="menu" role="list" aria-owns="extra-item"><li>First</li></ul>
+    <div id="extra-item" role="listitem">Owned item</div>
+    <div role="list">
+      <div id="row-2" role="listitem" aria-posinset="2" aria-setsize="5">Item two</div>
+    </div>
+    <div id="upload" role="progressbar" aria-label="Upload" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40">40%</div>
+  </section>
+
+  <section id="extras" hidden>
+    <a id="more" href="#">Help centre</a>
+    <button id="close-extra" type="button" aria-label="Close dialog">Dismiss</button>
+  </section>
+</body>
+</html>

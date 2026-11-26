@@ -8,8 +8,8 @@ A realistic, deliberately inaccessible web shop and a fixed 15-step journey, use
 | Its sign-in page (a real server form that sets a session cookie and lands on the shop) | `tests/fixtures/pages/bench-login.html` |
 | Served by the fixture server; the shop is **protected**, so the session has to be handled | `tests/fixtures/server.js` (`/app/bench-shop.html`) |
 | The journey, the 30 audits and the login, defined once | `tests/benchmark/journey.js` |
-| The **answer key** used to score an agent's result: per step, counts per audit (new and resolved) and focus stops. The tests only compare against it for information, they do not fail on it | `tests/benchmark/reference.js` |
-| Two light tests per tool (CLI and MCP): the journey still runs, plus an attached summary. They run no LLM, so they cost no tokens | `tests/cli/benchmark-journey.spec.js`, `tests/mcp/benchmark-journey.spec.js` (tag `@benchmark`) |
+| The **answer key** used to score an agent's result: per step, counts per audit (new and resolved) and focus stops. The regression tests do not use this file: they compare with `tests/golden/long.json` (same content in another shape), so if one changes on purpose, regenerate the other | `tests/benchmark/reference.js` |
+| The journey as the **long regression journey**: 6 tests (CLI, MCP, agent-browser; public copy and behind the login), each compared with `tests/golden/long.json` (findings per audit and step, focus stops, health scores). They run no LLM, so they cost no tokens, and they are part of the full regression | `tests/regression/journeys.spec.js` (tag `@benchmark`), `tests/helpers/scenarios.js` |
 | The exact **prompts** given to the agents: one shared template and one tools section per approach | `tests/benchmark/prompts/` (`guided-common.md`, `tools-agent-browser.md`, `tools-playwright-mcp.md`) |
 | The **scoring script**: compares an agent's answer table and its real output file with the answer key. No LLM, no tokens | `tests/benchmark/score.js` |
 | The script that regenerates the answer key from real runs | `tests/benchmark/regenerate-reference.js` |
@@ -50,7 +50,7 @@ It uses all six step types (click, fill, select, press, hover, wait). The report
 ## Running the checks
 
 ```bash
-npx playwright test --grep @benchmark          # CLI and MCP, about 1 minute
+npm run test:benchmark                         # the 6 tests of the long journey, about 2 minutes
 ```
 
 If the Playwright UI is open and holds the usual ports, use others: `FIXTURE_PORT=4450 SAMPLES_PORT=4460 npx playwright test --grep @benchmark`.

@@ -38,10 +38,9 @@ const labels = (list) => list.map(label).sort();
 function replay(report) {
   const problems = [];
   let active = new Map();
-  // Some audits list several elements with the SAME key (selector + text): v-duplicate-id lists every element sharing an id as `#price | Duplicate ID...`.
-  // Those are counted, not collapsed, so a key can be active several times.
+  // Several elements can share the SAME key (audit + selector + text): v-duplicate-id lists every element sharing an id, and the root `html` of
+  // each frame reports as `html`. Those are counted, not collapsed, so a key can be active several times (and gain occurrences later).
   const times = new Map();
-  const REPEATABLE = new Set(['v-duplicate-id']);
   const steps = report.audit_trail.map((step) => {
     const { added, resolved } = delta(step);
     // every audit entry states how many elements it lists: the number must agree with the list
@@ -60,7 +59,6 @@ function replay(report) {
       if (left > 0) times.set(r.key, left); else { times.delete(r.key); active.delete(r.key); }
     }
     for (const r of added) {
-      if (active.has(r.key) && !REPEATABLE.has(r.auditId)) problems.push(`step ${step.step}: "${r.key}" reported as new but already active`);
       times.set(r.key, (times.get(r.key) ?? 0) + 1);
       active.set(r.key, r);
     }
@@ -74,19 +72,4 @@ function replay(report) {
   return { steps, problems };
 }
 
-// A short human-readable table of the whole journey (attached to the test report)
-function summarize(report) {
-  const { steps } = replay(report);
-  const lines = ['step  action                              health (C/S/M)    +violations  +structure  -resolved'];
-  for (const s of steps) {
-    const st = report.audit_trail[s.step - 1];
-    const action = `${st.interaction.action} ${st.interaction.selector}`.slice(0, 34).padEnd(34);
-    const h = st.health_scores;
-    lines.push(
-      `${String(s.step).padEnd(5)} ${action}  ${`${h.Critical}/${h.Serious}/${h.Moderate}`.padEnd(16)}  ` +
-      `${String(s.added.filter(isViolation).length).padEnd(12)} ${String(s.added.filter(isStructure).length).padEnd(11)} ${s.resolved.length}`);
-  }
-  return lines.join('\n');
-}
-
-module.exports = { SEVERITIES, rows, delta, replay, summarize, isViolation, isStructure, label, labels };
+module.exports = { SEVERITIES, rows, delta, replay, isViolation, isStructure, label, labels };

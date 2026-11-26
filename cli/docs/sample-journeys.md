@@ -131,14 +131,13 @@ Open the JSON in the [report viewer](../README.md#visual-html-report-viewer) (th
 
 ## 4. The same thing as tests, in the repository
 
-Each combination is a test in the repository's Playwright suite, with the **same expectations** for all of them (`npm run test:sample-journeys`):
+This journey is the **short regression journey** of the repository's Playwright suite (`npm run test:journeys`). The same steps run through the CLI, MCP and agent-browser, on the public page and behind the sample login, and every run is compared with **one frozen file** with the expected findings per step:
 
-| Tool | Test file |
+| What | Where |
 | :-- | :-- |
-| CLI, every login | `tests/cli/sample-journeys.spec.js` |
-| MCP, every login | `tests/mcp/sample-journeys.spec.js` |
-| agent-browser (public page, and signed in with a saved session) | `tests/agent-browser/sample-journeys.spec.js` |
-| Login definitions, once, used by all three | `tests/helpers/sample-journeys.js` |
-| The expected findings per step | `tests/helpers/references.js` |
+| The journey, in every tool, public and behind a login | `tests/regression/journeys.spec.js` (tag `@journeys`) |
+| The expected findings, health and focus order per step | `tests/golden/short.json` |
+| Login definitions of this sample server | `tests/helpers/sample-journeys.js` |
+| The five login methods side by side, on a longer journey | `tests/regression/login-methods.spec.js` (tag `@logins`) |
 
 For a login against your own application, see [auth-examples.md](auth-examples.md).

@@ -38,11 +38,11 @@ module.exports = defineConfig({
   }],
 
   projects: [
-    { name: 'cli', testMatch: 'tests/cli/**/*.spec.js' },
-    { name: 'mcp', testMatch: 'tests/mcp/**/*.spec.js' },
+    // Everything that runs the tools: the journeys (CLI, MCP, agent-browser, with and without a login), the login showcase, the audit
+    // checks and the report viewer. Pick a surface with its tag (@cli, @mcp, @agent-browser, @viewer), see tests/README.md.
+    { name: 'regression', testMatch: 'tests/regression/**/*.spec.js', use: { browserName: 'chromium' } },
     { name: 'package', testMatch: 'tests/package/**/*.spec.js' },
-    { name: 'viewer', testMatch: 'tests/viewer/**/*.spec.js', use: { browserName: 'chromium' } },
-    // Drives the real agent-browser CLI (dev dependency). Skips itself when agent-browser is not installed.
-    { name: 'agent-browser', testMatch: 'tests/agent-browser/**/*.spec.js', use: { browserName: 'chromium' } },
+    // Opt-in checks against a real public site (skipped unless WICK_LIVE=1)
+    { name: 'cli', testMatch: 'tests/cli/**/*.spec.js' },
   ],
 });

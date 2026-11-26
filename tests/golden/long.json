@@ -1,0 +1,432 @@
+{
+ "journey": "long",
+ "detail": "counts",
+ "steps": [
+  {
+   "step": 1,
+   "action": "navigate",
+   "health": [
+    86,
+    2,
+    3,
+    117
+   ],
+   "focus": 37,
+   "new": {
+    "i-accessible-name": 37,
+    "i-aria-controls": 4,
+    "i-aria-expanded": 4,
+    "i-aria-live": 1,
+    "i-aria-pressed": 5,
+    "i-aria-roles": 2,
+    "i-field-desc": 1,
+    "i-image-alts": 9,
+    "i-landmarks": 5,
+    "i-tabindex-all": 1,
+    "i-touch-targets": 37,
+    "i-valid-headings": 11,
+    "v-broken-aria-ref": 5,
+    "v-duplicate-id": 8,
+    "v-empty-buttons": 6,
+    "v-empty-links": 3,
+    "v-generic-link": 3,
+    "v-missing-alt": 5,
+    "v-placeholder-label": 2,
+    "v-svg-accessible": 41,
+    "v-text-contrast": 11,
+    "v-unfocusable": 4,
+    "v-unlabeled-inputs": 3
+   },
+   "resolved": {}
+  },
+  {
+   "step": 2,
+   "action": "click::#menu-toggle",
+   "health": [
+    90,
+    2,
+    4,
+    123
+   ],
+   "focus": 40,
+   "new": {
+    "i-accessible-name": 3,
+    "i-aria-expanded": 1,
+    "i-touch-targets": 3,
+    "v-empty-links": 1,
+    "v-generic-link": 1,
+    "v-svg-accessible": 1,
+    "v-text-contrast": 2,
+    "v-unfocusable": 1
+   },
+   "resolved": {
+    "i-aria-expanded": 1,
+    "v-broken-aria-ref": 1
+   }
+  },
+  {
+   "step": 3,
+   "action": "hover::#nav-shop",
+   "health": [
+    92,
+    2,
+    5,
+    142
+   ],
+   "focus": 46,
+   "new": {
+    "i-accessible-name": 6,
+    "i-aria-roles": 7,
+    "i-touch-targets": 6,
+    "v-empty-links": 1,
+    "v-generic-link": 1,
+    "v-svg-accessible": 1
+   },
+   "resolved": {}
+  },
+  {
+   "step": 4,
+   "action": "click::#menu-toggle",
+   "health": [
+    86,
+    2,
+    3,
+    117
+   ],
+   "focus": 37,
+   "new": {
+    "i-aria-expanded": 1,
+    "v-broken-aria-ref": 1
+   },
+   "resolved": {
+    "i-accessible-name": 9,
+    "i-aria-expanded": 1,
+    "i-aria-roles": 7,
+    "i-touch-targets": 9,
+    "v-empty-links": 2,
+    "v-generic-link": 2,
+    "v-svg-accessible": 2,
+    "v-text-contrast": 2,
+    "v-unfocusable": 1
+   }
+  },
+  {
+   "step": 5,
+   "action": "fill::#search::tent",
+   "health": [
+    88,
+    2,
+    3,
+    119
+   ],
+   "focus": 37,
+   "new": {
+    "i-image-alts": 2,
+    "v-missing-alt": 2
+   },
+   "resolved": {}
+  },
+  {
+   "step": 6,
+   "action": "press::#search::Enter",
+   "health": [
+    42,
+    2,
+    3,
+    79
+   ],
+   "focus": 25,
+   "new": {
+    "i-accessible-name": 1,
+    "i-image-alts": 1,
+    "i-touch-targets": 1,
+    "i-valid-headings": 1,
+    "v-duplicate-id": 2,
+    "v-text-contrast": 1
+   },
+   "resolved": {
+    "i-accessible-name": 13,
+    "i-aria-pressed": 3,
+    "i-image-alts": 9,
+    "i-touch-targets": 13,
+    "i-valid-headings": 6,
+    "v-duplicate-id": 8,
+    "v-empty-buttons": 3,
+    "v-missing-alt": 5,
+    "v-svg-accessible": 27,
+    "v-text-contrast": 3,
+    "v-unfocusable": 3
+   }
+  },
+  {
+   "step": 7,
+   "action": "select::#sort::price-asc",
+   "health": [
+    43,
+    2,
+    4,
+    82
+   ],
+   "focus": 26,
+   "new": {
+    "i-accessible-name": 1,
+    "i-aria-live": 1,
+    "i-touch-targets": 1,
+    "v-generic-link": 1,
+    "v-text-contrast": 1
+   },
+   "resolved": {}
+  },
+  {
+   "step": 8,
+   "action": "click::#filter-brand",
+   "health": [
+    44,
+    2,
+    4,
+    90
+   ],
+   "focus": 29,
+   "new": {
+    "i-accessible-name": 3,
+    "i-aria-expanded": 1,
+    "i-fieldsets": 2,
+    "i-touch-targets": 3,
+    "v-unlabeled-inputs": 2
+   },
+   "resolved": {
+    "i-aria-expanded": 1,
+    "v-broken-aria-ref": 1
+   }
+  },
+  {
+   "step": 9,
+   "action": "click::#qv-1",
+   "health": [
+    67,
+    2,
+    4,
+    103
+   ],
+   "focus": 33,
+   "new": {
+    "i-accessible-name": 4,
+    "i-aria-pressed": 1,
+    "i-aria-roles": 1,
+    "i-field-desc": 1,
+    "i-image-alts": 1,
+    "i-touch-targets": 4,
+    "i-valid-headings": 1,
+    "v-aria-hidden-focus": 12,
+    "v-broken-aria-ref": 2,
+    "v-duplicate-id": 5,
+    "v-empty-buttons": 1,
+    "v-missing-alt": 1,
+    "v-svg-accessible": 1,
+    "v-text-contrast": 2,
+    "v-unlabeled-inputs": 1
+   },
+   "resolved": {
+    "v-duplicate-id": 2
+   }
+  },
+  {
+   "step": 10,
+   "action": "fill::#qv-qty::0",
+   "health": [
+    67,
+    3,
+    4,
+    103
+   ],
+   "focus": 33,
+   "new": {
+    "v-aria-invalid": 1
+   },
+   "resolved": {}
+  },
+  {
+   "step": 11,
+   "action": "click::#qv-add",
+   "health": [
+    44,
+    2,
+    4,
+    90
+   ],
+   "focus": 29,
+   "new": {
+    "i-accessible-name": 1,
+    "v-duplicate-id": 2
+   },
+   "resolved": {
+    "i-accessible-name": 5,
+    "i-aria-pressed": 1,
+    "i-aria-roles": 1,
+    "i-field-desc": 1,
+    "i-image-alts": 1,
+    "i-touch-targets": 4,
+    "i-valid-headings": 1,
+    "v-aria-hidden-focus": 12,
+    "v-aria-invalid": 1,
+    "v-broken-aria-ref": 2,
+    "v-duplicate-id": 5,
+    "v-empty-buttons": 1,
+    "v-missing-alt": 1,
+    "v-svg-accessible": 1,
+    "v-text-contrast": 2,
+    "v-unlabeled-inputs": 1
+   }
+  },
+  {
+   "step": 12,
+   "action": "wait::.toast",
+   "health": [
+    46,
+    3,
+    5,
+    95
+   ],
+   "focus": 30,
+   "new": {
+    "i-accessible-name": 1,
+    "i-aria-live": 1,
+    "i-aria-roles": 1,
+    "i-tabindex-all": 1,
+    "i-touch-targets": 1,
+    "v-generic-link": 1,
+    "v-tabindex": 1,
+    "v-text-contrast": 2
+   },
+   "resolved": {}
+  },
+  {
+   "step": 13,
+   "action": "click::#cart-btn",
+   "health": [
+    64,
+    3,
+    6,
+    104
+   ],
+   "focus": 34,
+   "new": {
+    "i-accessible-name": 5,
+    "i-aria-expanded": 1,
+    "i-aria-roles": 1,
+    "i-image-alts": 1,
+    "i-landmarks": 1,
+    "i-touch-targets": 5,
+    "i-valid-headings": 1,
+    "v-aria-hidden-focus": 12,
+    "v-broken-aria-ref": 1,
+    "v-duplicate-id": 3,
+    "v-empty-buttons": 1,
+    "v-generic-link": 1,
+    "v-heading-errors": 1,
+    "v-missing-alt": 1,
+    "v-placeholder-label": 1,
+    "v-svg-accessible": 1,
+    "v-text-contrast": 1,
+    "v-unfocusable": 1,
+    "v-unlabeled-inputs": 2
+   },
+   "resolved": {
+    "i-accessible-name": 1,
+    "i-aria-expanded": 1,
+    "i-aria-live": 1,
+    "i-aria-roles": 1,
+    "i-tabindex-all": 1,
+    "i-touch-targets": 1,
+    "v-broken-aria-ref": 1,
+    "v-duplicate-id": 2,
+    "v-generic-link": 1,
+    "v-tabindex": 1,
+    "v-text-contrast": 2
+   }
+  },
+  {
+   "step": 14,
+   "action": "click::#checkout-btn",
+   "health": [
+    66,
+    3,
+    6,
+    127
+   ],
+   "focus": 40,
+   "new": {
+    "i-accessible-name": 7,
+    "i-aria-controls": 1,
+    "i-aria-expanded": 1,
+    "i-aria-live": 1,
+    "i-field-desc": 1,
+    "i-fieldsets": 2,
+    "i-required-fields": 2,
+    "i-touch-targets": 7,
+    "i-valid-headings": 1,
+    "v-text-contrast": 1,
+    "v-unlabeled-inputs": 1
+   },
+   "resolved": {}
+  },
+  {
+   "step": 15,
+   "action": "fill::#co-email::not-an-email",
+   "health": [
+    67,
+    4,
+    6,
+    127
+   ],
+   "focus": 40,
+   "new": {
+    "v-aria-invalid": 1,
+    "v-broken-aria-ref": 1
+   },
+   "resolved": {}
+  },
+  {
+   "step": 16,
+   "action": "press::active::Escape",
+   "health": [
+    56,
+    2,
+    4,
+    90
+   ],
+   "focus": 29,
+   "new": {
+    "i-aria-expanded": 1,
+    "v-broken-aria-ref": 1,
+    "v-duplicate-id": 2
+   },
+   "resolved": {
+    "i-accessible-name": 12,
+    "i-aria-controls": 1,
+    "i-aria-expanded": 2,
+    "i-aria-live": 1,
+    "i-aria-roles": 1,
+    "i-field-desc": 1,
+    "i-fieldsets": 2,
+    "i-image-alts": 1,
+    "i-landmarks": 1,
+    "i-required-fields": 2,
+    "i-touch-targets": 12,
+    "i-valid-headings": 2,
+    "v-aria-invalid": 1,
+    "v-broken-aria-ref": 2,
+    "v-duplicate-id": 3,
+    "v-empty-buttons": 1,
+    "v-generic-link": 1,
+    "v-heading-errors": 1,
+    "v-missing-alt": 1,
+    "v-placeholder-label": 1,
+    "v-svg-accessible": 1,
+    "v-text-contrast": 2,
+    "v-unfocusable": 1,
+    "v-unlabeled-inputs": 3
+   }
+  }
+ ]
+}

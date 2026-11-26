@@ -491,7 +491,7 @@ npm test          # builds, then runs every test
 npm run test:ui   # interactive Playwright UI
 ```
 
-What is tested, how the tests are grouped and tagged (`@auth`, `@a11y-auth`, `@journey`, `@samples`, ...), and how to run a subset: see [`tests/README.md`](./tests/README.md).
+What is tested, how the tests are grouped and tagged (`@journeys`, `@logins`, `@viewer`, `@cli`, `@mcp`, `@agent-browser`, ...), and how to run a subset: see [`tests/README.md`](./tests/README.md).
 
 ---
 

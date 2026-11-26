@@ -18,16 +18,15 @@ function specFiles(dir) {
   });
 }
 
-// tag -> Set of "folder/name" (e.g. "cli/auth", no .spec.js), read from the Playwright `tag` option (a string or an array)
+// tag -> Set of "folder/name" (e.g. "regression/journeys", no .spec.js)
 const usedTags = new Map();
 for (const file of specFiles(testsDir)) {
   const src = fs.readFileSync(file, 'utf8');
   const rel = path.relative(testsDir, file).split(path.sep).join('/').replace(/\.spec\.js$/, '');
-  for (const m of src.matchAll(/\btag:\s*(\[[^\]]*\]|'[^']*'|"[^"]*")/g)) {
-    for (const t of m[1].match(/@[\w-]+/g) ?? []) {
-      if (!usedTags.has(t)) usedTags.set(t, new Set());
-      usedTags.get(t).add(rel);
-    }
+  // a tag is any quoted @-word in a spec file (written in the `tag` option, or collected in an array that feeds it)
+  for (const m of src.matchAll(/['"](@[a-z][\w-]*)['"]/g)) {
+    if (!usedTags.has(m[1])) usedTags.set(m[1], new Set());
+    usedTags.get(m[1]).add(rel);
   }
 }
 
@@ -39,17 +38,11 @@ for (const line of readme.split(/\r?\n/)) {
 }
 
 test.describe('tests/README.md matches the tests', { tag: '@docs' }, () => {
-  test('every tag used in a spec file has a row in the Tags table', () => {
+  test('the Tags table matches the tests: every tag has a row, every row is used, and each row lists its files', () => {
     const missing = [...usedTags.keys()].filter((t) => !docRows.has(t));
     expect(missing, 'tags used in tests but missing from the Tags table in tests/README.md').toEqual([]);
-  });
-
-  test('every tag in the Tags table is still used by a test', () => {
     const stale = [...docRows.keys()].filter((t) => !usedTags.has(t));
     expect(stale, 'tags in the README table that no test uses any more').toEqual([]);
-  });
-
-  test('each tag row lists the files that carry the tag', () => {
     const problems = [];
     for (const [tag, files] of usedTags) {
       const row = docRows.get(tag);
@@ -64,22 +57,19 @@ test.describe('tests/README.md matches the tests', { tag: '@docs' }, () => {
     expect(problems).toEqual([]);
   });
 
-  test('every npm test script is documented', () => {
+  test('every npm test script and every environment variable the tests read is documented', () => {
     const scripts = Object.keys(require(path.join(repoRoot, 'package.json')).scripts)
       .filter((s) => s === 'test' || s.startsWith('test:'));
     expect(scripts.length).toBeGreaterThan(8);
     const undocumented = scripts.filter((s) => !readme.includes(s === 'test' ? 'npm test' : s));
     expect(undocumented, 'npm scripts that tests/README.md never mentions').toEqual([]);
-  });
-
-  test('every environment variable the tests read is documented', () => {
     const used = new Set();
     for (const file of [...specFiles(testsDir), ...fs.readdirSync(path.join(testsDir, 'helpers')).map((f) => path.join(testsDir, 'helpers', f)),
       path.join(repoRoot, 'playwright.config.js'), path.join(testsDir, 'fixtures', 'server.js')]) {
       for (const m of fs.readFileSync(file, 'utf8').matchAll(/process\.env\.([A-Z][A-Z0-9_]+)/g)) used.add(m[1]);
     }
     const ignore = new Set(['PATH', 'HOME', 'USERPROFILE', 'TEMP', 'TMP']);
-    const undocumented = [...used].filter((v) => !ignore.has(v) && !readme.includes(v));
-    expect(undocumented, 'environment variables read by the tests but missing from tests/README.md').toEqual([]);
+    const undocumentedVars = [...used].filter((v) => !ignore.has(v) && !readme.includes(v));
+    expect(undocumentedVars, 'environment variables read by the tests but missing from tests/README.md').toEqual([]);
   });
 });

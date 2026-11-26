@@ -1,0 +1,150 @@
+{
+ "journey": "coverage",
+ "detail": "elements",
+ "steps": [
+  {
+   "step": 1,
+   "action": "navigate",
+   "health": [
+    7,
+    3,
+    4,
+    19
+   ],
+   "focus": [],
+   "new": [
+    "i-aria-details #chart | aria-details",
+    "i-aria-haspopup #options | haspopup=\"menu\"",
+    "i-aria-owns #menu | aria-owns",
+    "i-aria-roledescription #slide | roledescription=\"slide\"",
+    "i-aria-setsize #row-2 | Item 2 of 5",
+    "i-aria-value #upload | value=\"40\"",
+    "i-captioned-video #subtitled | <video> (Captioned)",
+    "i-iframes #map | title=\"Store map\"",
+    "i-iframes #widget | Missing Title",
+    "i-language #french | lang=\"fr\"",
+    "i-language html | Missing Root Lang",
+    "i-language html | Missing Root Lang",
+    "i-language html | Missing Root Lang",
+    "i-readonly-fields #order | readonly",
+    "i-tables #prices > caption | <caption>",
+    "i-tables #prices > tbody > tr:nth-of-type(1) > th:nth-of-type(1) | <th>",
+    "i-tables #prices > tbody > tr:nth-of-type(1) > th:nth-of-type(2) | <th>",
+    "i-tables #prices | <table>",
+    "i-warned-window #help | target=\"_blank\" (Warned)",
+    "v-accesskey #save | accesskey=\"s\"",
+    "v-autocomplete-invalid #email | Invalid autocomplete=\"mail-address\"",
+    "v-autoplay-media #intro | Autoplay Media",
+    "v-disabled-focus #no-ring | Manual Check: Focus Ring",
+    "v-doc-title html | Missing Document Title",
+    "v-doc-title html | Missing Document Title",
+    "v-doc-title html | Missing Document Title",
+    "v-label-in-name #buy | Mismatch: \"Buy now\" != \"Submit order\"",
+    "v-page-encoding html | Encoding: windows-1252",
+    "v-prohibited-names #decor | Prohibited name on role=\"presentation\"",
+    "v-redundant-alt #cat | Redundant alt: \"Photo of a cat\"",
+    "v-suspicious-links #open-js | Fake Button (JS)",
+    "v-suspicious-links #settings | Fake Button (#)",
+    "v-uncaptioned-video #clip | <video> (No Captions)",
+    "v-uncaptioned-video #intro | <video> (No Captions)",
+    "v-unwarned-window #docs | target=\"_blank\" (No Warning)"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 2,
+   "action": "click::#caption-video",
+   "health": [
+    6,
+    3,
+    4,
+    20
+   ],
+   "focus": [],
+   "new": [
+    "i-captioned-video #clip | <video> (Captioned)"
+   ],
+   "resolved": [
+    "v-uncaptioned-video #clip | <video> (No Captions)"
+   ]
+  },
+  {
+   "step": 3,
+   "action": "click::#stop-autoplay",
+   "health": [
+    6,
+    2,
+    4,
+    20
+   ],
+   "focus": [],
+   "new": [],
+   "resolved": [
+    "v-autoplay-media #intro | Autoplay Media"
+   ]
+  },
+  {
+   "step": 4,
+   "action": "click::#add-title",
+   "health": [
+    5,
+    2,
+    4,
+    20
+   ],
+   "focus": [],
+   "new": [],
+   "resolved": [
+    "v-doc-title html | Missing Document Title"
+   ]
+  },
+  {
+   "step": 5,
+   "action": "click::#fix-autocomplete",
+   "health": [
+    5,
+    2,
+    3,
+    20
+   ],
+   "focus": [],
+   "new": [],
+   "resolved": [
+    "v-autocomplete-invalid #email | Invalid autocomplete=\"mail-address\""
+   ]
+  },
+  {
+   "step": 6,
+   "action": "click::#warn-links",
+   "health": [
+    5,
+    2,
+    2,
+    21
+   ],
+   "focus": [],
+   "new": [
+    "i-warned-window #docs | target=\"_blank\" (Warned)"
+   ],
+   "resolved": [
+    "v-unwarned-window #docs | target=\"_blank\" (No Warning)"
+   ]
+  },
+  {
+   "step": 7,
+   "action": "click::#show-extras",
+   "health": [
+    6,
+    3,
+    2,
+    21
+   ],
+   "focus": [],
+   "new": [
+    "v-label-in-name #close-extra | Mismatch: \"Dismiss\" != \"Close dialog\"",
+    "v-suspicious-links #more | Fake Button (#)"
+   ],
+   "resolved": []
+  }
+ ]
+}

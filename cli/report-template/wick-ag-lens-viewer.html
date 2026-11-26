@@ -261,7 +261,7 @@
         for (const a of (Array.isArray(audits) ? audits : [])) {
           for (const el of (a.elements || [])) {
             rows.push({
-              key: `${a.auditId}|${el.selector}`,
+              base: `${a.auditId}|${el.selector}|${el.issueText}`,   // same identity the scanner diffs with; derive() adds the occurrence number
               group, category, auditId: a.auditId, audit: a.audit, severity: a.severity,
               selector: el.selector, snippet: el.htmlSnippet, issue: el.issueText, legend: el.legend,
             });
@@ -279,20 +279,29 @@
   function derive(data) {
     let active = new Map();
     const seen = new Map(); // distinct findings seen in the whole run
+    const onPage = new Map(); // base identity -> how many elements with it are on the page now
     const history = new Map(); // key -> closed episodes [{from, to}]: step ranges where it was on the page
     const steps = data.audit_trail.map((step, i) => {
       const stepNo = step.step ?? i + 1;
       const prev = active;
       const next = new Map(prev);
 
-      const resolved = flatten(step.resolved_findings).map((r) => {
+      // Elements can share selector + text (e.g. duplicate ids). Like the scanner, count them one by one: the n-th element
+      // of a group is occurrence #n. Resolved ones leave from the top, new ones join at the top.
+      const resolved = flatten(step.resolved_findings).map((row) => {
+        const n = onPage.get(row.base) || 0;
+        onPage.set(row.base, Math.max(0, n - 1));
+        const r = { ...row, key: `${row.base}#${n}` };
         const was = prev.get(r.key);
         next.delete(r.key);
         if (!was) return { ...r, since: null, firstSeen: null, past: [] };
         history.set(r.key, [...(history.get(r.key) || []), { from: was.since, to: stepNo - 1 }]);
         return { ...r, since: was.since, firstSeen: was.firstSeen, past: was.past };
       });
-      const added = flatten(step.new_findings).map((r) => {
+      const added = flatten(step.new_findings).map((row) => {
+        const n = (onPage.get(row.base) || 0) + 1;
+        onPage.set(row.base, n);
+        const r = { ...row, key: `${row.base}#${n}` };
         const past = [...(history.get(r.key) || [])]; // non-empty => it was here before, went away, and is back
         return { ...r, since: stepNo, firstSeen: past.length ? past[0].from : stepNo, past, reappeared: past.length > 0 };
       });

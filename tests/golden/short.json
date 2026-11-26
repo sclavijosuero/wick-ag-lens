@@ -1,0 +1,253 @@
+{
+ "journey": "short",
+ "detail": "elements",
+ "steps": [
+  {
+   "step": 1,
+   "action": "navigate",
+   "health": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#search"
+   ],
+   "new": [],
+   "resolved": []
+  },
+  {
+   "step": 2,
+   "action": "click::#open-panel",
+   "health": [
+    1,
+    0,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country"
+   ],
+   "new": [
+    "v-empty-buttons #panel-close | Empty Button"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 3,
+   "action": "fill::#email::not-an-email",
+   "health": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country"
+   ],
+   "new": [
+    "v-aria-invalid #email | aria-invalid=\"true\""
+   ],
+   "resolved": []
+  },
+  {
+   "step": 4,
+   "action": "fill::#email::jdoe@example.com",
+   "health": [
+    1,
+    0,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country"
+   ],
+   "new": [],
+   "resolved": [
+    "v-aria-invalid #email | aria-invalid=\"true\""
+   ]
+  },
+  {
+   "step": 5,
+   "action": "select::#country::US",
+   "health": [
+    2,
+    0,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country",
+    "#state"
+   ],
+   "new": [
+    "v-unlabeled-inputs #state | Unlabeled Input"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 6,
+   "action": "hover::#help",
+   "health": [
+    3,
+    0,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#help-link",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country",
+    "#state"
+   ],
+   "new": [
+    "v-empty-links #help-link | Empty Link"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 7,
+   "action": "press::#search::Enter",
+   "health": [
+    4,
+    0,
+    0,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#help-link",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country",
+    "#state"
+   ],
+   "new": [
+    "v-missing-alt #result-img | Missing alt"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 8,
+   "action": "wait::.toast",
+   "health": [
+    4,
+    0,
+    1,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#help-link",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country",
+    "#state",
+    "#toast-link"
+   ],
+   "new": [
+    "v-generic-link #toast-link | Generic link: \"click here\""
+   ],
+   "resolved": []
+  },
+  {
+   "step": 9,
+   "action": "wait::300",
+   "health": [
+    4,
+    0,
+    1,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#help-link",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country",
+    "#state",
+    "#toast-link"
+   ],
+   "new": [],
+   "resolved": []
+  },
+  {
+   "step": 10,
+   "action": "press::active::Tab",
+   "health": [
+    4,
+    0,
+    1,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#help-link",
+    "#search",
+    "#panel-close",
+    "#email",
+    "#country",
+    "#state",
+    "#toast-link"
+   ],
+   "new": [],
+   "resolved": []
+  },
+  {
+   "step": 11,
+   "action": "press::active::Escape",
+   "health": [
+    2,
+    0,
+    1,
+    0
+   ],
+   "focus": [
+    "#open-panel",
+    "#help",
+    "#help-link",
+    "#search",
+    "#toast-link"
+   ],
+   "new": [],
+   "resolved": [
+    "v-empty-buttons #panel-close | Empty Button",
+    "v-unlabeled-inputs #state | Unlabeled Input"
+   ]
+  }
+ ]
+}

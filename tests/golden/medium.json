@@ -1,0 +1,304 @@
+{
+ "journey": "medium",
+ "detail": "elements",
+ "steps": [
+  {
+   "step": 1,
+   "action": "navigate",
+   "health": [
+    1,
+    0,
+    0,
+    7
+   ],
+   "focus": [
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog"
+   ],
+   "new": [
+    "i-aria-expanded #open-menu | aria-expanded=\"false\"",
+    "i-aria-roles #status | role=\"status\"",
+    "i-landmarks html > body > header > nav | <nav>",
+    "i-landmarks html > body > header | <header>",
+    "i-landmarks html > body > main | <main>",
+    "i-valid-headings #catalog > h2 | <h2>",
+    "i-valid-headings html > body > main > h1 | <h1>",
+    "v-missing-alt #promo | Missing alt"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 2,
+   "action": "click::#open-menu",
+   "health": [
+    3,
+    0,
+    0,
+    18
+   ],
+   "focus": [
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog",
+    "#menu-empty-link",
+    "#menu-icon",
+    "#close-menu"
+   ],
+   "new": [
+    "i-aria-expanded #open-menu | aria-expanded=\"true\"",
+    "i-aria-roles #close-menu | role=\"menuitem\"",
+    "i-aria-roles #menu > li:nth-of-type(1) | role=\"none\"",
+    "i-aria-roles #menu > li:nth-of-type(2) | role=\"none\"",
+    "i-aria-roles #menu > li:nth-of-type(3) | role=\"none\"",
+    "i-aria-roles #menu | role=\"menu\"",
+    "i-aria-roles #menu-empty-link | role=\"menuitem\"",
+    "i-aria-roles #menu-icon | role=\"menuitem\"",
+    "i-lists #menu > li:nth-of-type(1) | <li>",
+    "i-lists #menu > li:nth-of-type(2) | <li>",
+    "i-lists #menu > li:nth-of-type(3) | <li>",
+    "i-lists #menu | <ul>",
+    "v-empty-buttons #menu-icon | Empty Button",
+    "v-empty-links #menu-empty-link | Empty Link"
+   ],
+   "resolved": [
+    "i-aria-expanded #open-menu | aria-expanded=\"false\""
+   ]
+  },
+  {
+   "step": 3,
+   "action": "click::#close-menu",
+   "health": [
+    1,
+    0,
+    0,
+    7
+   ],
+   "focus": [
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog"
+   ],
+   "new": [
+    "i-aria-expanded #open-menu | aria-expanded=\"false\""
+   ],
+   "resolved": [
+    "i-aria-expanded #open-menu | aria-expanded=\"true\"",
+    "i-aria-roles #close-menu | role=\"menuitem\"",
+    "i-aria-roles #menu > li:nth-of-type(1) | role=\"none\"",
+    "i-aria-roles #menu > li:nth-of-type(2) | role=\"none\"",
+    "i-aria-roles #menu > li:nth-of-type(3) | role=\"none\"",
+    "i-aria-roles #menu | role=\"menu\"",
+    "i-aria-roles #menu-empty-link | role=\"menuitem\"",
+    "i-aria-roles #menu-icon | role=\"menuitem\"",
+    "i-lists #menu > li:nth-of-type(1) | <li>",
+    "i-lists #menu > li:nth-of-type(2) | <li>",
+    "i-lists #menu > li:nth-of-type(3) | <li>",
+    "i-lists #menu | <ul>",
+    "v-empty-buttons #menu-icon | Empty Button",
+    "v-empty-links #menu-empty-link | Empty Link"
+   ]
+  },
+  {
+   "step": 4,
+   "action": "click::#open-signup",
+   "health": [
+    3,
+    1,
+    1,
+    8
+   ],
+   "focus": [
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog",
+    "#email",
+    "#submit-signup",
+    "#fix-signup"
+   ],
+   "new": [
+    "i-valid-headings #signup-title | <h4>",
+    "v-heading-errors #signup-title | H4 (Skipped)",
+    "v-placeholder-label #email | Placeholder as Label",
+    "v-unfocusable #terms | Unfocusable Clickable",
+    "v-unlabeled-inputs #email | Unlabeled Input"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 5,
+   "action": "click::#fix-signup",
+   "health": [
+    1,
+    1,
+    0,
+    9
+   ],
+   "focus": [
+    "#submit-signup",
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog",
+    "#email",
+    "#terms",
+    "#fix-signup"
+   ],
+   "new": [
+    "i-aria-roles #terms | role=\"button\"",
+    "i-valid-headings #signup-title | <h2>",
+    "v-tabindex #submit-signup | tabindex=\"3\""
+   ],
+   "resolved": [
+    "i-valid-headings #signup-title | <h4>",
+    "v-heading-errors #signup-title | H4 (Skipped)",
+    "v-placeholder-label #email | Placeholder as Label",
+    "v-unfocusable #terms | Unfocusable Clickable",
+    "v-unlabeled-inputs #email | Unlabeled Input"
+   ]
+  },
+  {
+   "step": 6,
+   "action": "click::#submit-signup",
+   "health": [
+    1,
+    2,
+    0,
+    9
+   ],
+   "focus": [
+    "#submit-signup",
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog",
+    "#email",
+    "#terms",
+    "#fix-signup"
+   ],
+   "new": [
+    "v-aria-invalid #email | aria-invalid=\"true\""
+   ],
+   "resolved": []
+  },
+  {
+   "step": 7,
+   "action": "click::#open-dialog",
+   "health": [
+    4,
+    2,
+    0,
+    10
+   ],
+   "focus": [
+    "#submit-signup",
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link|Focusable in Aria-Hidden",
+    "#cat-btn|Focusable in Aria-Hidden",
+    "#open-dialog|Focusable in Aria-Hidden",
+    "#email",
+    "#terms",
+    "#fix-signup",
+    "#close-dialog"
+   ],
+   "new": [
+    "i-aria-roles #dialog | role=\"dialog\"",
+    "v-aria-hidden-focus #cat-btn | aria-hidden (Focusable)",
+    "v-aria-hidden-focus #cat-link | aria-hidden (Focusable)",
+    "v-aria-hidden-focus #open-dialog | aria-hidden (Focusable)"
+   ],
+   "resolved": []
+  },
+  {
+   "step": 8,
+   "action": "click::#close-dialog",
+   "health": [
+    1,
+    2,
+    0,
+    9
+   ],
+   "focus": [
+    "#submit-signup",
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog",
+    "#email",
+    "#terms",
+    "#fix-signup"
+   ],
+   "new": [],
+   "resolved": [
+    "i-aria-roles #dialog | role=\"dialog\"",
+    "v-aria-hidden-focus #cat-btn | aria-hidden (Focusable)",
+    "v-aria-hidden-focus #cat-link | aria-hidden (Focusable)",
+    "v-aria-hidden-focus #open-dialog | aria-hidden (Focusable)"
+   ]
+  },
+  {
+   "step": 9,
+   "action": "click::#open-menu",
+   "health": [
+    3,
+    2,
+    0,
+    20
+   ],
+   "focus": [
+    "#submit-signup",
+    "#home",
+    "#open-menu",
+    "#open-signup",
+    "#cat-link",
+    "#cat-btn",
+    "#open-dialog",
+    "#menu-empty-link",
+    "#menu-icon",
+    "#close-menu",
+    "#email",
+    "#terms",
+    "#fix-signup"
+   ],
+   "new": [
+    "i-aria-expanded #open-menu | aria-expanded=\"true\"",
+    "i-aria-roles #close-menu | role=\"menuitem\"",
+    "i-aria-roles #menu > li:nth-of-type(1) | role=\"none\"",
+    "i-aria-roles #menu > li:nth-of-type(2) | role=\"none\"",
+    "i-aria-roles #menu > li:nth-of-type(3) | role=\"none\"",
+    "i-aria-roles #menu | role=\"menu\"",
+    "i-aria-roles #menu-empty-link | role=\"menuitem\"",
+    "i-aria-roles #menu-icon | role=\"menuitem\"",
+    "i-lists #menu > li:nth-of-type(1) | <li>",
+    "i-lists #menu > li:nth-of-type(2) | <li>",
+    "i-lists #menu > li:nth-of-type(3) | <li>",
+    "i-lists #menu | <ul>",
+    "v-empty-buttons #menu-icon | Empty Button",
+    "v-empty-links #menu-empty-link | Empty Link"
+   ],
+   "resolved": [
+    "i-aria-expanded #open-menu | aria-expanded=\"false\""
+   ]
+  }
+ ]
+}
