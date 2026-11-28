@@ -1,0 +1,68 @@
+{
+  "runId": "O-2",
+  "model": "opus",
+  "agentId": "a6d144b435b9ee637",
+  "usage": {
+    "calls": 16,
+    "input": 32,
+    "cacheRead": 949370,
+    "cacheWrite": 84207,
+    "output": 12147
+  },
+  "tokens": 1045756,
+  "estCostUsd": 0.854,
+  "toolUses": 16,
+  "tools": {
+    "Read": 1,
+    "Bash": 14,
+    "Grep": 1
+  },
+  "wallSec": 223,
+  "flags": {
+    "readSkill": 1
+  },
+  "largestToolResultChars": 16003,
+  "report": {
+    "saved": true,
+    "steps": 11,
+    "trail": [
+      "navigate:Initial Page Load",
+      "fill:#search",
+      "press:#search",
+      "click:#filter-brand",
+      "click:#brand-panel label:has-text('Northwind') input",
+      "click:#qv-1",
+      "click:#qv-add",
+      "click:#cart-btn",
+      "click:#checkout-btn",
+      "fill:#co-email",
+      "click:#co-submit"
+    ],
+    "distinctAudits": 33,
+    "findings": 300,
+    "globalSummary": {
+      "Critical": 64,
+      "Serious": 5,
+      "Moderate": 6,
+      "Minor": 0,
+      "Manual": 0,
+      "Informative": 93
+    }
+  },
+  "fidelity": {
+    "named": 16,
+    "notInReport": []
+  },
+  "formatChecks": {
+    "statesTier": true,
+    "healthSummary": true,
+    "deltaHighlights": true,
+    "remediationTable": true,
+    "manualList": true,
+    "confidence": true
+  },
+  "formatScore": 6,
+  "usedAgentBrowser": true,
+  "usedCli": true,
+  "bashFailedApprox": 0
+}

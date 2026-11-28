@@ -1,0 +1,48 @@
+{
+  "runId": "S-3",
+  "model": "sonnet",
+  "agentId": "a957683199ccd6659",
+  "usage": {
+    "calls": 14,
+    "input": 28,
+    "cacheRead": 788769,
+    "cacheWrite": 76034,
+    "output": 8975
+  },
+  "tokens": 873806,
+  "estCostUsd": 0.3588,
+  "toolUses": 14,
+  "tools": {
+    "Read": 1,
+    "Bash": 13
+  },
+  "wallSec": 164,
+  "flags": {
+    "readSkill": 1
+  },
+  "largestToolResultChars": 11175,
+  "report": {
+    "saved": false,
+    "note": "audit-report.json removed to save space; values restored from the report table",
+    "steps": 10,
+    "distinctAudits": 33,
+    "finalCSMoMi": "122/5/6/1"
+  },
+  "fidelity": {
+    "named": null,
+    "notInReport": [],
+    "note": "checked before the report file was removed: 0 ids not in the report"
+  },
+  "formatChecks": {
+    "statesTier": true,
+    "healthSummary": true,
+    "deltaHighlights": true,
+    "remediationTable": true,
+    "manualList": true,
+    "confidence": true
+  },
+  "formatScore": 6,
+  "usedAgentBrowser": true,
+  "usedCli": true,
+  "bashFailedApprox": 0
+}

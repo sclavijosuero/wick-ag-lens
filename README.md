@@ -494,6 +494,8 @@ npm run test:ui   # interactive Playwright UI
 
 What is tested, how the tests are grouped and tagged (`@journeys`, `@logins`, `@viewer`, `@cli`, `@mcp`, `@agent-browser`, ...), and how to run a subset: see [`tests/README.md`](./tests/README.md).
 
+**Benchmarks (token cost, and the skill across models):** two small measurements with AI agents back the claims about the skill: [`agent-browser` vs Playwright MCP](./tests/benchmark/reports/guided-2026-11-25.md) and the [skill run on Haiku, Sonnet and Opus](./tests/benchmark/reports/skill-eval-2026-11-27.md). A summary is in [`cli/README.md`](./cli/README.md#what-we-measured).
+
 ---
 
 ## Development & Testing Sites

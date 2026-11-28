@@ -1,0 +1,48 @@
+{
+  "runId": "H-3",
+  "model": "haiku",
+  "agentId": "affc2bd5b771d130b",
+  "usage": {
+    "calls": 24,
+    "input": 48,
+    "cacheRead": 1603005,
+    "cacheWrite": 93818,
+    "output": 26357
+  },
+  "tokens": 1723228,
+  "estCostUsd": 0.0409,
+  "toolUses": 23,
+  "tools": {
+    "Read": 1,
+    "Bash": 22
+  },
+  "wallSec": 277,
+  "flags": {
+    "readSkill": 1
+  },
+  "largestToolResultChars": 11175,
+  "report": {
+    "saved": false,
+    "note": "audit-report.json removed to save space; values restored from the report table",
+    "steps": 11,
+    "distinctAudits": 33,
+    "finalCSMoMi": "64/5/6/0"
+  },
+  "fidelity": {
+    "named": null,
+    "notInReport": [],
+    "note": "checked before the report file was removed: 0 ids not in the report"
+  },
+  "formatChecks": {
+    "statesTier": true,
+    "healthSummary": true,
+    "deltaHighlights": true,
+    "remediationTable": true,
+    "manualList": true,
+    "confidence": true
+  },
+  "formatScore": 6,
+  "usedAgentBrowser": true,
+  "usedCli": true,
+  "bashFailedApprox": 0
+}

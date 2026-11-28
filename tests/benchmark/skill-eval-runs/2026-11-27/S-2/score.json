@@ -1,0 +1,67 @@
+{
+  "runId": "S-2",
+  "model": "sonnet",
+  "agentId": "a44431a8998772060",
+  "usage": {
+    "calls": 13,
+    "input": 26,
+    "cacheRead": 738996,
+    "cacheWrite": 76591,
+    "output": 8656
+  },
+  "tokens": 824269,
+  "estCostUsd": 0.352,
+  "toolUses": 12,
+  "tools": {
+    "Read": 1,
+    "Bash": 11
+  },
+  "wallSec": 142,
+  "flags": {
+    "readSkill": 1
+  },
+  "largestToolResultChars": 11175,
+  "report": {
+    "saved": true,
+    "steps": 11,
+    "trail": [
+      "navigate:Initial Page Load",
+      "fill:#search",
+      "press:#search",
+      "click:#filter-brand",
+      "click:#filters input >> nth=0",
+      "click:#qv-1",
+      "click:#qv-add",
+      "click:#cart-btn",
+      "click:#checkout-btn",
+      "fill:#co-email",
+      "click:#co-submit"
+    ],
+    "distinctAudits": 33,
+    "findings": 300,
+    "globalSummary": {
+      "Critical": 64,
+      "Serious": 5,
+      "Moderate": 6,
+      "Minor": 0,
+      "Manual": 0,
+      "Informative": 93
+    }
+  },
+  "fidelity": {
+    "named": 16,
+    "notInReport": []
+  },
+  "formatChecks": {
+    "statesTier": true,
+    "healthSummary": true,
+    "deltaHighlights": true,
+    "remediationTable": true,
+    "manualList": true,
+    "confidence": true
+  },
+  "formatScore": 6,
+  "usedAgentBrowser": true,
+  "usedCli": true,
+  "bashFailedApprox": 0
+}

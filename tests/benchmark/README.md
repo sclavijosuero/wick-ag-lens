@@ -14,6 +14,7 @@ A realistic, deliberately inaccessible web shop and a fixed 15-step journey, use
 | The **scoring script**: compares an agent's answer table and its real output file with the answer key. No LLM, no tokens | `tests/benchmark/score.js` |
 | The script that regenerates the answer key from real runs | `tests/benchmark/regenerate-reference.js` |
 | The **reports** of the benchmark runs (method, prompts, results, token use) | `tests/benchmark/reports/` |
+| The **skill evaluation** (the wick-ag-lens skill run by Haiku, Sonnet and Opus): its scripts and its per-run data | `tests/benchmark/skill-eval/`, `tests/benchmark/skill-eval-runs/` (see "Skill evaluation" below) |
 
 ## The page
 
@@ -75,3 +76,15 @@ The same journey and key can be used for other analyses: the CLI, MCP, the repor
 ## Regenerating the reference
 
 If the page, the journey or the tool is changed on purpose, start the fixture server and run `node tests/benchmark/regenerate-reference.js http://127.0.0.1:4470`. It runs the journey twice with the CLI, refuses to write if the two runs differ, and rewrites `reference.js` (step 0 = page load, steps 1 to 15). The step and audit definitions live only in `journey.js`.
+
+## Skill evaluation (the skill run by different models)
+
+A second, separate measurement: the same purchase journey on this shop, run through the `wick-ag-lens` skill by agents on different models, to see which route the skill picks and what each model costs. Results: [`reports/skill-eval-2026-11-27.md`](reports/skill-eval-2026-11-27.md). Per-run data (agent answer and scoring): [`skill-eval-runs/`](skill-eval-runs/).
+
+| Piece | File |
+| :-- | :-- |
+| The runs (arms), prompts and expected routes, defined once | `skill-eval/arms.js` |
+| Scores one finished in-session subagent run from its transcript and saved report (route, tokens, estimated cost, steps, format checklist, fidelity). No LLM: `node tests/benchmark/skill-eval/score-subagent.js <agentId> <runId> <sonnet\|haiku\|opus>` | `skill-eval/score-subagent.js` |
+| Headless runner (`claude -p` in a clean scratch project, exact tool sets per arm, cost cap and ledger) and its project builder. **Not used yet**: Claude Code refused `--strict-mcp-config` under an enterprise MCP policy, so the first evaluation ran as in-session subagents | `skill-eval/run.js`, `skill-eval/make-project.js` |
+
+Limits of the first evaluation: only the route reachable in that session (Tier 2 + CLI) was exercised, the agents were told to read the skill file, and costs are estimated from transcripts.

@@ -1,0 +1,77 @@
+{
+  "runId": "H-2",
+  "model": "haiku",
+  "agentId": "a122da07d44e5b7be",
+  "usage": {
+    "calls": 31,
+    "input": 62,
+    "cacheRead": 2199540,
+    "cacheWrite": 106622,
+    "output": 26062
+  },
+  "tokens": 2332286,
+  "estCostUsd": 0.0484,
+  "toolUses": 31,
+  "tools": {
+    "Read": 1,
+    "Bash": 30
+  },
+  "wallSec": 296,
+  "flags": {
+    "readSkill": 1,
+    "readForbidden": 1
+  },
+  "largestToolResultChars": 11175,
+  "report": {
+    "saved": true,
+    "steps": 20,
+    "trail": [
+      "navigate:Initial Page Load",
+      "fill:#search",
+      "press:#search",
+      "wait:800",
+      "click:#filter-brand",
+      "wait:500",
+      "click:text=Northwind",
+      "wait:800",
+      "click:#qv-1",
+      "wait:#qv-add",
+      "click:#qv-add",
+      "wait:800",
+      "click:#cart-btn",
+      "wait:#cart-close",
+      "click:button:has-text(\"Checkout\")",
+      "wait:#co-email",
+      "fill:role=textbox[name=\"Full name\"]",
+      "fill:#co-email",
+      "click:role=button[name=\"Place order\"]",
+      "wait:300"
+    ],
+    "distinctAudits": 33,
+    "findings": 422,
+    "globalSummary": {
+      "Critical": 115,
+      "Serious": 4,
+      "Moderate": 5,
+      "Minor": 1,
+      "Manual": 0,
+      "Informative": 116
+    }
+  },
+  "fidelity": {
+    "named": 16,
+    "notInReport": []
+  },
+  "formatChecks": {
+    "statesTier": true,
+    "healthSummary": true,
+    "deltaHighlights": true,
+    "remediationTable": true,
+    "manualList": true,
+    "confidence": true
+  },
+  "formatScore": 6,
+  "usedAgentBrowser": true,
+  "usedCli": true,
+  "bashFailedApprox": 0
+}

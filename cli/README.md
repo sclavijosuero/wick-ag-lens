@@ -957,12 +957,26 @@ audit_baseline(url: "https://shop.example.com/dashboard", authState: "state.json
 
 ## AI Agent Skill Setup (`SKILL.md`)
 
-WICK-AG-Lens includes a portable, token-efficient **Agent Skill** (`skills/wick-ag-lens/SKILL.md`) that teaches AI coding assistants how to orchestrate **WICK-AG-Lens MCP/CLI**, **`agent-browser`**, and **Playwright MCP** while preventing Base64 screenshot bloat and noisy informative payloads from exhausting context windows.
+WICK-AG-Lens includes a portable, token-efficient **Agent Skill** ([`skills/wick-ag-lens/SKILL.md`](../skills/wick-ag-lens/SKILL.md)) that teaches AI coding assistants how to orchestrate **WICK-AG-Lens MCP/CLI**, **`agent-browser`**, and **Playwright MCP** while preventing Base64 screenshot bloat and noisy informative payloads from exhausting context windows.
 
 ### How the Skill Routes Tasks
 * **Tier 1 — Direct WICK-AG-Lens MCP (Fastest):** Used when target URLs and CSS selectors (including login forms) are known, passing authentication steps directly into `audit_baseline` and chaining `interact_and_diff`.
 * **Tier 2 — `agent-browser` CLI + WICK-AG-Lens (Token-Efficient Scouting):** Used in terminal-enabled environments when exploring unfamiliar SPAs—scouting with compact `@e` accessibility snapshots (fewer tokens than Playwright MCP: about 35% in [our benchmark](../tests/benchmark/reports/guided-2026-11-25.md), 15 steps, 5 runs each; it varies with page size, task length and tool versions), exporting session state via `agent-browser state save`, and handing off to WICK-AG-Lens for deep DOM delta audits.
 * **Tier 3 — Playwright MCP + WICK-AG-Lens MCP (Sandboxed Fallback):** Used in environments without shell access (such as Claude Desktop) when dynamic page discovery is needed before running WICK-AG-Lens audits.
+
+### What We Measured
+Two measurements back the claims about the skill. Both are small and indicative, not statistical:
+* **Token cost of the browsing tool** — [`agent-browser` vs Playwright MCP](../tests/benchmark/reports/guided-2026-11-25.md): the same 15-step journey, 5 runs each. `agent-browser` used about 35% fewer tokens; it varies with page size and task length.
+* **The skill across models** — [skill evaluation](../tests/benchmark/reports/skill-eval-2026-11-27.md): the same purchase journey on a login-protected demo shop, 3 runs each on Haiku 5.5, Sonnet 5.5 and Opus 5.5, with the agent not told which route to take. All 9 runs chose Tier 2 + CLI and stated why, and found the same 33 audits with a correctly formatted report. Estimated cost per run (list prices): Haiku about $0.04, Sonnet about $0.36, Opus about $0.87, so the stronger models did not find more on this task. Haiku needed about twice the model calls. Limits: one page, only the Tier 2 route was exercised, the agents were told to read the skill file (automatic discovery was not tested), and costs are estimated from transcripts.
+
+### Try the Skill on Your Own Site
+After installing the skill, ask your agent something like the following (replace the URL, login and journey with yours):
+```text
+Audit the accessibility of <your app> at <URL>. It is behind a login (<user> / <password>, or a test account).
+Audit the page after each step of this journey: <step 1>; <step 2>; <step 3>.
+Scope: WCAG 2.0 and 2.1, levels A and AA. Use the wick-ag-lens skill.
+```
+The agent should say which tier it chose and why, then answer with a health summary, step-by-step changes and a remediation table. On the demo shop above this took about 12 to 31 model calls and cost roughly $0.04 to $0.90 depending on the model; your page and journey will differ. Check the result against your own knowledge of the page: several audits are marked "Needs confirmation" because they are pattern or best-effort checks.
 
 ### Option 1: Install via Skills CLI (Recommended)
 Run the following command in your project or global environment to install the skill automatically across supported AI tools:
