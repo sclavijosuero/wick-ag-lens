@@ -63,9 +63,9 @@ You can pass several arguments to customize the run:
 * `-H, --height <pixels>`: Sets the viewport height to test responsive layouts (defaults to `800`).
 * `-s, --screenshot`: Includes a Base64 JPEG screenshot of the rendered page inside the final JSON output.
 - `-q, --screenshot-quality <quality>`: Sets the JPEG screenshot quality on a `1`–`100` scale when `-s` is enabled (defaults to `70`).
-* `--wait-ms <milliseconds>`: Explicit pause duration in milliseconds after `networkidle` to let client-side routers or slow animations settle.
-* `--wait-for-selector <selector>`: Halts audit execution until a specific CSS selector mounts in the DOM.
-* `--step <step>`: Executable post-baseline interaction step (e.g., `click::#open-modal`, `fill::#email::invalid`). Can be repeated to build a multi-step user journey; each step captures a full accessibility delta diff.
+* `--wait-for-selector <selector>`: **Once, before the baseline audit (step 1).** After the page loads, waits until a CSS selector is in the DOM (up to 15 seconds, then the run fails). Use it when the page builds itself after load (a SPA, a late widget), so step 1 audits the finished page. It adds no step to the report. Runs before `--wait-ms` when both are given.
+* `--wait-ms <milliseconds>`: **Once, before the baseline audit (step 1).** After the page has loaded (and after `--wait-for-selector`, if given), pauses for a fixed time so client-side routers and animations can settle. It adds no step to the report. Prefer `--wait-for-selector` when there is an element to wait for; use this when there is not.
+* `--step <step>`: Executable post-baseline interaction step (e.g., `click::#open-modal`, `fill::#email::invalid`). Can be repeated to build a multi-step user journey; each step captures a full accessibility delta diff. To wait **between** actions, use a `wait::` step (see [Waiting: before the baseline or between steps](#waiting-before-the-baseline-or-between-steps)).
 * `--login-url <url>`: URL to navigate to for authentication before running the audit.
 * `-u, --user <user>`: Shorthand username for standard 2-field login forms.
 * `-p, --pass <pass>`: Shorthand password for standard 2-field login forms.
@@ -93,7 +93,7 @@ Both `--auth-step` (which executes silently before the baseline scan to establis
 | **`select`** | `select::<selector>::<value>` | Chooses an `<option>` inside a native `<select>` element by option value or label. |
 | **`press`** | `press::<selector>::<key>` | Focuses `<selector>` and dispatches `<key>`. Use `active` as the selector (`press::active::<key>`) to send keystrokes to the currently focused element without resetting tab order. |
 | **`hover`** | `hover::<selector>` | Moves the cursor over `<selector>` to reveal tooltips, dropdowns, or hover states. |
-| **`wait`** | `wait::<ms_or_selector>` | Waits for a duration in milliseconds (`wait::1000`) or until a CSS selector appears (`wait::.toast-alert`). |
+| **`wait`** | `wait::<ms_or_selector>` | Waits at this point of the journey, for a duration in milliseconds (`wait::1000`, digits only) or until a CSS selector appears (`wait::.toast-alert`, up to 15 seconds, then the run fails). Like every step, it adds an entry to the report (normally with no changes). |
 
 ### Supported Keys for `press`
 The `press` action accepts standard **W3C `KeyboardEvent.key`** names (case-sensitive):
@@ -103,25 +103,47 @@ The `press` action accepts standard **W3C `KeyboardEvent.key`** names (case-sens
 * **Characters & Digits:** `a`–`z`, `A`–`Z`, `0`–`9`
 * **Modifier Combinations (joined with `+`):** `Shift+Tab`, `Control+a`, `Alt+ArrowDown`, `Meta+Enter` *(Supported modifiers: `Shift`, `Control`, `Alt`, `Meta`, `ControlOrMeta`)*
 
+### Waiting: before the baseline or between steps
+
+`--wait-for-selector` and `--wait-ms` wait the same ways as a `wait::` step, but at a different moment:
+
+| | `--wait-for-selector` / `--wait-ms` | `--step "wait::<ms_or_selector>"` |
+| :-- | :-- | :-- |
+| **When it runs** | Once, right after the page loads, before the baseline audit | At its position in the journey, after the steps before it |
+| **Report** | Adds nothing: step 1 simply starts later, on the settled page | Adds its own entry to `audit_trail` (usually with no changes) |
+| **Waits for** | A selector (`--wait-for-selector`), then a fixed time (`--wait-ms`). Either or both | A fixed time (digits only, `wait::1500`) or a selector (anything else, `wait::.toast`) |
+| **Timeout** | 15 seconds for the selector, then the run fails | 15 seconds for the selector, then the run fails |
+| **MCP** | `waitForSelector`, `waitMs` on `audit_baseline` | `interact_and_diff` with action `wait` |
+| **Use it when** | The page builds itself after load, and the baseline would otherwise audit a half-built page | Something appears after an action (a toast after a search, the password field on the second screen of a login) |
+
+* **Wait for something, not for time.** A selector wait ends as soon as the page is ready; a fixed pause is slow when the page is early and flaky when it is late.
+* A baseline taken too early reports problems that later show up as "resolved" or "new" in step 2. If that happens, add a baseline wait rather than a `wait::` step.
+* `--auth-step` can also use `wait::` (for example between the two screens of a login); those waits run before the audit and appear in no report.
+
 ---
 
 ## CLI Usage Examples
 
-### 1. WCAG 2.0 & 2.1 (Levels A & AA) Compliance Audit
+### 1. WCAG Version & Level Filter: 2.0 & 2.1, Levels A & AA (`--wcag-version`, `--wcag-level`)
 Filters the rule engine to run only rules mapped to WCAG versions `2.0` and `2.1` at conformance levels `A` and `AA` (which together represent standard WCAG 2.1 AA compliance), excluding Level AAA and WCAG 2.2 checks.
 ```bash
 node index.js audit "https://example.com" --wcag-version="2.0,2.1" --wcag-level="A,AA"
 ```
 
 ### 2. Targeted Audit Subset (`--audits`)
-Runs only a specific comma-separated list of rule IDs instead of the full suite—ideal for fast CI smoke checks on high-priority issues like document titles, image alt text, empty links, and unlabeled form inputs.
+Runs in **bash**, only a specific comma-separated list of rule IDs instead of the full suite—ideal for fast CI smoke checks on high-priority issues like document titles, image alt text, empty links, and unlabeled form inputs.
 ```bash
 node index.js audit "https://example.com" \
   --audits "v-doc-title,v-missing-alt,v-empty-links,v-unlabeled-inputs"
 ```
+The same command in **PowerShell**, which continues lines with a backtick (`` ` ``) instead of `\`:
+```powershell
+node index.js audit "https://example.com" `
+  --audits "v-doc-title,v-missing-alt,v-empty-links,v-unlabeled-inputs"
+```
 
 ### 3. Focus Order Mapping & Dynamic Shift Detection (`i-focus-order`)
-Maps the complete tab-focus sequence of the page on initial load (Step 1), then opens a navigation drawer (Step 2) and outputs the updated focus sequence in `page_state_maps.focus_order`.
+Maps the complete tab-focus sequence of the page on initial load (Step 1), then opens a navigation drawer (Step 2, the `--step` below) and outputs the updated focus sequence in `page_state_maps.focus_order`. The page load is always Step 1 and needs no flag.
 ```bash
 node index.js audit "https://example.com" \
   --audits "i-focus-order" \
@@ -143,7 +165,7 @@ node index.js audit "https://example.com" \
 ```
 
 ### 6. Multi-Step Navigation & Theme Toggle Sequence
-Executes a sequence of UI interactions—opening a menu, navigating to settings, and toggling dark mode—producing an isolated step-by-step accessibility diff (such as new color-contrast violations in dark mode).
+Executes a sequence of UI interactions—opening a menu, navigating to settings, and toggling dark mode—producing an isolated step-by-step accessibility diff (such as new color-contrast violations in dark mode). The `-s` flag saves a screenshot at every step, the page load included (4 here), for the [report viewer](#visual-html-report-viewer).
 ```bash
 node index.js audit "https://example.com" \
   --step "click::button#open-menu" \
@@ -153,16 +175,23 @@ node index.js audit "https://example.com" \
 ```
 
 ### 7. Single-Page Application (SPA) Hydration & Targeted Rules
-Waits until a dynamic dashboard widget mounts in the DOM, pauses an additional 1.5 seconds for client-side animations to finish, and runs a targeted subset of rules.
+A dashboard that builds itself after the page loads would be audited half-built. This waits for it **before the baseline**, then audits only the rules you care about.
 ```bash
 node index.js audit "https://example.com/analytics" \
   --wait-for-selector ".dashboard-chart-ready" \
   --wait-ms 1500 \
   --audits "v-heading-errors,v-unlabeled-inputs,i-accessible-name"
 ```
+What happens, in order:
+1. The page loads.
+2. `--wait-for-selector` holds until `.dashboard-chart-ready` is in the DOM (up to 15 seconds, then the run fails). This is the real "the page is ready" signal.
+3. `--wait-ms 1500` then pauses another 1.5 seconds so animations can finish. Optional: keep it only if the widget keeps changing after it mounts.
+4. The baseline audit runs (step 1) on the settled page, with only the three listed rules.
+
+The report has **one** entry (step 1): both waits happen before it and add no entry. There is no `--step`, so nothing else is recorded. To keep waiting *after* an action (for example for a toast after a click), use a `wait::` step instead; see [Waiting: before the baseline or between steps](#waiting-before-the-baseline-or-between-steps).
 
 ### 8. Keyboard Focus Trap & Modal Escape Testing
-Opens a modal dialog, tabs through its interactive controls using the active focus element (`active`), and verifies that pressing `Escape` closes the dialog cleanly.
+Opens a modal dialog, presses `Tab` twice on the element that has focus (`active`), then presses `Escape`, and records what the audits see after every action. The command only performs the keystrokes.
 ```bash
 node index.js audit "https://example.com/settings" \
   --step "click::#open-profile-modal" \
@@ -172,7 +201,7 @@ node index.js audit "https://example.com/settings" \
 ```
 
 ### 9. Form Validation, Dropdown Selection & Hover States
-Tests dynamic form error states and hover-triggered tooltips by selecting a dropdown option, submitting an invalid input, waiting for validation messages, and hovering over a help badge.
+Audits the accessibility of a form as it changes. It selects a country in a dropdown, enters an invalid zip code, submits the form, waits for the validation error banner to appear, and hovers over the help badge to show its tooltip. The audits run after every action, so the report shows which findings each state introduces (for example the error messages and the tooltip) and which ones it resolves.
 ```bash
 node index.js audit "https://example.com/checkout" \
   --step "select::select#country::US" \
@@ -191,8 +220,14 @@ node index.js audit "https://example.com/account" \
   -p "SuperSecret123"
 ```
 
+> **Reminder:** `-u` and `-p` only work if the login page matches these selectors. If it doesn't, use `--auth-step` instead (see [example 11](#11-enterprise-multi-field-auth--post-login-spa-workflow)).
+> * `-u`: filled into `input[type="text"], input[type="email"], input[type="user"]`
+> * `-p`: filled into `input[type="password"]`
+> * Then clicks (automatically) `button[type="submit"], input[type="submit"]`
+
+
 ### 11. Enterprise Multi-Field Auth + Post-Login SPA Workflow
-Logs into a 3-field corporate portal using `--auth-step`, then uses `--step` to navigate SPA menus, filter a data grid, submit via keyboard, and capture screenshots filtered to WCAG 2.0/2.1 Level A & AA.
+Logs into a 3-field corporate portal using `--auth-step`, then uses `--step` to navigate SPA menus, filter a data grid, submit via keyboard, and capture screenshots. Only the seven audits in `--audits` run, and of those, only the ones mapped to WCAG 2.0/2.1 Level A & AA (both filters apply together).
 ```bash
 node cli/index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
   --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" \
@@ -209,26 +244,18 @@ node cli/index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" \
   --step "press::active::Enter" \
   -s
 ```
-The same command in **PowerShell**, which continues lines with a backtick (`` ` ``) instead of `\`:
-```powershell
-node cli/index.js audit "https://abi-testing-dojo-demo.azurewebsites.net/" `
-  --audits="v-heading-errors,i-touch-targets,v-unlabeled-inputs,i-focus-order,v-placeholder-label,v-label-in-name,i-accessible-name" `
-  --wcag-version "2.0,2.1" `
-  --wcag-level "A,AA" `
-  --login-url "https://abi-testing-dojo-demo.azurewebsites.net/login" `
-  --auth-step "fill::#company::Contoso" `
-  --auth-step "fill::#user::jdoe" `
-  --auth-step "fill::#password::Admin+123" `
-  --auth-step "click::#btn-login" `
-  --step "click::button.menu-button[title='Security']" `
-  --step "click::button.submenu-button[title='Companies']" `
-  --step "fill::input[placeholder='Search...']::Contoso" `
-  --step "press::active::Enter" `
-  -s
+
+### 12. Log In Once, Reuse the Session in Every Later Run
+Logs in headlessly on the first run and saves the session; every later run reuses it without a login. See [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless).
+```bash
+# First run: log in and save
+node index.js audit "https://example.com/portal" --login-url "https://example.com/login" -u "jdoe@example.com" -p "$PASS" -a auth-state.json
+# Next runs: just reuse
+node index.js audit "https://example.com/portal/reports" -a auth-state.json
 ```
 
-### 12. Manual MFA / Cookie Banner Capture & Headless Session Reuse
-Opens a visible browser window for 30 seconds so you can manually clear cookie banners or complete Multi-Factor Authentication (MFA), saves the authenticated cookies/storage to `auth-state.json`, and reuses that session in subsequent headless CI runs.
+### 13. Manual MFA / Cookie Banner Capture & Headless Session Reuse
+Opens a visible browser window for 30 seconds (`-i`), so you can manually clear cookie banners or complete Multi-Factor Authentication (MFA), saves the authenticated cookies/storage to `auth-state.json`, and reuses that session in subsequent headless CI runs.
 ```bash
 # Step A: Interactive capture (run once locally)
 node index.js audit "https://example.com/portal" -i -a auth-state.json
@@ -237,21 +264,25 @@ node index.js audit "https://example.com/portal" -i -a auth-state.json
 node index.js audit "https://example.com/portal" -a auth-state.json --wcag-level="A,AA"
 ```
 
-### 13. Custom JavaScript Authentication Module
+### 14. Custom JavaScript Authentication Module
 Delegates complex SSO, OAuth, or multi-page redirect logins to a custom Playwright script (`async (page) => { ... }`) before running the audit.
 ```bash
+TEST_USER="jdoe@example.com" TEST_PASS="$APP_PASSWORD" \
 node index.js audit "https://example.com/workspace" \
   --auth-script "./scripts/sso-login.mjs" \
   --step "click::button#new-project"
 ```
+Basic example of `./scripts/sso-login.mjs`: an ES module whose default export receives the Playwright `page`, signs in, and returns once the logged-in page is ready. Read the credentials from environment variables (`TEST_USER`, `TEST_PASS`) so they never end up in the file. For a longer, multi-screen SSO script, see [Custom Authentication Script](#3-custom-authentication-script---auth-script--authscript).
+```javascript
+// scripts/sso-login.mjs
 
-### 14. Log In Once, Reuse the Session in Every Later Run
-Logs in headlessly on the first run and saves the session; every later run reuses it without a login. See [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless).
-```bash
-# First run: log in and save
-node index.js audit "https://example.com/portal" --login-url "https://example.com/login" -u "jdoe@example.com" -p "$PASS" -a auth-state.json
-# Next runs: just reuse
-node index.js audit "https://example.com/portal/reports" -a auth-state.json
+export default async function (page) {
+  await page.goto('https://example.com/login');
+  await page.fill('#email', process.env.TEST_USER);
+  await page.fill('#password', process.env.TEST_PASS);
+  await page.click('button[type="submit"]');
+  await page.waitForURL('**/workspace');   // wait until the login has finished
+}
 ```
 
 ---
@@ -355,37 +386,75 @@ export default async function (page) {
 
 Because `agent-browser` and Playwright share the standard `storageState` JSON format (`cookies` and `localStorage`), you can authenticate externally using any of three protocols and pass the exported file straight into WICK-AG-Lens via `-a <path>` (CLI) or `authState` (MCP):
 
-* **Protocol A — AI-Driven Interactive Login (`agent-browser state save`):** An AI agent navigates unfamiliar login forms using compact `@e` accessibility snapshots and saves the resulting session state:
+* **Protocol A — AI-Driven Interactive Login (`agent-browser state save`):** An AI agent navigates unfamiliar login forms using compact `@e` accessibility snapshots and saves the resulting session state. `$APP_PASSWORD` is an environment variable you set in your terminal first, so the password is not typed into the command (see how to set it in Protocol B below):
   ```bash
   agent-browser open https://app.example.com/login
   agent-browser snapshot -i
-  agent-browser fill @e1 "jdoe@example.com"
-  agent-browser fill @e2 "SuperSecret123"
-  agent-browser click @e3
+  # Prints the interactive elements, each with a reference (yours will differ):
+  #   - heading "Sign in" [level=1, ref=e1]
+  #   - textbox "User" [ref=e2]
+  #   - textbox "Password" [ref=e3]
+  #   - button "Sign in" [ref=e4]
+
+  # The agent reads those lines and picks the references by role and label:
+  agent-browser fill @e2 "jdoe@example.com"
+  agent-browser fill @e3 "$APP_PASSWORD"
+  agent-browser click @e4
   agent-browser wait --url "**/dashboard"
   agent-browser state save auth-state.json
 
   # Hand off session state to WICK-AG-Lens
   node index.js audit "https://app.example.com/dashboard" -a auth-state.json
   ```
-* **Protocol B — Encrypted Credential Vault (`agent-browser auth login`):** Store credentials once in `agent-browser`'s AES-256-GCM encrypted vault (`~/.agent-browser/auth/`) so raw passwords never appear in CLI flags or AI prompts, then export the session state:
+  * **How the `@e` snapshots work:** `agent-browser snapshot -i` prints the interactive elements of the page as short text lines, each with a numbered reference (`@e2`, `@e3`, ...). The numbers are **not fixed**: they depend on the page. The AI agent reads each line's role and label (`textbox "User"`, `button "Sign in"`) to decide which reference is the user field, the password field or the button, so no CSS selectors are needed and the short text costs far fewer tokens than the full DOM. References describe the page at the moment of the snapshot, so after the page changes (a navigation, a new step in the login), take a new `snapshot -i` before using them again.
+
+  More in the [agent-browser snapshots guide](https://agent-browser.dev/snapshots).
+* **Protocol B — Encrypted Credential Vault (`agent-browser auth login`):** Store credentials once in `agent-browser`'s AES-256-GCM encrypted vault (`~/.agent-browser/auth/`) so raw passwords never appear in CLI flags or AI prompts, then export the session state. It has two parts, linked only by the name you choose (`my-app`):
   ```bash
-  # One-time encrypted profile setup
-  echo "SuperSecret123" | agent-browser auth save my-app \
+  # Part 1 (once): save the login under the name "my-app" in the encrypted vault
+  echo "$APP_PASSWORD" | agent-browser auth save my-app \
     --url "https://app.example.com/login" \
     --username "jdoe@example.com" \
     --password-stdin
 
-  # Replay login & export storageState for WICK-AG-Lens
+  # Part 2 (every time you need a session): log in with the saved profile, export the session, audit with it
   agent-browser auth login my-app
   agent-browser state save auth-state.json
   node index.js audit "https://app.example.com/dashboard" -a auth-state.json
   ```
+  * **Part 1:** `--password-stdin` makes `agent-browser` read the password from the piped input instead of a `--password` flag, so it stays out of the command line. The login is stored encrypted under the name `my-app`. You do this once.
+  * **Part 2:** `auth login my-app` signs in with the saved login, `state save` writes the session to a file, and `-a` gives that file to WICK-AG-Lens, which never sees the password.
+  * **Keep the password out of your shell history:** do not type it inside `echo "..."`. Put it in `$APP_PASSWORD` first. In Git Bash (what you type is not shown and is not saved to history):
+    ```text
+    $ read -s -p "Password: " APP_PASSWORD
+    Password:                      <- type or paste the password here, then press Enter
+    $
+    ```
+    The value can come from anywhere (a CI secret, a password-manager CLI, ...); the commands only need the variable to exist. In PowerShell it is `$env:APP_PASSWORD`.
+  * **Non-standard login pages:** if `agent-browser` does not find the fields, add `--username-selector`, `--password-selector` or `--submit-selector` (CSS selectors) to `auth save`.
+
+  **More information:** [agent-browser Security guide](https://agent-browser.dev/security) (the auth vault).
 * **Protocol C — Live Chrome Session Reuse (`--auto-connect`):** Attach `agent-browser` to an already-authenticated local Chrome window (launched with remote debugging) to extract cookies/storage past corporate SSO, hardware security keys, or 2FA:
+  1. **Start Chrome yourself with remote debugging on.** `agent-browser` cannot attach to a normal Chrome window: the flag `--remote-debugging-port` must be present when Chrome starts. Close every Chrome window first, because a Chrome that is already running ignores the flag. Then launch it from a terminal:
+     ```bash
+     # Windows
+     "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+     # macOS
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222
+     # Linux
+     google-chrome --remote-debugging-port=9222
+     ```
+  2. **Log in by hand in that window**, as you normally would (SSO, security key, 2FA). Leave the window open.
+  3. **Export the session.** With `--auto-connect`, `agent-browser` finds that running Chrome on the debugging port and saves its cookies and `localStorage` to a file. Nothing is typed or clicked in the window.
+  4. **Audit with the file.** WICK-AG-Lens opens its **own** browser and loads the file (`-a`), so it does not touch your Chrome window.
   ```bash
   agent-browser --auto-connect state save auth-state.json
   node index.js audit "https://app.example.com/dashboard" -a auth-state.json
   ```
+  More about attaching to a running Chrome: [agent-browser CDP mode](https://agent-browser.dev/cdp-mode).
+  > **Security:** `--remote-debugging-port` lets any program on your machine control that Chrome and read its cookies. Use it only on a machine you trust, and close that Chrome when you finish. `sessionStorage` is not saved (see [What the handoff covers](#what-the-handoff-covers-and-what-it-does-not)).
+
+&nbsp;
 
 > **No external tool needed:** WICK-AG-Lens can also create the state file itself, headlessly, from any of its own login methods. See [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless).
 
@@ -421,9 +490,9 @@ sequenceDiagram
     W-->>W: JSON report (url of step 1 tells you whether the login held)
 ```
 
-Not shown, because it is not implemented: a second path where WICK-AG-Lens connects to the running `agent-browser` browser and shares its live session (including `sessionStorage`).
-
 If a handoff did not work, look at `audit_trail[0].url` in the report: if it is the sign-in page, the file did not carry a valid session.
+
+> Not shown, because it is not implemented: a second path where WICK-AG-Lens connects to the running `agent-browser` browser and shares its live session (including `sessionStorage`).
 
 ### Log In Once, Save the Session, Reuse It (Headless)
 
@@ -483,7 +552,7 @@ With SSO, the app does not show a login form itself. It sends the browser to an 
 
 **Step 1: Choose your approach**
 
-| Your sign-in | Use | Section |
+| Your sign-in | Use (CLI / MCP) | Section |
 | :--- | :--- | :--- |
 | Provider pages with a user name and password (one or two screens), no MFA | `--auth-step` / `authSteps` | [Recipe A](#recipe-a-sign-in-with-auth-steps-most-common) |
 | Conditional prompts, "Stay signed in?" pages, logic that steps cannot express | `--auth-script` / `authScript` | [Recipe B](#recipe-b-sign-in-with-a-script) |
@@ -533,7 +602,7 @@ A sign-in that silently failed produces an audit of the *provider's sign-in page
 * `url` must be the page you asked for, on **your app's** address. If it is the provider's address, the login did not complete.
 * For extra certainty, audit something that exists only after sign-in and check it is there.
 
-**Step 3: Put it in an automated test (best practice)**
+**Step 3: Put it in an automated test (CLI, best practice)**
 
 Run the audit from your own Playwright Test suite so a broken sign-in or a new accessibility problem fails the build. Three tests are enough: a **control** (not signed in, you end on the provider, proving the page really is protected), the **sign-in** itself, and a **save and reuse**.
 
@@ -544,52 +613,75 @@ import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { promisify } from 'node:util';
 
+// Starts a program and lets us `await` it.
 const run = promisify(execFile);
+// Full path of the installed CLI file.
 const WICK = createRequire(import.meta.url).resolve('wick-ag-lens/index.js');
 
-const APP = 'https://app.example.com';
-const PROTECTED = `${APP}/dashboard`;       // redirects to the identity provider when nobody is signed in
-const IDP_HOST = 'login.example-idp.com';    // where the sign-in pages live
+const APP_URL = 'https://app.example.com';
+// The page we audit. Opening it redirects to the login provider when nobody is signed in, so it is also what we pass to --login-url and where we land after signing in.
+const DASHBOARD_URL = `${APP_URL}/dashboard`;
+// Host name only (no https://) of the site that shows the sign-in screens; the test compares it with `new URL(...).host`.
+const LOGIN_PROVIDER_HOST = 'login.example-idp.com';
 
-// The sign-in, written for the identity provider's pages. The LAST step waits for an element that only exists
-// inside the app, so the audit never starts before the browser is back from the identity provider.
+/*
+ * The sign-in steps (--auth-step). They run BEFORE the audit starts, so they are not steps of the audit_trail:
+ * the audit's step 1 is the baseline of the page you land on after the sign-in.
+ */
 const SIGN_IN = [
+  // Sign-in screen 1, on the login provider's page: user name.
   `fill::#username::${process.env.SSO_USER}`,
   'click::#next',
-  'wait::#password',                        // screen 2 appears after screen 1
+  // Sign-in screen 2, still on the login provider's page: it appears after screen 1.
+  'wait::#password',
   `fill::#password::${process.env.SSO_PASSWORD}`,
   'click::#sign-in',
+  // Back on the app: wait for an element that only exists inside the app,
+  // so the audit never starts before the browser has returned from the login provider.
   'wait::nav.main-navigation',
 ].flatMap((step) => ['--auth-step', step]);
 
-// Runs the CLI and returns its audit_trail. stdout is "[Audit] ..." log lines followed by the JSON report.
+
+/*
+ * Runs `node index.js audit <args>` and returns its audit_trail
+ * (the list of steps; step 1 is the baseline).
+ */
 async function audit(args) {
+  
+  // maxBuffer: Node's default (1 MB) is too small for a big report. timeout: stops a hung run after 2 minutes.
   const { stdout } = await run(process.execPath, [WICK, 'audit', ...args],
     { maxBuffer: 64 * 1024 * 1024, timeout: 120_000 });
+
+  // stdout is "[Audit] ..." log lines, then the JSON report (it starts on a line that is just "{").
   return JSON.parse(stdout.slice(stdout.search(/^\{$/m))).audit_trail;
 }
 
+
 test('control: without signing in, the protected page ends on the identity provider', async () => {
-  const [step] = await audit([PROTECTED, '--audits', 'v-doc-title']);
-  expect(new URL(step.url).host).toBe(IDP_HOST);
+  const [step] = await audit([DASHBOARD_URL, '--audits', 'v-doc-title']);
+  expect(new URL(step.url).host).toBe(LOGIN_PROVIDER_HOST);
 });
 
 test('signs in through SSO and audits the protected page', async () => {
-  const [step] = await audit([PROTECTED, '--audits', 'v-doc-title', '--login-url', PROTECTED, ...SIGN_IN]);
-  expect(step.url).toBe(PROTECTED);          // back on the app, not stuck on the identity provider
+  const [step] = await audit([DASHBOARD_URL, '--audits', 'v-doc-title', '--login-url', DASHBOARD_URL, ...SIGN_IN]);
+  // Back on the app, not stuck on the identity provider.
+  expect(step.url).toBe(DASHBOARD_URL);
 });
 
 test('signs in once, saves the session, then reuses it with no login', async ({}, testInfo) => {
-  const state = testInfo.outputPath('sso-state.json');   // under test-results/ (git-ignored): never commit it
+  // Under test-results/ (git-ignored): never commit it.
+  const state = testInfo.outputPath('sso-state.json');
 
-  await audit([PROTECTED, '--login-url', PROTECTED, ...SIGN_IN, '-a', state]);   // login + save
-  const [step] = await audit([PROTECTED, '-a', state]);                           // no login flags at all
-  expect(step.url).toBe(PROTECTED);
+  // Login + save.
+  await audit([DASHBOARD_URL, '--login-url', DASHBOARD_URL, ...SIGN_IN, '-a', state]);
+  // No login flags at all.
+  const [step] = await audit([DASHBOARD_URL, '-a', state]);
+  expect(step.url).toBe(DASHBOARD_URL);
 });
 ```
 To assert accessibility results too, check `step.new_findings` (for example that a rule you care about reports nothing). The MCP equivalent, with the Playwright MCP client, is in [Session Protocol & Reading the Results](#session-protocol--reading-the-results).
 
-A complete, runnable version of these tests (CLI and MCP) runs against a local fake identity provider on a different origin: see [`tests/regression/login-methods.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/regression/login-methods.spec.js) in the repository (the SSO method is one of the five it runs, with the CLI and with MCP). It is the best place to copy patterns from.
+A complete, runnable version of these tests (CLI and MCP) runs against a local fake identity provider on a different origin: see [`tests/regression/login-methods.spec.js`](../tests/regression/login-methods.spec.js) in the repository (the SSO method is one of the five it runs, with the CLI and with MCP). It is the best place to copy patterns from.
 
 **Best practices**
 * **Use a dedicated test account** without MFA for automated audits, or sign in by hand once (Recipe C) and reuse the saved session.
@@ -657,8 +749,9 @@ Enterprise WAFs (such as Akamai or Cloudflare) sometimes detect subtle headless 
 **2. SPA Hydration Timing**
 Complex Single Page Applications (SPAs) may momentarily display a skeleton screen or 404 placeholder while client-side routes resolve. If Playwright's `networkidle` lifecycle event resolves during that window, the audit may run against the transient state rather than the fully rendered view.
 * **Resolution:** Use the built-in timing options to delay baseline execution until the target component mounts:
-  * `--wait-ms <milliseconds>`: Pauses execution after page load to allow dynamic scripts to hydrate.
-  * `--wait-for-selector <selector>`: Halts execution until a specific DOM element (e.g., a persistent nav or hero container) is present.
+  * `--wait-for-selector <selector>`: Before the baseline, waits until a specific DOM element (e.g., a persistent nav or hero container) is present.
+  * `--wait-ms <milliseconds>`: Before the baseline (and after the selector wait), pauses for a fixed time to allow dynamic scripts to hydrate.
+  * To wait *between* steps instead, see [Waiting: before the baseline or between steps](#waiting-before-the-baseline-or-between-steps).
 
 *Example (Waiting for SPA Hydration):*
 ```bash
@@ -672,7 +765,7 @@ node index.js audit https://www.example.com/ --wait-ms 3000 -a "example-state.js
 The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to AI agents (like Claude), allowing them to authenticate, navigate pages, execute full user interactions, and receive delta logs of accessibility barriers created or resolved by their actions. It also pairs seamlessly with external browser automation tools—including Vercel's **`agent-browser`** CLI and the official **Playwright MCP**—via standard session state handoffs.
 
 ### Exposed MCP Tools
-* `audit_baseline`: Authenticates (if configured) and runs a full baseline scan on a target URL. Supports:
+* `audit_baseline`: Authenticates (if configured) and runs a full baseline audit scan on a target URL. Supports:
   * **Authentication:** `loginUrl`, shorthand `user`/`pass`, ordered `authSteps` (`[{ action, target, value }]`), `authScript` (custom JS module path), `authState` (path to an existing Playwright/`agent-browser` storageState JSON file; it is only loaded, never written), and `saveAuthState` (path where the session created by the login above is **written**, to be reused later through `authState`; see [Log In Once, Save the Session, Reuse It](#log-in-once-save-the-session-reuse-it-headless)).
   * **Scope & Filtering:** `requestedAudits`, `wcagVersions`, and `wcagLevels`.
   * **Viewport & Timing:** `viewportWidth`, `viewportHeight`, `waitMs`, `waitForSelector`, `includeScreenshot` (Base64 JPEG visual context) and `screenshotQuality` (`1`-`100`, defaults to `70`).
@@ -683,7 +776,7 @@ The MCP (Model Context Protocol) Server exposes WICK-AG-Lens tools directly to A
 
 The server keeps **one stateful browser session**. Call the tools in this order:
 
-1. **`audit_baseline`: always first.** Opens a fresh browser, authenticates if configured, loads the `url` and runs the baseline scan. Calling it again **closes the previous session** and starts a new one.
+1. **`audit_baseline`: always first.** Opens a fresh browser, authenticates if configured, loads the `url` and runs the baseline audits scan. Calling it again **closes the previous session** and starts a new one.
 2. **`interact_and_diff`: zero or more times.** Each call performs one interaction on the page the baseline opened and audits what changed. Interactions never run concurrently. Calling it before a baseline returns an error (`No active baseline found. Please run 'audit_baseline' first.`).
 3. **`get_audit_trail`: any time after the baseline.** Returns the whole session so far.
 
@@ -701,7 +794,7 @@ The full trail has the structure described in [CLI & MCP JSON Output Format](#cl
 
 #### Example: driving the protocol from a Playwright test
 
-This is how the package's own test suite calls the server (see [`tests/regression/audits.spec.js`](https://github.com/sclavijosuero/wick-ag-lens/blob/main/tests/regression/audits.spec.js)). It uses the official MCP SDK client, so it talks to the server exactly as an AI agent would. No Playwright MCP is involved: Playwright is only the test runner.
+This is how the package's own test suite calls the server (see [`tests/regression/audits.spec.js`](../tests/regression/audits.spec.js)). It uses the official MCP SDK client, so it talks to the server exactly as an AI agent would. No Playwright MCP is involved: Playwright is only the test runner.
 
 ```js
 import { test, expect } from '@playwright/test';
@@ -764,7 +857,7 @@ cd cli
 npx @modelcontextprotocol/inspector node mcp-server.js
 ```
 
-To configure in Claude Desktop (or `.mcp.json`), add the following to your `mcpServers` configuration:
+To use the server from an AI client, add this entry to the client's `mcpServers` configuration:
 ```json
 {
   "mcpServers": {
@@ -775,50 +868,17 @@ To configure in Claude Desktop (or `.mcp.json`), add the following to your `mcpS
   }
 }
 ```
+Use the **absolute** path of `cli/mcp-server.js` in your copy of the repository. On Windows write it with forward slashes (`C:/Users/you/wick-ag-lens/cli/mcp-server.js`) or doubled backslashes. If you installed the package from npm instead, use this entry, which needs no path: `"command": "npx", "args": ["-y", "--package=wick-ag-lens", "wick-mcp"]`.
 
----
+Where the entry goes depends on the client:
 
-## AI Agent Skill Setup (`SKILL.md`)
+| Client | Where | Notes |
+| :-- | :-- | :-- |
+| **Claude Desktop** | `claude_desktop_config.json`: Windows `%APPDATA%\Claude\`, macOS `~/Library/Application Support/Claude/` | In the app: **Settings → Developer → Edit Config** opens the file's folder. Create the file if it does not exist, and **restart Claude Desktop** after saving. |
+| **Claude Code** | `.mcp.json` in your project's root folder (create it), or run `claude mcp add wick-ag-lens -- node /absolute/path/to/wick-ag-lens/cli/mcp-server.js` | `.mcp.json` is meant to be committed so the whole team gets the server; Claude Code asks for approval the first time it sees it. |
+| **Cursor** | `.cursor/mcp.json` in the project, or `~/.cursor/mcp.json` for all projects | Same `mcpServers` block. |
 
-WICK-AG-Lens includes a portable, token-efficient **Agent Skill** (`skills/wick-ag-lens/SKILL.md`) that teaches AI coding assistants how to orchestrate **WICK-AG-Lens MCP/CLI**, **`agent-browser`**, and **Playwright MCP** while preventing Base64 screenshot bloat and noisy informative payloads from exhausting context windows.
-
-### How the Skill Routes Tasks
-* **Tier 1 — Direct WICK-AG-Lens MCP (Fastest):** Used when target URLs and CSS selectors (including login forms) are known, passing authentication steps directly into `audit_baseline` and chaining `interact_and_diff`.
-* **Tier 2 — `agent-browser` CLI + WICK-AG-Lens (Token-Efficient Scouting):** Used in terminal-enabled environments when exploring unfamiliar SPAs—scouting with compact `@e` accessibility snapshots (~70% fewer tokens than Playwright MCP), exporting session state via `agent-browser state save`, and handing off to WICK-AG-Lens for deep DOM delta audits.
-* **Tier 3 — Playwright MCP + WICK-AG-Lens MCP (Sandboxed Fallback):** Used in environments without shell access (such as Claude Desktop) when dynamic page discovery is needed before running WICK-AG-Lens audits.
-
-### Option 1: Install via Skills CLI (Recommended)
-Run the following command in your project or global environment to install the skill automatically across supported AI tools:
-```bash
-npx skills add sclavijosuero/wick-ag-lens
-```
-
-### Option 2: Copy from the npm Package or Repository
-If you installed `wick-ag-lens` via npm, the skill file is bundled directly inside the package at:
-```text
-node_modules/wick-ag-lens/skills/wick-ag-lens/SKILL.md
-```
-Copy `SKILL.md` into your AI assistant's skills directory:
-* **Claude Code (Global):** `~/.claude/skills/wick-ag-lens/SKILL.md` (or `%USERPROFILE%\.claude\skills\wick-ag-lens\SKILL.md` on Windows)
-* **Project-Scoped (Claude Code / Cursor / Copilot / Codex):** `.claude/skills/wick-ag-lens/SKILL.md` or `.agents/skills/wick-ag-lens/SKILL.md`
-
-### Recommended Multi-Tool MCP Configuration
-When pairing `wick-ag-lens` with `agent-browser` and Playwright MCP, keep `agent-browser` out of `mcpServers` (it runs via CLI with zero upfront schema tokens) and pass `--caps=core` to Playwright MCP to minimize tool schema overhead:
-```json
-{
-  "mcpServers": {
-    "wick-ag-lens": {
-      "command": "npx",
-      "args": ["-y", "--package=wick-ag-lens", "wick-mcp"]
-    },
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest", "--headless", "--caps=core"]
-    }
-  }
-}
-```
-*(In VS Code, you can run this directly via the **Claude Code** extension or integrated terminal without needing the web console, and inspect exact token usage per MCP server and skill using `/context` or `/cost`.)*
+Other MCP clients (Windsurf, Cline, ...) use the same `mcpServers` block in their own settings file; check the client's documentation for its location. After restarting the client, the tools `audit_baseline`, `interact_and_diff` and `get_audit_trail` should appear in its list of MCP tools.
 
 ---
 
@@ -867,8 +927,75 @@ If your AI agent uses a general-purpose browser automation MCP server (such as t
 
 **Example Handoff Workflow (MCP):**
 * *AI Action 1 (Playwright MCP):* `browser_navigate(url: "https://shop.example.com")`
-* *AI Action 2 (Playwright MCP):* Authenticate and export storage state to `state.json`.
+* *AI Action 2 (Playwright MCP):* Authenticate, then export the storage state to `state.json` with `browser_storage_state(filename: "state.json")` (requires Playwright MCP's `--caps=storage`).
 * *AI Action 3 (WICK-AG-Lens MCP):* `audit_baseline(url: "https://shop.example.com/dashboard", authState: "state.json")`
+
+**Example Workflow (Playwright MCP + WICK-AG-Lens MCP):** the same login as the `agent-browser` example above. These are **not terminal commands**: they are the tool calls an AI client (Claude Code, Claude Desktop, Cursor...) that has both MCP servers configured makes when you ask it, in plain words, to log in and audit the dashboard. In order:
+```text
+# 1. Authenticate via Playwright MCP
+browser_navigate(url: "https://shop.example.com/login")
+browser_snapshot()
+#   Lists the page's elements, each with a ref (yours will differ):
+#     textbox "Email" [ref=e12]   textbox "Password" [ref=e15]   button "Sign in" [ref=e18]
+browser_fill_form(fields: [
+  { name: "Email",    type: "textbox", ref: "e12", value: "jdoe@example.com" },
+  { name: "Password", type: "textbox", ref: "e15", value: "<password from your secret store>" }
+])
+browser_click(element: "Sign in button", ref: "e18")
+browser_wait_for(text: "Dashboard")
+
+# 2. Export the authenticated session (cookies & localStorage) to state.json
+#    Needs the Playwright MCP "storage" capability (start it with --caps=storage); it is not on by default.
+browser_storage_state(filename: "state.json")
+
+# 3. Hand off the session to WICK-AG-Lens MCP
+audit_baseline(url: "https://shop.example.com/dashboard", authState: "state.json",
+               wcagVersions: ["2.0", "2.1"], wcagLevels: ["A", "AA"])
+```
+
+---
+
+## AI Agent Skill Setup (`SKILL.md`)
+
+WICK-AG-Lens includes a portable, token-efficient **Agent Skill** (`skills/wick-ag-lens/SKILL.md`) that teaches AI coding assistants how to orchestrate **WICK-AG-Lens MCP/CLI**, **`agent-browser`**, and **Playwright MCP** while preventing Base64 screenshot bloat and noisy informative payloads from exhausting context windows.
+
+### How the Skill Routes Tasks
+* **Tier 1 — Direct WICK-AG-Lens MCP (Fastest):** Used when target URLs and CSS selectors (including login forms) are known, passing authentication steps directly into `audit_baseline` and chaining `interact_and_diff`.
+* **Tier 2 — `agent-browser` CLI + WICK-AG-Lens (Token-Efficient Scouting):** Used in terminal-enabled environments when exploring unfamiliar SPAs—scouting with compact `@e` accessibility snapshots (fewer tokens than Playwright MCP: about 35% in [our benchmark](../tests/benchmark/reports/guided-2026-11-25.md), 15 steps, 5 runs each; it varies with page size, task length and tool versions), exporting session state via `agent-browser state save`, and handing off to WICK-AG-Lens for deep DOM delta audits.
+* **Tier 3 — Playwright MCP + WICK-AG-Lens MCP (Sandboxed Fallback):** Used in environments without shell access (such as Claude Desktop) when dynamic page discovery is needed before running WICK-AG-Lens audits.
+
+### Option 1: Install via Skills CLI (Recommended)
+Run the following command in your project or global environment to install the skill automatically across supported AI tools:
+```bash
+npx skills add sclavijosuero/wick-ag-lens
+```
+
+### Option 2: Copy from the npm Package or Repository
+If you installed `wick-ag-lens` via npm, the skill file is bundled directly inside the package at:
+```text
+node_modules/wick-ag-lens/skills/wick-ag-lens/SKILL.md
+```
+Copy `SKILL.md` into your AI assistant's skills directory:
+* **Claude Code (Global):** `~/.claude/skills/wick-ag-lens/SKILL.md` (or `%USERPROFILE%\.claude\skills\wick-ag-lens\SKILL.md` on Windows)
+* **Project-Scoped (Claude Code / Cursor / Copilot / Codex):** `.claude/skills/wick-ag-lens/SKILL.md` or `.agents/skills/wick-ag-lens/SKILL.md`
+
+### Recommended Multi-Tool MCP Configuration
+When pairing `wick-ag-lens` with `agent-browser` and Playwright MCP, keep `agent-browser` out of `mcpServers` (it runs via CLI with zero upfront schema tokens) and pass `--caps=core,storage` to Playwright MCP: `core` keeps the tool schema small, and `storage` adds the `browser_storage_state` tool, which exports the session for the [Playwright MCP handoff](#integrating-with-third-party-playwright-mcp-servers). If you never hand a session off from Playwright MCP, use `--caps=core`:
+```json
+{
+  "mcpServers": {
+    "wick-ag-lens": {
+      "command": "npx",
+      "args": ["-y", "--package=wick-ag-lens", "wick-mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless", "--caps=core,storage"]
+    }
+  }
+}
+```
+*(In VS Code, you can run this directly via the **Claude Code** extension or integrated terminal without needing the web console, and inspect exact token usage per MCP server and skill using `/context` or `/cost`.)*
 
 ---
 

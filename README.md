@@ -9,6 +9,7 @@ Designed for modern web applications, WICK-AG-Lens features a real-time sync eng
 
 &nbsp;
 ![WICK-AG-Lens: Accessibility Inspector overview features](extension/assets/images/overview.png)
+
 [![npm version](https://img.shields.io/npm/v/wick-ag-lens.svg)](https://www.npmjs.com/package/wick-ag-lens)
 &nbsp;
 
