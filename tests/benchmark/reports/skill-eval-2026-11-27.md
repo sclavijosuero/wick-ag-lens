@@ -10,7 +10,7 @@ What does the same job cost on different models, and which route does the skill 
 
 ### Conditions
 - **Task:** audit the benchmark shop (`bench-shop`) through a purchase journey that ends with an invalid email at checkout.
-- **Held the same in all 9 runs:** the skill (`skills/wick-ag-lens/SKILL.md`, frozen, sha256 `883405bd...ac0e`), the prompt, the shop and its login.
+- **Held the same in all 9 runs:** the skill (`skills/wick-ag-lens/SKILL.md`, frozen, sha256 `883405bd...ac0e`), the prompt, the shop and its login. After the runs, one sentence of the skill was reworded to say that the "about 35% fewer tokens" figure comes from the two browsing tools alone, without the skill (file now sha256 `8b6e92ba...59ea`). No routing or output rule changed.
 - **How they ran:** one at a time, as in-session subagents.
 - **What the agents were told:** to read the skill file, and nothing about which route to take.
 

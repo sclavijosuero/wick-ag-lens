@@ -39,7 +39,7 @@ Use this first whenever the target URL and CSS selectors (including login forms)
 
 ### Tier 2: `agent-browser` CLI + WICK-AG-Lens (Best for Unknown SPAs & Complex Auth)
 When bash/terminal access is available and selectors are unknown or require dynamic exploration:
-1. **Scout & Authenticate with `agent-browser`:** Use `agent-browser` CLI commands (`open`, `snapshot -i`, `click @e1`, `fill @e2 "..."`), `agent-browser auth login <profile>`, or `agent-browser --auto-connect` to navigate and authenticate using compact `@e` accessibility-tree references (fewer tokens than Playwright MCP: about 35% in our benchmark of a 15-step journey; it varies with page size and task length).
+1. **Scout & Authenticate with `agent-browser`:** Use `agent-browser` CLI commands (`open`, `snapshot -i`, `click @e1`, `fill @e2 "..."`), `agent-browser auth login <profile>`, or `agent-browser --auto-connect` to navigate and authenticate using compact `@e` accessibility-tree references (fewer tokens than Playwright MCP: about 35% in our benchmark of the two browsing tools alone, without this skill, on a 15-step journey; it varies with page size and task length).
 2. **Hand Off to WICK-AG-Lens:**
    - Export session state via `agent-browser state save ./auth-state.json`, then call `wick-ag-lens:audit_baseline` with `authState: "./auth-state.json"` (or CLI `-a ./auth-state.json`) to run the deep deterministic DOM audit.
    - *Blind-Spot Fallback:* If `agent-browser` cannot see an interactive element because it lacks ARIA roles/labels, run `wick-ag-lens:audit_baseline` on that URL to extract the raw `selector` and `htmlSnippet` of the unlabeled element.
